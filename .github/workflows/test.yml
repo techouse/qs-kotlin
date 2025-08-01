@@ -1,5 +1,8 @@
 name: test
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:
@@ -7,6 +10,7 @@ on:
   pull_request:
     branches:
       - main
+  workflow_call:
 
 concurrency:
   group: test-${{ github.ref }}
