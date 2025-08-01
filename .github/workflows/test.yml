@@ -70,7 +70,7 @@ jobs:
         run: ./gradlew :qs-kotlin:clean :qs-kotlin:test :qs-kotlin:jacocoTestReport --stacktrace
 
       - name: Upload test results
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: qs-kotlin/build/reports/jacoco/jacocoTestReport/jacoco.xml
           flags: jvm,java-${{ matrix.java }}
