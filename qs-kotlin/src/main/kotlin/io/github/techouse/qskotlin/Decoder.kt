@@ -46,7 +46,8 @@ internal object Decoder {
      * @param options The decoding options that affect how the string is parsed.
      * @return A mutable map containing the parsed key-value pairs.
      * @throws IllegalArgumentException if the parameter limit is not a positive integer.
-     * @throws IndexOutOfBoundsException if the parameter limit is exceeded and `throwOnLimitExceeded` is true.
+     * @throws IndexOutOfBoundsException if the parameter limit is exceeded and
+     *   `throwOnLimitExceeded` is true.
      */
     internal fun parseQueryStringValues(
         str: String,
@@ -277,8 +278,8 @@ internal object Decoder {
     }
 
     /**
-     * Regular expression to match dots followed by non-dot and non-bracket characters.
-     * This is used to replace dots in keys with brackets for parsing.
+     * Regular expression to match dots followed by non-dot and non-bracket characters. This is used
+     * to replace dots in keys with brackets for parsing.
      */
     private val DOT_TO_BRACKET = Regex("""\.([^.\[]+)""")
 

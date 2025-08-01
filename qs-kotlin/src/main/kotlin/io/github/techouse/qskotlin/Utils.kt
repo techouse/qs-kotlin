@@ -585,8 +585,8 @@ internal object Utils {
 
     /**
      * Checks if a value is a non-nullish primitive type. A non-nullish primitive is defined as a
-     * String, Number, Boolean, Enum, Instant, LocalDateTime, or URI. If `skipNulls` is true, empty Strings
-     * and URIs are also considered non-nullish.
+     * String, Number, Boolean, Enum, Instant, LocalDateTime, or URI. If `skipNulls` is true, empty
+     * Strings and URIs are also considered non-nullish.
      *
      * @param value The value to check.
      * @param skipNulls If true, empty Strings and URIs are not considered non-nullish.
