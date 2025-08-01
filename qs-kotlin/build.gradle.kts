@@ -3,6 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     kotlin("jvm")
+    id("com.ncorti.ktfmt.gradle") version "0.23.0"
     `maven-publish`
 }
 
@@ -26,6 +27,8 @@ dependencies {
 }
 
 tasks.test { useJUnitPlatform() }
+
+ktfmt { kotlinLangStyle() }
 
 publishing {
     publications {
