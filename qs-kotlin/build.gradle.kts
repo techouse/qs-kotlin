@@ -1,6 +1,6 @@
+import org.gradle.testing.jacoco.tasks.JacocoReport
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
     kotlin("jvm")
@@ -33,7 +33,9 @@ tasks.register<JacocoReport>("jacocoJvmReport") {
         xml.required.set(true)
         html.required.set(true)
         html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/jacocoJvmReport/html"))
-        xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/jacocoJvmReport/jacoco.xml"))
+        xml.outputLocation.set(
+            layout.buildDirectory.file("reports/jacoco/jacocoJvmReport/jacoco.xml")
+        )
     }
     classDirectories.setFrom(files(layout.buildDirectory.dir("classes/kotlin/main")))
     sourceDirectories.setFrom(files("src/main/kotlin"))
