@@ -1,0 +1,107 @@
+name: test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  style:
+    name: Code style (ktfmt) + Gradle cache
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle (with caching)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run ktfmtCheck (qs-kotlin)
+        run: ./gradlew :qs-kotlin:ktfmtCheck --stacktrace
+
+  jvm-tests:
+    name: JVM tests (Java ${{ matrix.java }})
+    runs-on: ubuntu-latest
+    needs: style
+    strategy:
+      fail-fast: false
+      matrix:
+        java:
+          - '17'
+          - '21'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+
+      - name: Setup Gradle (with caching)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run JVM tests
+        run: ./gradlew :qs-kotlin:clean :qs-kotlin:test :qs-kotlin:jacocoTestReport --stacktrace
+
+      - name: Upload test results
+        uses: codecov/codecov-action@v4
+        with:
+          files: qs-kotlin/build/reports/jacoco/jacocoTestReport/jacoco.xml
+          flags: jvm,java-${{ matrix.java }}
+          name: qs-kotlin-jvm-${{ matrix.java }}
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  android-aar:
+    name: Android AAR (AGP) + unit tests
+    runs-on: ubuntu-latest
+    needs: style
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v2
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 35
+          build-tools: '35.0.0'
+          ndk: 'none'
+
+      - name: Setup Gradle (with caching)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble AAR + run unit tests
+        run: |
+          ./gradlew :qs-kotlin-android:assembleRelease :qs-kotlin-android:testReleaseUnitTest --stacktrace
