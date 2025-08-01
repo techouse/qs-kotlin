@@ -1,13 +1,17 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.gradle.testing.jacoco.tasks.JacocoReport
 
 plugins {
     kotlin("jvm")
     id("com.ncorti.ktfmt.gradle") version "0.23.0"
+    id("jacoco")
     `maven-publish`
 }
 
 java { toolchain.languageVersion.set(JavaLanguageVersion.of(17)) }
+
+jacoco { toolVersion = "0.8.13" }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions.apply {
@@ -16,6 +20,24 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
         languageVersion.set(KotlinVersion.KOTLIN_2_0)
         apiVersion.set(KotlinVersion.KOTLIN_2_0)
     }
+}
+
+tasks.test {
+    useJUnitPlatform()
+    finalizedBy("jacocoJvmReport")
+}
+
+tasks.register<JacocoReport>("jacocoJvmReport") {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/jacocoJvmReport/html"))
+        xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/jacocoJvmReport/jacoco.xml"))
+    }
+    classDirectories.setFrom(files(layout.buildDirectory.dir("classes/kotlin/main")))
+    sourceDirectories.setFrom(files("src/main/kotlin"))
+    executionData.setFrom(files(layout.buildDirectory.file("jacoco/test.exec")))
 }
 
 repositories { mavenCentral() }
