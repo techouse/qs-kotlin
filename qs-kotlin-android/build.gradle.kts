@@ -4,9 +4,6 @@ plugins {
     `maven-publish`
 }
 
-group = "io.github.techouse"
-version = "1.0.0"
-
 repositories {
     google()
     mavenCentral()
@@ -14,8 +11,8 @@ repositories {
 
 android {
     namespace = "io.github.techouse.qskotlin.android"
-    compileSdk = 34
-    defaultConfig { minSdk = 21 }
+    compileSdk = 35
+    defaultConfig { minSdk = 25 }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

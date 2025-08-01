@@ -6,10 +6,6 @@ plugins {
     `maven-publish`
 }
 
-group = "io.github.techouse"
-
-version = "1.0.0"
-
 java { toolchain.languageVersion.set(JavaLanguageVersion.of(17)) }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {

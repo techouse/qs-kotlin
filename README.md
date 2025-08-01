@@ -1,37 +1,82 @@
 # qs-kotlin
 
-A query string encoding and decoding library for Kotlin/JVM.
+A fast, fully-tested **query string encoder/decoder** for **Kotlin/JVM**, ported from the well-known JavaScript library [`qs`](https://github.com/ljharb/qs).  
+This repo provides:
 
-Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
+- **`qs-kotlin`** – the core JVM library (Jar)
+- **`qs-kotlin-android`** – a thin Android AAR wrapper that re-exports the same API
 
-- Fully supports nested maps and lists
+> If you only target the JVM (including Android projects that are fine with a plain Jar), just use `qs-kotlin`. The Android wrapper is provided for teams that prefer an AAR coordinate and AGP metadata.
+
+---
+
+## Highlights
+
+- Nested maps and lists: `foo[bar][baz]=qux` ⇄ `{ foo: { bar: { baz: "qux" } } }`
 - Multiple list formats (indices, brackets, repeat, comma)
-- Dot-notation support (opt-in)
-- Charset handling (UTF-8, ISO-8859-1 + “utf8=✓” sentinel)
-- Custom encoders/decoders, filters, and sorters
-- Strict/null handling options
+- Dot-notation support (`a.b=c`) and `"."`-encoding toggles
+- UTF-8 and ISO-8859-1 charsets, plus optional charset sentinel (`utf8=✓`)
+- Custom encoders/decoders, key sorting, filtering, and strict null handling
+- Supports `LocalDateTime`/`Instant` serialization via a pluggable serializer
+- Extensive tests (Kotest), performance-minded implementation
+
+---
+
+## Installation
+
+### JVM (Jar)
+
+```kotlin
+dependencies {
+    implementation("io.github.techouse:qs-kotlin:<version>")
+}
+```
+
+### Android (AAR wrapper)
+
+```kotlin
+dependencies {
+    implementation("io.github.techouse:qs-kotlin-android:<version>")
+}
+```
+
+> The Android AAR depends on Java 17 APIs. If your app’s `minSdk < 26` and you use `java.time` transitively, enable **core library desugaring** in your app:
+
+```kotlin
+android {
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
+    }
+}
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+}
+```
+
+---
+
+## Requirements
+
+- Kotlin **2.0.20+**
+- Java **17+**
+- Android wrapper: AGP **8.5+**, `compileSdk 34`, `minSdk 21`
 
 ---
 
 ## Quick start
 
-**Gradle (Kotlin DSL)**
-
-```kotlin
-repositories { mavenCentral() }
-
-dependencies {
-    implementation("io.github.techouse:qs-kotlin:<latest>")
-}
-```
-
-**Imports**
-
 ```kotlin
 import io.github.techouse.qskotlin.QS
-import io.github.techouse.qskotlin.models.DecodeOptions
-import io.github.techouse.qskotlin.models.EncodeOptions
-import io.github.techouse.qskotlin.enums.*
+
+// Decode
+val obj = QS.decode("foo[bar]=baz&foo[list][]=a&foo[list][]=b")
+// -> mapOf("foo" to mapOf("bar" to "baz", "list" to listOf("a", "b")))
+
+// Encode
+val qs = QS.encode(mapOf("foo" to mapOf("bar" to "baz")))
+// -> "foo%5Bbar%5D=baz"
 ```
 
 ---
