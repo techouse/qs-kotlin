@@ -1,4 +1,13 @@
-plugins {
-    id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
 }
-rootProject.name = "qt-kotlin"
+
+plugins { id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0" }
+
+rootProject.name = "qs-kotlin"
+
+include(":qs-kotlin", ":qs-kotlin-android")

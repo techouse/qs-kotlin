@@ -1109,22 +1109,22 @@ class EncodeSpec :
                 val p2 = mapOf("function" to "lte", "arguments" to listOf(hourOfDay, 23))
 
                 QS.encode(
-                    mapOf("filters" to mapOf($$"$and" to listOf(p1, p2))),
+                    mapOf("filters" to mapOf("\$and" to listOf(p1, p2))),
                     EncodeOptions(encodeValuesOnly = true, listFormat = ListFormat.INDICES),
                 ) shouldBe
-                    $$"filters[$and][0][function]=gte&filters[$and][0][arguments][0][function]=hour_of_day&filters[$and][0][arguments][1]=0&filters[$and][1][function]=lte&filters[$and][1][arguments][0][function]=hour_of_day&filters[$and][1][arguments][1]=23"
+                    "filters[\$and][0][function]=gte&filters[\$and][0][arguments][0][function]=hour_of_day&filters[\$and][0][arguments][1]=0&filters[\$and][1][function]=lte&filters[\$and][1][arguments][0][function]=hour_of_day&filters[\$and][1][arguments][1]=23"
 
                 QS.encode(
                     mapOf("filters" to mapOf("\$and" to listOf(p1, p2))),
                     EncodeOptions(encodeValuesOnly = true, listFormat = ListFormat.BRACKETS),
                 ) shouldBe
-                    $$"filters[$and][][function]=gte&filters[$and][][arguments][][function]=hour_of_day&filters[$and][][arguments][]=0&filters[$and][][function]=lte&filters[$and][][arguments][][function]=hour_of_day&filters[$and][][arguments][]=23"
+                    "filters[\$and][][function]=gte&filters[\$and][][arguments][][function]=hour_of_day&filters[\$and][][arguments][]=0&filters[\$and][][function]=lte&filters[\$and][][arguments][][function]=hour_of_day&filters[\$and][][arguments][]=23"
 
                 QS.encode(
-                    mapOf("filters" to mapOf($$"$and" to listOf(p1, p2))),
+                    mapOf("filters" to mapOf("\$and" to listOf(p1, p2))),
                     EncodeOptions(encodeValuesOnly = true, listFormat = ListFormat.REPEAT),
                 ) shouldBe
-                    $$"filters[$and][function]=gte&filters[$and][arguments][function]=hour_of_day&filters[$and][arguments]=0&filters[$and][function]=lte&filters[$and][arguments][function]=hour_of_day&filters[$and][arguments]=23"
+                    "filters[\$and][function]=gte&filters[\$and][arguments][function]=hour_of_day&filters[\$and][arguments]=0&filters[\$and][function]=lte&filters[\$and][arguments][function]=hour_of_day&filters[\$and][arguments]=23"
             }
 
             it("selects properties when filter = IterableFilter") {
