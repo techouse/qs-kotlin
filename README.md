@@ -4,6 +4,13 @@ A query string encoding and decoding library for Android and Kotlin/JVM.
 
 Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
 
+[![Test](https://github.com/techouse/qs-kotlin/actions/workflows/test.yml/badge.svg)](https://github.com/techouse/qs-kotlin/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/techouse/qs-kotlin/graph/badge.svg?token=ClCDNcsxqQ)](https://codecov.io/gh/techouse/qs-kotlin)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/4e9ab7e1fe40412bb3f7709a7d3fff23)](https://app.codacy.com/gh/techouse/qs-kotlin/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
+[![GitHub](https://img.shields.io/github/license/techouse/qs-kotlin)](LICENSE)
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/techouse)](https://github.com/sponsors/techouse)
+[![GitHub Repo stars](https://img.shields.io/github/stars/techouse/qs-kotlin)](https://github.com/techouse/qs-kotlin/stargazers)
+
 This repo provides:
 
 - **`qs-kotlin`** – the core JVM library (Jar)

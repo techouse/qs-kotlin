@@ -10,7 +10,7 @@ import io.kotest.matchers.shouldBe
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.ZoneOffset
 
 class ExampleSpec :
     DescribeSpec({
@@ -345,16 +345,17 @@ class ExampleSpec :
             }
 
             it("can serialize DateTime objects") {
-                val date = LocalDateTime.ofInstant(Instant.ofEpochMilli(7), ZoneId.systemDefault())
+                val date = LocalDateTime.ofInstant(Instant.ofEpochMilli(7), ZoneOffset.UTC)
+
                 QS.encode(mapOf("a" to date), EncodeOptions(encode = false)) shouldBe
-                    "a=1970-01-01T01:00:00.007"
+                    "a=1970-01-01T00:00:00.007"
 
                 QS.encode(
                     mapOf("a" to date),
                     EncodeOptions(
                         encode = false,
                         dateSerializer = { d ->
-                            (d.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()).toString()
+                            d.atZone(ZoneOffset.UTC).toInstant().toEpochMilli().toString()
                         },
                     ),
                 ) shouldBe "a=7"
