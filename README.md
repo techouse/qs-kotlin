@@ -1,6 +1,9 @@
 # qs-kotlin
 
-A fast, fully-tested **query string encoder/decoder** for **Kotlin/JVM**, ported from the well-known JavaScript library [`qs`](https://github.com/ljharb/qs).  
+A query string encoding and decoding library for Android and Kotlin/JVM.
+
+Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
+
 This repo provides:
 
 - **`qs-kotlin`** – the core JVM library (Jar)
