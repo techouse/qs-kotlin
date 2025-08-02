@@ -5,6 +5,7 @@ plugins {
     kotlin("android")
     id("com.android.library")
     `maven-publish`
+    signing
 }
 
 android {
