@@ -7,7 +7,6 @@ plugins {
     id("com.ncorti.ktfmt.gradle") version "0.23.0"
     jacoco
     `maven-publish`
-    signing
 }
 
 java {
