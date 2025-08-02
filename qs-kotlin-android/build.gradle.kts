@@ -42,7 +42,9 @@ afterEvaluate {
 
                 pom {
                     name.set("qs-kotlin-android")
-                    description.set("Android (AAR) wrapper for qs-kotlin — query string encoding/decoding ported from qs (JS).")
+                    description.set(
+                        "Android (AAR) wrapper for qs-kotlin — query string encoding/decoding ported from qs (JS)."
+                    )
                     url.set("https://github.com/techouse/qs-kotlin")
                     licenses {
                         license {
@@ -53,12 +55,16 @@ afterEvaluate {
                     scm {
                         url.set("https://github.com/techouse/qs-kotlin")
                         connection.set("scm:git:https://github.com/techouse/qs-kotlin.git")
-                        developerConnection.set("scm:git:ssh://git@github.com/techouse/qs-kotlin.git")
+                        developerConnection.set(
+                            "scm:git:ssh://git@github.com/techouse/qs-kotlin.git"
+                        )
                     }
                     developers {
                         developer {
-                            id.set("techouse"); name.set("Klemen Tusar")
-                            email.set("techouse@gmail.com"); url.set("https://github.com/techouse")
+                            id.set("techouse")
+                            name.set("Klemen Tusar")
+                            email.set("techouse@gmail.com")
+                            url.set("https://github.com/techouse")
                         }
                     }
                 }
@@ -66,7 +72,5 @@ afterEvaluate {
         }
     }
 
-    signing {
-        sign(publishing.publications)
-    }
+    signing { sign(publishing.publications) }
 }
