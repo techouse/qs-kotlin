@@ -1231,6 +1231,25 @@ class UriSpec :
                 createTestUri(linkedMapOf("first" to "1", "second" to "2", "third" to "3"))
                     .toStringQs() shouldBe "$testUrl?first=1&second=2&third=3"
             }
+
+            test("handles URIs with port numbers") {
+                val uriWithPort = URI.create("https://example.com:8080/path?a=b&c=d")
+                uriWithPort.toStringQs() shouldBe "https://example.com:8080/path?a=b&c=d"
+
+                val uriWithCustomPort = URI.create("http://localhost:3000/api")
+                uriWithCustomPort.toStringQs() shouldBe "http://localhost:3000/api"
+
+                val uriWithPortAndQuery =
+                    URI.create("https://test.example.com:9090/endpoint?key=value")
+                uriWithPortAndQuery.toStringQs() shouldBe
+                    "https://test.example.com:9090/endpoint?key=value"
+
+                // Test with non-standard port
+                val uriWithNonStandardPort =
+                    URI.create("ftp://files.example.com:2121/download?file=test.zip")
+                uriWithNonStandardPort.toStringQs() shouldBe
+                    "ftp://files.example.com:2121/download?file=test.zip"
+            }
         }
     })
 
