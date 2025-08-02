@@ -101,10 +101,7 @@ jobs:
         with:
           accept-android-sdk-licenses: true
           log-accepted-android-sdk-licenses: true
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
+          packages: 'platform-tools'
 
       - name: Setup Gradle (with caching)
         uses: gradle/actions/setup-gradle@v4
