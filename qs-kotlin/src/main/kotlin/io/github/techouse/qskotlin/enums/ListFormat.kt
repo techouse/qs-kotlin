@@ -17,5 +17,5 @@ enum class ListFormat(val generator: ListFormatGenerator) {
      * Use indices in brackets to represent list items, for example
      * `foo[0]=123&foo[1]=456&foo[2]=789`
      */
-    INDICES({ prefix: String, key: String? -> "$prefix[$key]" });
+    INDICES({ prefix: String, key: String? -> "$prefix[$key]" }),
 }

@@ -9,5 +9,5 @@ enum class Duplicates {
     FIRST,
 
     /** Use the last value for duplicate keys. */
-    LAST;
+    LAST,
 }

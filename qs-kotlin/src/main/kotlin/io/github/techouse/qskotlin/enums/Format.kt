@@ -8,5 +8,5 @@ enum class Format(val formatter: Formatter) {
     RFC3986({ value: String -> value }),
 
     /** RFC 1738 format https://datatracker.ietf.org/doc/html/rfc1738 */
-    RFC1738({ value: String -> value.replace("%20", "+") });
+    RFC1738({ value: String -> value.replace("%20", "+") }),
 }
