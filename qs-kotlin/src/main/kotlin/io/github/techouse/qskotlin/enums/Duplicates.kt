@@ -10,6 +10,4 @@ enum class Duplicates {
 
     /** Use the last value for duplicate keys. */
     LAST;
-
-    override fun toString(): String = name
 }

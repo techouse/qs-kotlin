@@ -9,6 +9,4 @@ enum class Format(val formatter: Formatter) {
 
     /** RFC 1738 format https://datatracker.ietf.org/doc/html/rfc1738 */
     RFC1738({ value: String -> value.replace("%20", "+") });
-
-    override fun toString(): String = name
 }

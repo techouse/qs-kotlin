@@ -18,6 +18,4 @@ enum class ListFormat(val generator: ListFormatGenerator) {
      * `foo[0]=123&foo[1]=456&foo[2]=789`
      */
     INDICES({ prefix: String, key: String? -> "$prefix[$key]" });
-
-    override fun toString(): String = name
 }
