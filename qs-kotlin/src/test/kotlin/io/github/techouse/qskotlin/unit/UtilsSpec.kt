@@ -9,6 +9,8 @@ import io.kotest.matchers.maps.shouldContainKey
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.kotest.matchers.types.shouldNotBeSameInstanceAs
+import java.net.URI
+import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 
 class UtilsSpec :
@@ -130,6 +132,25 @@ class UtilsSpec :
             test("handles special characters") {
                 Utils.encode("~._-") shouldBe "~._-"
                 Utils.encode("!@#\$%^&*()") shouldBe "%21%40%23%24%25%5E%26%2A%28%29"
+            }
+
+            test("latin1 encodes characters as numeric entities when not representable") {
+                val out = Utils.encode("☺", StandardCharsets.ISO_8859_1, Format.RFC3986)
+                out shouldBe "a=%26%239786%3B".removePrefix("a=") // value-only expectation
+            }
+
+            test("RFC1738 leaves parentheses unescaped") {
+                val out = Utils.encode("()", StandardCharsets.UTF_8, Format.RFC1738)
+                out shouldBe "()"
+            }
+
+            test("encodes surrogate pairs (emoji) correctly") {
+                Utils.encode("😀") shouldBe "%F0%9F%98%80"
+            }
+
+            test("encodes ByteArray and ByteBuffer") {
+                Utils.encode("ä".toByteArray(StandardCharsets.UTF_8)) shouldBe "%C3%A4"
+                Utils.encode(ByteBuffer.wrap("hi".toByteArray())) shouldBe "hi"
             }
         }
 
@@ -338,6 +359,12 @@ class UtilsSpec :
                 val hugeString = "%E4%F6%FC".repeat(1000000)
                 Utils.unescape(hugeString) shouldBe "äöü".repeat(1000000)
             }
+
+            test("leaves trailing '%' literal when incomplete escape") {
+                Utils.unescape("%") shouldBe "%"
+            }
+            test("leaves incomplete %uXXXX literal") { Utils.unescape("%u12") shouldBe "%u12" }
+            test("handles bad hex after %") { Utils.unescape("%GZ") shouldBe "%GZ" }
         }
 
         context("Utils.merge") {
@@ -593,6 +620,11 @@ class UtilsSpec :
 
                 combined shouldBe listOf(1, 2)
             }
+
+            test("combine list and scalar preserves order") {
+                Utils.combine<String>(listOf("a"), "b") shouldBe listOf("a", "b")
+                Utils.combine<Int>(1, listOf(2, 3)) shouldBe listOf(1, 2, 3)
+            }
         }
 
         context("Utils.interpretNumericEntities") {
@@ -647,6 +679,26 @@ class UtilsSpec :
             test("out-of-range code points remain unchanged") {
                 // Max valid is 0x10FFFF (1114111). One above should be left as literal.
                 Utils.interpretNumericEntities("&#1114112;") shouldBe "&#1114112;"
+            }
+        }
+
+        context("Utils.apply") {
+            test("apply on scalar and list") {
+                Utils.apply<Int>(3) { it * 2 } shouldBe 6
+                Utils.apply<Int>(listOf(1, 2)) { it + 1 } shouldBe listOf(2, 3)
+            }
+        }
+
+        context("Utils.isNonNullishPrimitive and isEmpty") {
+            test("treats URI as primitive, honors skipNulls for empty string") {
+                Utils.isNonNullishPrimitive(URI("https://example.com")) shouldBe true
+                Utils.isNonNullishPrimitive("", skipNulls = true) shouldBe false
+            }
+        }
+
+        context("Utils.isEmpty") {
+            test("empty collections and maps") {
+                Utils.isEmpty(emptyMap<String, Any?>()) shouldBe true
             }
         }
     })

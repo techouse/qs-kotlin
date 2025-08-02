@@ -1850,6 +1850,59 @@ class EncodeSpec :
                     QS.encode(mapOf("a" to listOf(a, b))) shouldBe expected
                 }
             }
+
+            describe("Encoder cycle detection") {
+                it("throws on self-referential map") {
+                    val a = mutableMapOf<String, Any?>()
+                    a["self"] = a
+                    shouldThrow<IndexOutOfBoundsException> { QS.encode(mapOf("a" to a)) }
+                }
+
+                it("throws on self-referential list") {
+                    val l = mutableListOf<Any?>()
+                    l.add(l)
+                    shouldThrow<IndexOutOfBoundsException> { QS.encode(mapOf("l" to l)) }
+                }
+            }
+
+            describe("Encoder comma list tail paths") {
+                it("COMMA list with multiple elements returns a single scalar pair") {
+                    val out =
+                        QS.encode(
+                            mapOf("a" to listOf("x", "y")),
+                            EncodeOptions(encode = false, listFormat = ListFormat.COMMA),
+                        )
+                    out shouldBe "a=x,y"
+                }
+
+                it("COMMA list with single element and round-trip adds []") {
+                    val only = Instant.parse("2020-01-02T03:04:05Z")
+                    val out =
+                        QS.encode(
+                            mapOf("a" to listOf(only)),
+                            EncodeOptions(
+                                encode = false,
+                                listFormat = ListFormat.COMMA,
+                                commaRoundTrip = true,
+                            ),
+                        )
+                    out shouldBe "a[]=$only"
+                }
+
+                it("COMMA list with single element and round-trip disabled omits []") {
+                    val only = "v"
+                    val out =
+                        QS.encode(
+                            mapOf("a" to listOf(only)),
+                            EncodeOptions(
+                                encode = false,
+                                listFormat = ListFormat.COMMA,
+                                commaRoundTrip = false,
+                            ),
+                        )
+                    out shouldBe "a=v"
+                }
+            }
         }
     })
 
