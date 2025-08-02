@@ -1,25 +1,31 @@
-import org.gradle.testing.jacoco.tasks.JacocoReport
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-
 plugins {
     kotlin("jvm")
     id("com.ncorti.ktfmt.gradle") version "0.23.0"
-    id("jacoco")
+    jacoco
     `maven-publish`
+    signing
 }
 
-java { toolchain.languageVersion.set(JavaLanguageVersion.of(17)) }
+java {
+    toolchain.languageVersion.set(JavaLanguageVersion.of(17))
+    withSourcesJar()
+    withJavadocJar()
+}
 
 jacoco { toolVersion = "0.8.13" }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions.apply {
-        jvmTarget.set(JvmTarget.JVM_17)
-        // keep language/api at 2.0 for maximum consumer compatibility
-        languageVersion.set(KotlinVersion.KOTLIN_2_0)
-        apiVersion.set(KotlinVersion.KOTLIN_2_0)
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
+        apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
     }
+}
+
+dependencies {
+    testImplementation(platform("io.kotest:kotest-bom:5.9.1"))
+    testImplementation("io.kotest:kotest-runner-junit5")
+    testImplementation("io.kotest:kotest-assertions-core")
 }
 
 tasks.test {
@@ -42,16 +48,6 @@ tasks.register<JacocoReport>("jacocoJvmReport") {
     executionData.setFrom(files(layout.buildDirectory.file("jacoco/test.exec")))
 }
 
-repositories { mavenCentral() }
-
-dependencies {
-    testImplementation(platform("io.kotest:kotest-bom:5.9.1"))
-    testImplementation("io.kotest:kotest-runner-junit5")
-    testImplementation("io.kotest:kotest-assertions-core")
-}
-
-tasks.test { useJUnitPlatform() }
-
 ktfmt { kotlinLangStyle() }
 
 publishing {
@@ -61,10 +57,37 @@ publishing {
             pom {
                 name.set("qs-kotlin")
                 description.set(
-                    "A query string encoding and decoding library for Kotlin/JVM. Ported from qs for JavaScript."
+                    "A query string encoding and decoding library for Android and Kotlin/JVM. Ported from qs for JavaScript."
                 )
                 url.set("https://github.com/techouse/qs-kotlin")
+                licenses {
+                    license {
+                        name.set("BSD-3-Clause License")
+                        url.set("https://opensource.org/license/bsd-3-clause")
+                    }
+                }
+                scm {
+                    connection.set("scm:git:https://github.com/techouse/qs-kotlin.git")
+                    developerConnection.set("scm:git:ssh://git@github.com/techouse/qs-kotlin.git")
+                    url.set("https://github.com/techouse/qs-kotlin")
+                }
+                developers {
+                    developer {
+                        id.set("techouse")
+                        name.set("Klemen Tusar")
+                        email.set("techouse@gmail.com")
+                        url.set("https://github.com/techouse")
+                    }
+                }
             }
         }
     }
+}
+
+signing {
+    useInMemoryPgpKeys(
+        providers.gradleProperty("signingInMemoryKey").getOrElse(""),
+        providers.gradleProperty("signingInMemoryKeyPassword").getOrElse(""),
+    )
+    sign(publishing.publications)
 }

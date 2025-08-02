@@ -2,11 +2,7 @@ plugins {
     kotlin("android")
     id("com.android.library")
     `maven-publish`
-}
-
-repositories {
-    google()
-    mavenCentral()
+    signing
 }
 
 android {
@@ -21,7 +17,12 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 
-    publishing { singleVariant("release") }
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
 }
 
 dependencies {
@@ -34,15 +35,38 @@ afterEvaluate {
         publications {
             create<MavenPublication>("release") {
                 from(components["release"])
-                groupId = "io.github.techouse"
+
+                groupId = project.group.toString()
                 artifactId = "qs-kotlin-android"
                 version = project.version.toString()
+
                 pom {
                     name.set("qs-kotlin-android")
-                    description.set("Android (AAR) wrapper for qs-kotlin")
+                    description.set("Android (AAR) wrapper for qs-kotlin — query string encoding/decoding ported from qs (JS).")
                     url.set("https://github.com/techouse/qs-kotlin")
+                    licenses {
+                        license {
+                            name.set("BSD-3-Clause License")
+                            url.set("https://opensource.org/license/bsd-3-clause")
+                        }
+                    }
+                    scm {
+                        url.set("https://github.com/techouse/qs-kotlin")
+                        connection.set("scm:git:https://github.com/techouse/qs-kotlin.git")
+                        developerConnection.set("scm:git:ssh://git@github.com/techouse/qs-kotlin.git")
+                    }
+                    developers {
+                        developer {
+                            id.set("techouse"); name.set("Klemen Tusar")
+                            email.set("techouse@gmail.com"); url.set("https://github.com/techouse")
+                        }
+                    }
                 }
             }
         }
+    }
+
+    signing {
+        sign(publishing.publications)
     }
 }
