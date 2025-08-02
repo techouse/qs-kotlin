@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
 plugins {
     kotlin("android")
     id("com.android.library")
@@ -15,7 +18,16 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
         isCoreLibraryDesugaringEnabled = true
     }
-    kotlinOptions { jvmTarget = "17" }
+
+    kotlin {
+        jvmToolchain(17)
+
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+             languageVersion.set(KotlinVersion.KOTLIN_2_0)
+             apiVersion.set(KotlinVersion.KOTLIN_2_0)
+        }
+    }
 
     publishing {
         singleVariant("release") {

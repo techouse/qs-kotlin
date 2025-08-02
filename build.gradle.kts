@@ -1,7 +1,7 @@
 plugins {
-    kotlin("jvm") version "2.0.20" apply false
-    kotlin("android") version "2.0.20" apply false
-    id("com.android.library") version "8.12.0" apply false
+    kotlin("jvm") version "2.2.0" apply false
+    kotlin("android") version "2.2.0" apply false
+    id("com.android.library") version "8.10.1" apply false
     id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
 }
 
