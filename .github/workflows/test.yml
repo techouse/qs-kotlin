@@ -100,11 +100,11 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: true
           packages: |
             platform-tools
             platforms;android-35
             build-tools;35.0.0
-            ndk;26.3.11579264
 
       - name: Setup Gradle (with caching)
         uses: gradle/actions/setup-gradle@v4
