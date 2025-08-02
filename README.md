@@ -71,7 +71,7 @@ dependencies {
 
 - Kotlin **2.0.20+**
 - Java **17+**
-- Android wrapper: AGP **8.5+**, `compileSdk 34`, `minSdk 21`
+- Android wrapper: AGP **8.7+**, `compileSdk 35`, `minSdk 25`
 
 ---
 
