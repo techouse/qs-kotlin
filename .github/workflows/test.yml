@@ -99,9 +99,12 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          api-level: 35
-          build-tools: '35.0.0'
-          ndk: 'none'
+          accept-android-sdk-licenses: true
+          packages: |
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
+            ndk;26.3.11579264
 
       - name: Setup Gradle (with caching)
         uses: gradle/actions/setup-gradle@v4
