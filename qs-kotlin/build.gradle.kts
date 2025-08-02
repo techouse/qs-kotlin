@@ -87,3 +87,11 @@ publishing {
         }
     }
 }
+
+signing {
+    useInMemoryPgpKeys(
+        providers.gradleProperty("signingInMemoryKey").getOrElse(""),
+        providers.gradleProperty("signingInMemoryKeyPassword").getOrElse(""),
+    )
+    sign(publishing.publications)
+}

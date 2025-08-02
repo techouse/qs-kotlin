@@ -24,8 +24,8 @@ android {
 
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
-            languageVersion.set(KotlinVersion.KOTLIN_2_0)
-            apiVersion.set(KotlinVersion.KOTLIN_2_0)
+             languageVersion.set(KotlinVersion.KOTLIN_2_0)
+             apiVersion.set(KotlinVersion.KOTLIN_2_0)
         }
     }
 
@@ -83,4 +83,6 @@ afterEvaluate {
             }
         }
     }
+
+    signing { sign(publishing.publications) }
 }

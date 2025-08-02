@@ -26,16 +26,3 @@ nexusPublishing {
         }
     }
 }
-
-subprojects {
-    plugins.withId("maven-publish") {
-        extensions.configure<SigningExtension>("signing") {
-            useInMemoryPgpKeys(
-                providers.gradleProperty("signingInMemoryKey").orNull,
-                providers.gradleProperty("signingInMemoryKeyPassword").orNull,
-            )
-            val publishing = extensions.getByType(PublishingExtension::class.java)
-            sign(publishing.publications)
-        }
-    }
-}
