@@ -1,6 +1,10 @@
+## 1.0.3
+
+* [FEAT] add `@JvmStatic` to `QS.encode` and `QS.decode` methods to enable Java-friendly static calls
+
 ## 1.0.2
 
-* [FIX] replace `URLDecoder.decode(String, Charset)` (API 33+) with `URLDecoder.decode(String, String)` to restore Android compatibility (minSdk 25).
+* [FIX] replace `URLDecoder.decode(String, Charset)` (API 33+) with `URLDecoder.decode(String, String)` to restore Android compatibility (minSdk 25)
 * [CHORE] improve code readability by simplifying conditional expressions and comments
 
 ## 1.0.1
