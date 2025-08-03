@@ -8,11 +8,14 @@ on:
     branches:
       - main
   workflow_call:
+
 permissions:
   contents: read
+
 concurrency:
   group: test-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   style:
     name: Code style (ktfmt) + Gradle cache

@@ -4,8 +4,10 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
+
 permissions:
   contents: read
+
 jobs:
   test:
     uses: ./.github/workflows/test.yml
@@ -81,3 +83,11 @@ jobs:
         if: ${{ always() }}
         run: |
           rm -rf $CHANGELOG_PATH
+  docs:
+    uses: ./.github/workflows/docs.yml
+    needs:
+      - test
+      - publish
+    permissions:
+      contents: write
+    secrets: inherit
