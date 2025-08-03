@@ -457,7 +457,9 @@ internal object Utils {
         }
 
         return try {
-            strWithoutPlus?.let { URLDecoder.decode(it, charset) }
+            strWithoutPlus?.let {
+                URLDecoder.decode(it, charset?.name() ?: StandardCharsets.UTF_8.name())
+            }
         } catch (_: Exception) {
             strWithoutPlus
         }
