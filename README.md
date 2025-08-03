@@ -82,11 +82,11 @@ dependencies {
 import io.github.techouse.qskotlin.QS
 
 // Decode
-val obj = QS.decode("foo[bar]=baz&foo[list][]=a&foo[list][]=b")
+val obj: Map<String, Any?> = QS.decode("foo[bar]=baz&foo[list][]=a&foo[list][]=b")
 // -> mapOf("foo" to mapOf("bar" to "baz", "list" to listOf("a", "b")))
 
 // Encode
-val qs = QS.encode(mapOf("foo" to mapOf("bar" to "baz")))
+val qs: String = QS.encode(mapOf("foo" to mapOf("bar" to "baz")))
 // -> "foo%5Bbar%5D=baz"
 ```
 
@@ -98,11 +98,11 @@ val qs = QS.encode(mapOf("foo" to mapOf("bar" to "baz")))
 
 ```kotlin
 // Decode
-val decoded = QS.decode("a=c")
+val decoded: Map<String, Any?> = QS.decode("a=c")
 // => mapOf("a" to "c")
 
 // Encode
-val encoded = QS.encode(mapOf("a" to "c"))
+val encoded: String = QS.encode(mapOf("a" to "c"))
 // => "a=c"
 ```
 
