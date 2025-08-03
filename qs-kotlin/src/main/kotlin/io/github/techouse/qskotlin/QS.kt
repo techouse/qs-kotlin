@@ -18,6 +18,7 @@ object QS {
      * @param options [DecodeOptions] optional decoder settings
      * @return [Map<String, Any?>] the decoded Map
      */
+    @JvmStatic
     @JvmOverloads
     fun decode(input: Any?, options: DecodeOptions? = null): Map<String, Any?> {
         val options = options ?: DecodeOptions()
@@ -75,6 +76,7 @@ object QS {
      * @param options [EncodeOptions] optional encoder settings
      * @return [String] the encoded query string
      */
+    @JvmStatic
     @JvmOverloads
     fun encode(data: Any?, options: EncodeOptions? = null): String {
         val options = options ?: EncodeOptions()
