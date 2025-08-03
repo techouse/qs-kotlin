@@ -122,9 +122,10 @@ internal object Decoder {
                             if (obj.containsKey(key) && obj[key] is List<*>) {
                                 (obj[key] as List<*>).size
                             } else 0,
-                        ),
-                        { v: Any? -> options.getDecoder((v as String?), charset) },
-                    )
+                        )
+                    ) { v: Any? ->
+                        options.getDecoder((v as String?), charset)
+                    }
             }
 
             if (
@@ -135,10 +136,8 @@ internal object Decoder {
             ) {
                 value =
                     Utils.interpretNumericEntities(
-                        when (value) {
-                            is Iterable<*> -> value.joinToString(",") { it.toString() }
-                            else -> value.toString()
-                        }
+                        if (value is Iterable<*>) value.joinToString(",") { it.toString() }
+                        else value.toString()
                     )
             }
 
@@ -299,14 +298,11 @@ internal object Decoder {
         maxDepth: Int,
         strictDepth: Boolean,
     ): List<String> {
-        // Apply dot→bracket *before* splitting, but when depth == 0 we do NOT split at all and do
+        // Apply dot→bracket *before* splitting, but when depth == 0, we do NOT split at all and do
         // NOT throw.
-        val key =
-            if (allowDots) {
-                originalKey.replace(DOT_TO_BRACKET) { "[${it.groupValues[1]}]" }
-            } else {
-                originalKey
-            }
+        val key: String =
+            if (allowDots) originalKey.replace(DOT_TO_BRACKET) { "[${it.groupValues[1]}]" }
+            else originalKey
 
         // Depth 0 semantics: use the original key as a single segment; never throw.
         if (maxDepth <= 0) {
@@ -330,13 +326,13 @@ internal object Decoder {
         }
 
         if (open >= 0) {
-            // When depth > 0, strictDepth can apply to remainder.
+            // When depth > 0, strictDepth can apply to the remainder.
             if (strictDepth) {
                 throw IndexOutOfBoundsException(
                     "Input depth exceeded depth option of $maxDepth and strictDepth is true"
                 )
             }
-            // Stash remainder as a single segment (qs behavior).
+            // Stash the remainder as a single segment.
             segments.add("[" + key.substring(open) + "]")
         }
 

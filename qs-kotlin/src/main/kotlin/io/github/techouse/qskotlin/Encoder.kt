@@ -19,7 +19,7 @@ internal object Encoder {
     /**
      * Encodes the given data into a query string format.
      *
-     * @param data The data to encode, can be any type.
+     * @param data The data to encode; can be any type.
      * @param undefined If true, will not encode undefined values.
      * @param sideChannel A mutable map for tracking cyclic references.
      * @param prefix An optional prefix for the encoded string.
@@ -126,10 +126,7 @@ internal object Encoder {
             return when {
                 (encoder != null) -> {
                     val keyValue: String =
-                        when {
-                            encodeValuesOnly -> prefix
-                            else -> encoder(prefix, null, null)
-                        }
+                        if (encodeValuesOnly) prefix else encoder(prefix, null, null)
 
                     "${formatter(keyValue)}=${formatter(encoder(obj, null, null))}"
                 }
@@ -180,17 +177,11 @@ internal object Encoder {
                 }
             }
 
-        val encodedPrefix: String =
-            when {
-                encodeDotInKeys -> prefix.replace(".", "%2E")
-                else -> prefix
-            }
+        val encodedPrefix: String = if (encodeDotInKeys) prefix.replace(".", "%2E") else prefix
 
         val adjustedPrefix: String =
-            when {
-                (commaRoundTrip && obj is Iterable<*> && obj.count() == 1) -> "$encodedPrefix[]"
-                else -> encodedPrefix
-            }
+            if ((commaRoundTrip && obj is Iterable<*> && obj.count() == 1)) "$encodedPrefix[]"
+            else encodedPrefix
 
         if (allowEmptyLists && obj is Iterable<*> && !obj.iterator().hasNext()) {
             return "$adjustedPrefix[]"
@@ -239,16 +230,12 @@ internal object Encoder {
             }
 
             val encodedKey: String =
-                when {
-                    (allowDots && encodeDotInKeys) -> key.toString().replace(".", "%2E")
-                    else -> key.toString()
-                }
+                if ((allowDots && encodeDotInKeys)) key.toString().replace(".", "%2E")
+                else key.toString()
 
             val keyPrefix: String =
-                when {
-                    obj is Iterable<*> -> generateArrayPrefix(adjustedPrefix, encodedKey)
-                    else -> "$adjustedPrefix${if (allowDots) ".$encodedKey" else "[$encodedKey]"}"
-                }
+                if (obj is Iterable<*>) generateArrayPrefix(adjustedPrefix, encodedKey)
+                else "$adjustedPrefix${if (allowDots) ".$encodedKey" else "[$encodedKey]"}"
 
             // Record the current container in this frame so children can detect cycles.
             if (obj is Map<*, *> || obj is Iterable<*>) {
