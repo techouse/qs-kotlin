@@ -1,3 +1,8 @@
+## 1.1.0
+
+* [CHORE] replace `QS` with top-level `encode` and `decode` functions for improved clarity
+* [CHORE] refactor to use internal `Utils`, `Encoder` and `Decoder` for improved structure
+
 ## 1.0.4
 
 * [FEAT] add `@JvmOverloads` annotation to decoder and encoder functions for improved Java interoperability
