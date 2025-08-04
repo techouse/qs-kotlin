@@ -1,6 +1,7 @@
 package io.github.techouse.qskotlin.unit
 
-import io.github.techouse.qskotlin.QS
+import io.github.techouse.qskotlin.decode
+import io.github.techouse.qskotlin.encode
 import io.github.techouse.qskotlin.enums.Duplicates
 import io.github.techouse.qskotlin.enums.Format
 import io.github.techouse.qskotlin.enums.ListFormat
@@ -15,10 +16,10 @@ import java.time.ZoneOffset
 class ExampleSpec :
     DescribeSpec({
         describe("Simple examples") {
-            it("decodes a simple query string") { QS.decode("a=c") shouldBe mapOf("a" to "c") }
+            it("decodes a simple query string") { decode("a=c") shouldBe mapOf("a" to "c") }
 
             it("encodes a simple Map to a query string") {
-                QS.encode(mapOf("a" to "c")) shouldBe "a=c"
+                encode(mapOf("a" to "c")) shouldBe "a=c"
             }
         }
 
@@ -28,15 +29,15 @@ class ExampleSpec :
                     // QS allows you to create nested Maps within your query strings,
                     // by surrounding the name of sub-keys with square brackets []. For example,
                     // the string 'foo[bar]=baz' converts to
-                    QS.decode("foo[bar]=baz") shouldBe mapOf("foo" to mapOf("bar" to "baz"))
+                    decode("foo[bar]=baz") shouldBe mapOf("foo" to mapOf("bar" to "baz"))
                 }
 
                 it("works with URI encoded strings too") {
-                    QS.decode("a%5Bb%5D=c") shouldBe mapOf("a" to mapOf("b" to "c"))
+                    decode("a%5Bb%5D=c") shouldBe mapOf("a" to mapOf("b" to "c"))
                 }
 
                 it("can nest Maps like 'foo[bar][baz]=foobarbaz'") {
-                    QS.decode("foo[bar][baz]=foobarbaz") shouldBe
+                    decode("foo[bar][baz]=foobarbaz") shouldBe
                         mapOf("foo" to mapOf("bar" to mapOf("baz" to "foobarbaz")))
                 }
 
@@ -45,7 +46,7 @@ class ExampleSpec :
                     // This means if you attempt to decode a string like
                     // 'a[b][c][d][e][f][g][h][i]=j'
                     // your resulting Map will be:
-                    QS.decode("a[b][c][d][e][f][g][h][i]=j") shouldBe
+                    decode("a[b][c][d][e][f][g][h][i]=j") shouldBe
                         mapOf(
                             "a" to
                                 mapOf(
@@ -67,95 +68,88 @@ class ExampleSpec :
                 }
 
                 it("can override depth with DecodeOptions.depth") {
-                    QS.decode("a[b][c][d][e][f][g][h][i]=j", DecodeOptions(depth = 1)) shouldBe
+                    decode("a[b][c][d][e][f][g][h][i]=j", DecodeOptions(depth = 1)) shouldBe
                         mapOf("a" to mapOf("b" to mapOf("[c][d][e][f][g][h][i]" to "j")))
                 }
 
                 it("only parses up to 1000 parameters by default") {
-                    QS.decode("a=b&c=d", DecodeOptions(parameterLimit = 1)) shouldBe
-                        mapOf("a" to "b")
+                    decode("a=b&c=d", DecodeOptions(parameterLimit = 1)) shouldBe mapOf("a" to "b")
                 }
 
                 it("can bypass leading question mark with ignoreQueryPrefix") {
-                    QS.decode("?a=b&c=d", DecodeOptions(ignoreQueryPrefix = true)) shouldBe
+                    decode("?a=b&c=d", DecodeOptions(ignoreQueryPrefix = true)) shouldBe
                         mapOf("a" to "b", "c" to "d")
                 }
 
                 it("accepts custom delimiter") {
-                    QS.decode("a=b;c=d", DecodeOptions(delimiter = StringDelimiter(";"))) shouldBe
+                    decode("a=b;c=d", DecodeOptions(delimiter = StringDelimiter(";"))) shouldBe
                         mapOf("a" to "b", "c" to "d")
                 }
 
                 it("accepts regex delimiter") {
-                    QS.decode("a=b;c=d", DecodeOptions(delimiter = RegexDelimiter("[;,]"))) shouldBe
+                    decode("a=b;c=d", DecodeOptions(delimiter = RegexDelimiter("[;,]"))) shouldBe
                         mapOf("a" to "b", "c" to "d")
                 }
 
                 it("can enable dot notation with allowDots") {
-                    QS.decode("a.b=c", DecodeOptions(allowDots = true)) shouldBe
+                    decode("a.b=c", DecodeOptions(allowDots = true)) shouldBe
                         mapOf("a" to mapOf("b" to "c"))
                 }
 
                 it("can decode dots in keys with decodeDotInKeys") {
-                    QS.decode(
+                    decode(
                         "name%252Eobj.first=John&name%252Eobj.last=Doe",
                         DecodeOptions(decodeDotInKeys = true),
                     ) shouldBe mapOf("name.obj" to mapOf("first" to "John", "last" to "Doe"))
                 }
 
                 it("can allow empty lists with allowEmptyLists") {
-                    QS.decode("foo[]&bar=baz", DecodeOptions(allowEmptyLists = true)) shouldBe
+                    decode("foo[]&bar=baz", DecodeOptions(allowEmptyLists = true)) shouldBe
                         mapOf("foo" to emptyList<String>(), "bar" to "baz")
                 }
 
                 it("handles duplicate keys by default") {
-                    QS.decode("foo=bar&foo=baz") shouldBe mapOf("foo" to listOf("bar", "baz"))
+                    decode("foo=bar&foo=baz") shouldBe mapOf("foo" to listOf("bar", "baz"))
                 }
 
                 it("can combine duplicates explicitly") {
-                    QS.decode(
+                    decode(
                         "foo=bar&foo=baz",
                         DecodeOptions(duplicates = Duplicates.COMBINE),
                     ) shouldBe mapOf("foo" to listOf("bar", "baz"))
                 }
 
                 it("can take first duplicate with Duplicates.FIRST") {
-                    QS.decode(
-                        "foo=bar&foo=baz",
-                        DecodeOptions(duplicates = Duplicates.FIRST),
-                    ) shouldBe mapOf("foo" to "bar")
+                    decode("foo=bar&foo=baz", DecodeOptions(duplicates = Duplicates.FIRST)) shouldBe
+                        mapOf("foo" to "bar")
                 }
 
                 it("can take last duplicate with Duplicates.LAST") {
-                    QS.decode(
-                        "foo=bar&foo=baz",
-                        DecodeOptions(duplicates = Duplicates.LAST),
-                    ) shouldBe mapOf("foo" to "baz")
+                    decode("foo=bar&foo=baz", DecodeOptions(duplicates = Duplicates.LAST)) shouldBe
+                        mapOf("foo" to "baz")
                 }
 
                 it("supports latin1 charset for legacy browsers") {
-                    QS.decode(
-                        "a=%A7",
-                        DecodeOptions(charset = StandardCharsets.ISO_8859_1),
-                    ) shouldBe mapOf("a" to "§")
+                    decode("a=%A7", DecodeOptions(charset = StandardCharsets.ISO_8859_1)) shouldBe
+                        mapOf("a" to "§")
                 }
 
                 it("supports charset sentinel with latin1") {
-                    QS.decode(
+                    decode(
                         "utf8=%E2%9C%93&a=%C3%B8",
                         DecodeOptions(charset = StandardCharsets.ISO_8859_1, charsetSentinel = true),
                     ) shouldBe mapOf("a" to "ø")
                 }
 
                 it("supports charset sentinel with utf8") {
-                    QS.decode(
+                    decode(
                         "utf8=%26%2310003%3B&a=%F8",
                         DecodeOptions(charset = StandardCharsets.UTF_8, charsetSentinel = true),
                     ) shouldBe mapOf("a" to "ø")
                 }
 
                 it("can interpret numeric entities") {
-                    QS.decode(
+                    decode(
                         "a=%26%239786%3B",
                         DecodeOptions(
                             charset = StandardCharsets.ISO_8859_1,
@@ -167,54 +161,54 @@ class ExampleSpec :
 
             describe("Lists") {
                 it("can parse lists using [] notation") {
-                    QS.decode("a[]=b&a[]=c") shouldBe mapOf("a" to listOf("b", "c"))
+                    decode("a[]=b&a[]=c") shouldBe mapOf("a" to listOf("b", "c"))
                 }
 
                 it("can specify an index") {
-                    QS.decode("a[1]=c&a[0]=b") shouldBe mapOf("a" to listOf("b", "c"))
+                    decode("a[1]=c&a[0]=b") shouldBe mapOf("a" to listOf("b", "c"))
                 }
 
                 it("compacts sparse lists preserving order") {
-                    QS.decode("a[1]=b&a[15]=c") shouldBe mapOf("a" to listOf("b", "c"))
+                    decode("a[1]=b&a[15]=c") shouldBe mapOf("a" to listOf("b", "c"))
                 }
 
                 it("preserves empty string values") {
-                    QS.decode("a[]=&a[]=b") shouldBe mapOf("a" to listOf("", "b"))
+                    decode("a[]=&a[]=b") shouldBe mapOf("a" to listOf("", "b"))
 
-                    QS.decode("a[0]=b&a[1]=&a[2]=c") shouldBe mapOf("a" to listOf("b", "", "c"))
+                    decode("a[0]=b&a[1]=&a[2]=c") shouldBe mapOf("a" to listOf("b", "", "c"))
                 }
 
                 it("converts high indices to Map keys") {
-                    QS.decode("a[100]=b") shouldBe mapOf("a" to mapOf(100 to "b"))
+                    decode("a[100]=b") shouldBe mapOf("a" to mapOf(100 to "b"))
                 }
 
                 it("can override list limit") {
-                    QS.decode("a[1]=b", DecodeOptions(listLimit = 0)) shouldBe
+                    decode("a[1]=b", DecodeOptions(listLimit = 0)) shouldBe
                         mapOf("a" to mapOf(1 to "b"))
                 }
 
                 it("can disable list parsing entirely") {
-                    QS.decode("a[]=b", DecodeOptions(parseLists = false)) shouldBe
+                    decode("a[]=b", DecodeOptions(parseLists = false)) shouldBe
                         mapOf("a" to mapOf(0 to "b"))
                 }
 
                 it("merges mixed notations into Map") {
-                    QS.decode("a[0]=b&a[b]=c") shouldBe mapOf("a" to mapOf(0 to "b", "b" to "c"))
+                    decode("a[0]=b&a[b]=c") shouldBe mapOf("a" to mapOf(0 to "b", "b" to "c"))
                 }
 
                 it("can create lists of Maps") {
-                    QS.decode("a[][b]=c") shouldBe mapOf("a" to listOf(mapOf("b" to "c")))
+                    decode("a[][b]=c") shouldBe mapOf("a" to listOf(mapOf("b" to "c")))
                 }
 
                 it("can parse comma-separated values") {
-                    QS.decode("a=b,c", DecodeOptions(comma = true)) shouldBe
+                    decode("a=b,c", DecodeOptions(comma = true)) shouldBe
                         mapOf("a" to listOf("b", "c"))
                 }
             }
 
             describe("Primitive/Scalar values") {
                 it("parses all values as strings by default") {
-                    QS.decode("a=15&b=true&c=null") shouldBe
+                    decode("a=15&b=true&c=null") shouldBe
                         mapOf("a" to "15", "b" to "true", "c" to "null")
                 }
             }
@@ -222,18 +216,18 @@ class ExampleSpec :
 
         describe("Encoding") {
             it("encodes Maps as you would expect") {
-                QS.encode(mapOf("a" to "b")) shouldBe "a=b"
+                encode(mapOf("a" to "b")) shouldBe "a=b"
 
-                QS.encode(mapOf("a" to mapOf("b" to "c"))) shouldBe "a%5Bb%5D=c"
+                encode(mapOf("a" to mapOf("b" to "c"))) shouldBe "a%5Bb%5D=c"
             }
 
             it("can disable encoding with encode=false") {
-                QS.encode(mapOf("a" to mapOf("b" to "c")), EncodeOptions(encode = false)) shouldBe
+                encode(mapOf("a" to mapOf("b" to "c")), EncodeOptions(encode = false)) shouldBe
                     "a[b]=c"
             }
 
             it("can encode values only with encodeValuesOnly=true") {
-                QS.encode(
+                encode(
                     mapOf(
                         "a" to "b",
                         "c" to listOf("d", "e=f"),
@@ -244,7 +238,7 @@ class ExampleSpec :
             }
 
             it("can use custom encoder") {
-                QS.encode(
+                encode(
                     mapOf("a" to mapOf("b" to "č")),
                     EncodeOptions(
                         encoder = { str, _, _ -> if (str == "č") "c" else str.toString() }
@@ -253,104 +247,98 @@ class ExampleSpec :
             }
 
             it("encodes lists with indices by default") {
-                QS.encode(
-                    mapOf("a" to listOf("b", "c", "d")),
-                    EncodeOptions(encode = false),
-                ) shouldBe "a[0]=b&a[1]=c&a[2]=d"
+                encode(mapOf("a" to listOf("b", "c", "d")), EncodeOptions(encode = false)) shouldBe
+                    "a[0]=b&a[1]=c&a[2]=d"
             }
 
             it("can disable indices with indices=false") {
-                QS.encode(
+                encode(
                     mapOf("a" to listOf("b", "c", "d")),
                     EncodeOptions(encode = false, indices = false),
                 ) shouldBe "a=b&a=c&a=d"
             }
 
             it("supports different list formats") {
-                QS.encode(
+                encode(
                     mapOf("a" to listOf("b", "c")),
                     EncodeOptions(encode = false, listFormat = ListFormat.INDICES),
                 ) shouldBe "a[0]=b&a[1]=c"
 
-                QS.encode(
+                encode(
                     mapOf("a" to listOf("b", "c")),
                     EncodeOptions(encode = false, listFormat = ListFormat.BRACKETS),
                 ) shouldBe "a[]=b&a[]=c"
 
-                QS.encode(
+                encode(
                     mapOf("a" to listOf("b", "c")),
                     EncodeOptions(encode = false, listFormat = ListFormat.REPEAT),
                 ) shouldBe "a=b&a=c"
 
-                QS.encode(
+                encode(
                     mapOf("a" to listOf("b", "c")),
                     EncodeOptions(encode = false, listFormat = ListFormat.COMMA),
                 ) shouldBe "a=b,c"
             }
 
             it("uses bracket notation for Maps by default") {
-                QS.encode(
+                encode(
                     mapOf("a" to mapOf("b" to mapOf("c" to "d", "e" to "f"))),
                     EncodeOptions(encode = false),
                 ) shouldBe "a[b][c]=d&a[b][e]=f"
             }
 
             it("can use dot notation with allowDots=true") {
-                QS.encode(
+                encode(
                     mapOf("a" to mapOf("b" to mapOf("c" to "d", "e" to "f"))),
                     EncodeOptions(encode = false, allowDots = true),
                 ) shouldBe "a.b.c=d&a.b.e=f"
             }
 
             it("can encode dots in keys with encodeDotInKeys=true") {
-                QS.encode(
+                encode(
                     mapOf("name.obj" to mapOf("first" to "John", "last" to "Doe")),
                     EncodeOptions(allowDots = true, encodeDotInKeys = true),
                 ) shouldBe "name%252Eobj.first=John&name%252Eobj.last=Doe"
             }
 
             it("can allow empty lists with allowEmptyLists=true") {
-                QS.encode(
+                encode(
                     mapOf("foo" to emptyList<String>(), "bar" to "baz"),
                     EncodeOptions(encode = false, allowEmptyLists = true),
                 ) shouldBe "foo[]&bar=baz"
             }
 
-            it("handles empty strings and null values") {
-                QS.encode(mapOf("a" to "")) shouldBe "a="
-            }
+            it("handles empty strings and null values") { encode(mapOf("a" to "")) shouldBe "a=" }
 
             it("returns empty string for empty collections") {
-                QS.encode(mapOf("a" to emptyList<String>())) shouldBe ""
-                QS.encode(mapOf("a" to emptyMap<String, Any>())) shouldBe ""
-                QS.encode(mapOf("a" to listOf(emptyMap<String, Any>()))) shouldBe ""
-                QS.encode(mapOf("a" to mapOf("b" to emptyList<String>()))) shouldBe ""
-                QS.encode(mapOf("a" to mapOf("b" to emptyMap<String, Any>()))) shouldBe ""
+                encode(mapOf("a" to emptyList<String>())) shouldBe ""
+                encode(mapOf("a" to emptyMap<String, Any>())) shouldBe ""
+                encode(mapOf("a" to listOf(emptyMap<String, Any>()))) shouldBe ""
+                encode(mapOf("a" to mapOf("b" to emptyList<String>()))) shouldBe ""
+                encode(mapOf("a" to mapOf("b" to emptyMap<String, Any>()))) shouldBe ""
             }
 
             it("omits undefined properties") {
-                QS.encode(mapOf("a" to null, "b" to Undefined())) shouldBe "a="
+                encode(mapOf("a" to null, "b" to Undefined())) shouldBe "a="
             }
 
             it("can add query prefix") {
-                QS.encode(
-                    mapOf("a" to "b", "c" to "d"),
-                    EncodeOptions(addQueryPrefix = true),
-                ) shouldBe "?a=b&c=d"
+                encode(mapOf("a" to "b", "c" to "d"), EncodeOptions(addQueryPrefix = true)) shouldBe
+                    "?a=b&c=d"
             }
 
             it("can override delimiter") {
-                QS.encode(mapOf("a" to "b", "c" to "d"), EncodeOptions(delimiter = ";")) shouldBe
+                encode(mapOf("a" to "b", "c" to "d"), EncodeOptions(delimiter = ";")) shouldBe
                     "a=b;c=d"
             }
 
             it("can serialize DateTime objects") {
                 val date = LocalDateTime.ofInstant(Instant.ofEpochMilli(7), ZoneOffset.UTC)
 
-                QS.encode(mapOf("a" to date), EncodeOptions(encode = false)) shouldBe
+                encode(mapOf("a" to date), EncodeOptions(encode = false)) shouldBe
                     "a=1970-01-01T00:00:00.007"
 
-                QS.encode(
+                encode(
                     mapOf("a" to date),
                     EncodeOptions(
                         encode = false,
@@ -362,7 +350,7 @@ class ExampleSpec :
             }
 
             it("can sort parameter keys") {
-                QS.encode(
+                encode(
                     mapOf("a" to "c", "z" to "y", "b" to "f"),
                     EncodeOptions(
                         encode = false,
@@ -372,7 +360,7 @@ class ExampleSpec :
             }
 
             it("can filter keys with function filter") {
-                QS.encode(
+                encode(
                     mapOf(
                         "a" to "b",
                         "c" to "d",
@@ -394,12 +382,12 @@ class ExampleSpec :
             }
 
             it("can filter keys with iterable filter") {
-                QS.encode(
+                encode(
                     mapOf("a" to "b", "c" to "d", "e" to "f"),
                     EncodeOptions(encode = false, filter = IterableFilter(listOf("a", "e"))),
                 ) shouldBe "a=b&e=f"
 
-                QS.encode(
+                encode(
                     mapOf("a" to listOf("b", "c", "d"), "e" to "f"),
                     EncodeOptions(encode = false, filter = IterableFilter(listOf("a", 0, 2))),
                 ) shouldBe "a[0]=b&a[2]=d"
@@ -408,7 +396,7 @@ class ExampleSpec :
 
         describe("null values") {
             it("treats null values like empty strings by default") {
-                QS.encode(mapOf("a" to null, "b" to "")) shouldBe "a=&b="
+                encode(mapOf("a" to null, "b" to "")) shouldBe "a=&b="
             }
 
             it(
@@ -416,7 +404,7 @@ class ExampleSpec :
             ) {
                 // Decoding does not distinguish between parameters with and without equal signs.
                 // Both are converted to empty strings.
-                QS.decode("a&b=") shouldBe mapOf("a" to "", "b" to "")
+                decode("a&b=") shouldBe mapOf("a" to "", "b" to "")
             }
 
             it(
@@ -425,7 +413,7 @@ class ExampleSpec :
                 // To distinguish between null values and empty Strings use the
                 // EncodeOptions.strictNullHandling flag.
                 // In the result string the null values have no = sign:
-                QS.encode(
+                encode(
                     mapOf("a" to null, "b" to ""),
                     EncodeOptions(strictNullHandling = true),
                 ) shouldBe "a&b="
@@ -434,40 +422,40 @@ class ExampleSpec :
             it("can decode values without = back to null using strictNullHandling flag") {
                 // To decode values without = back to null use the DecodeOptions.strictNullHandling
                 // flag:
-                QS.decode("a&b=", DecodeOptions(strictNullHandling = true)) shouldBe
+                decode("a&b=", DecodeOptions(strictNullHandling = true)) shouldBe
                     mapOf("a" to null, "b" to "")
             }
 
             it("can completely skip rendering keys with null values using skipNulls flag") {
                 // To completely skip rendering keys with null values, use the
                 // EncodeOptions.skipNulls flag:
-                QS.encode(mapOf("a" to "b", "c" to null), EncodeOptions(skipNulls = true)) shouldBe
+                encode(mapOf("a" to "b", "c" to null), EncodeOptions(skipNulls = true)) shouldBe
                     "a=b"
             }
         }
 
         describe("Charset") {
             it("can encode using latin1 charset") {
-                QS.encode(
+                encode(
                     mapOf("æ" to "æ"),
                     EncodeOptions(charset = StandardCharsets.ISO_8859_1),
                 ) shouldBe "%E6=%E6"
             }
 
             it("converts characters that don't exist in latin1 to numeric entities") {
-                QS.encode(
+                encode(
                     mapOf("a" to "☺"),
                     EncodeOptions(charset = StandardCharsets.ISO_8859_1),
                 ) shouldBe "a=%26%239786%3B"
             }
 
             it("can announce charset using charsetSentinel option with UTF-8") {
-                QS.encode(mapOf("a" to "☺"), EncodeOptions(charsetSentinel = true)) shouldBe
+                encode(mapOf("a" to "☺"), EncodeOptions(charsetSentinel = true)) shouldBe
                     "utf8=%E2%9C%93&a=%E2%98%BA"
             }
 
             it("can announce charset using charsetSentinel option with latin1") {
-                QS.encode(
+                encode(
                     mapOf("a" to "æ"),
                     EncodeOptions(charset = StandardCharsets.ISO_8859_1, charsetSentinel = true),
                 ) shouldBe "utf8=%26%2310003%3B&a=%E6"
@@ -476,7 +464,7 @@ class ExampleSpec :
             it("can use custom encoder for different character sets") {
                 // Note: This example uses a mock encoder since Shift JIS support
                 // would require additional dependencies in Kotlin
-                QS.encode(
+                encode(
                     mapOf("a" to "hello"),
                     EncodeOptions(
                         encoder = { str, _, _ ->
@@ -492,7 +480,7 @@ class ExampleSpec :
 
             it("can use custom decoder for different character sets") {
                 // Note: This example uses a mock decoder
-                QS.decode(
+                decode(
                     "%61=%68%65%6c%6c%6f",
                     DecodeOptions(
                         decoder = { str, _ ->
@@ -509,17 +497,16 @@ class ExampleSpec :
 
         describe("RFC 3986 and RFC 1738 space encoding") {
             it("encodes spaces as %20 by default (RFC 3986)") {
-                QS.encode(mapOf("a" to "b c")) shouldBe "a=b%20c"
+                encode(mapOf("a" to "b c")) shouldBe "a=b%20c"
             }
 
             it("encodes spaces as %20 with explicit RFC 3986 format") {
-                QS.encode(mapOf("a" to "b c"), EncodeOptions(format = Format.RFC3986)) shouldBe
+                encode(mapOf("a" to "b c"), EncodeOptions(format = Format.RFC3986)) shouldBe
                     "a=b%20c"
             }
 
             it("encodes spaces as + with RFC 1738 format") {
-                QS.encode(mapOf("a" to "b c"), EncodeOptions(format = Format.RFC1738)) shouldBe
-                    "a=b+c"
+                encode(mapOf("a" to "b c"), EncodeOptions(format = Format.RFC1738)) shouldBe "a=b+c"
             }
         }
     })

@@ -1,6 +1,6 @@
 package io.github.techouse.qskotlin.fixtures.data
 
-internal data class EndToEndTestCase(val data: Any?, val encoded: String)
+internal data class EndToEndTestCase(val data: Map<String, Any?>, val encoded: String)
 
 internal val EndToEndTestCases: List<EndToEndTestCase> =
     listOf(
