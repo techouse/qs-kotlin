@@ -21,7 +21,7 @@ fun URI.queryParametersQs(options: DecodeOptions? = null): Map<String, Any?> =
  */
 @JvmOverloads
 fun URI.toStringQs(
-    options: EncodeOptions =
+    options: EncodeOptions? =
         EncodeOptions(listFormat = ListFormat.REPEAT, skipNulls = false, strictNullHandling = false)
 ): String {
     // Get all query parameters (including duplicates)
