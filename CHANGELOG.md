@@ -1,3 +1,7 @@
+## 1.0.4
+
+* [FEAT] add `@JvmOverloads` annotation to decoder and encoder functions for improved Java interoperability
+
 ## 1.0.3
 
 * [FEAT] add `@JvmStatic` to `QS.encode` and `QS.decode` methods to enable Java-friendly static calls

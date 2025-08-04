@@ -8,7 +8,7 @@ plugins {
 
 allprojects {
     group = "io.github.techouse"
-    version = "1.0.3"
+    version = "1.0.4"
     repositories {
         google()
         mavenCentral()
