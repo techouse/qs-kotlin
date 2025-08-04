@@ -113,7 +113,7 @@ internal object Decoder {
                 key = options.getDecoder(part, charset).toString()
                 value = if (options.strictNullHandling) null else ""
             } else {
-                key = options.getDecoder(part.substring(0, pos), charset).toString()
+                key = options.getDecoder(part.take(pos), charset).toString()
                 value =
                     Utils.apply<Any?>(
                         parseListValue(
@@ -210,7 +210,7 @@ internal object Decoder {
                     } else cleanRoot
 
                 val index: Int? =
-                    if (decodedRoot.isNotEmpty() && decodedRoot.all(Char::isDigit))
+                    if (decodedRoot.isNotEmpty() && decodedRoot.toIntOrNull() != null)
                         decodedRoot.toInt()
                     else null
 
@@ -312,7 +312,7 @@ internal object Decoder {
         val segments = ArrayList<String>(key.count { it == '[' } + 1)
 
         val first = key.indexOf('[')
-        val parent = if (first >= 0) key.substring(0, first) else key
+        val parent = if (first >= 0) key.take(first) else key
         if (parent.isNotEmpty()) segments.add(parent)
 
         var open = first

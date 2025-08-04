@@ -523,9 +523,9 @@ class DecodeSpec :
                 decode("a[0]=b", DecodeOptions(listLimit = 0)) shouldBe mapOf("a" to listOf("b"))
 
                 decode("a[-1]=b", DecodeOptions(listLimit = -1)) shouldBe
-                    mapOf("a" to mapOf("-1" to "b"))
+                    mapOf("a" to mapOf(-1 to "b"))
                 decode("a[-1]=b", DecodeOptions(listLimit = 0)) shouldBe
-                    mapOf("a" to mapOf("-1" to "b"))
+                    mapOf("a" to mapOf(-1 to "b"))
 
                 decode("a[0]=b&a[1]=c", DecodeOptions(listLimit = -1)) shouldBe
                     mapOf("a" to mapOf(0 to "b", 1 to "c"))

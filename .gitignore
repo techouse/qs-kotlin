@@ -16,6 +16,9 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
+## Gradle ###
+local.properties
+
 ### Kotlin ###
 .kotlin
 
