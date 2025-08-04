@@ -24,7 +24,6 @@ internal object Utils {
      * @param options Optional decode options for merging behavior.
      * @return The merged object.
      */
-    @JvmStatic
     fun merge(target: Any?, source: Any?, options: DecodeOptions = DecodeOptions()): Any? {
         if (source == null) {
             return target
@@ -199,7 +198,6 @@ internal object Utils {
      * https://developer.mozilla.org/en-US/docs/web/javascript/reference/global_objects/escape
      */
     @Deprecated("Use URLEncoder.encode instead")
-    @JvmStatic
     fun escape(str: String, format: Format = Format.RFC3986): String {
         val buffer = StringBuilder()
 
@@ -243,7 +241,6 @@ internal object Utils {
      * https://developer.mozilla.org/en-US/docs/web/javascript/reference/global_objects/unescape
      */
     @Deprecated("Use URLDecoder.decode instead")
-    @JvmStatic
     fun unescape(str: String): String {
         val buffer = StringBuilder()
         var i = 0
@@ -321,7 +318,6 @@ internal object Utils {
      * @param format The encoding format to use. Defaults to RFC 3986.
      * @return The encoded string.
      */
-    @JvmStatic
     fun encode(
         value: Any?,
         charset: Charset? = StandardCharsets.UTF_8,
@@ -441,7 +437,6 @@ internal object Utils {
      * @param charset The character set to use for decoding. Defaults to UTF-8.
      * @return The decoded string, or null if the input is null.
      */
-    @JvmStatic
     fun decode(str: String?, charset: Charset? = StandardCharsets.UTF_8): String? {
         val strWithoutPlus = str?.replace('+', ' ')
 
@@ -473,7 +468,6 @@ internal object Utils {
      * @param root The root of the Map or List structure to compact.
      * @return The compacted Map or List structure.
      */
-    @JvmStatic
     fun compact(root: MutableMap<String, Any?>): MutableMap<String, Any?> {
         val stack = ArrayDeque<Any>()
         stack.add(root)
@@ -545,7 +539,6 @@ internal object Utils {
      * @param b The second object to combine.
      * @return A list containing the combined elements.
      */
-    @JvmStatic
     fun <T> combine(a: Any?, b: Any?): List<T> {
         val result = mutableListOf<T>()
 
@@ -573,7 +566,6 @@ internal object Utils {
      * @param fn The function to apply.
      * @return The result of applying the function, or null if the input is null.
      */
-    @JvmStatic
     fun <T> apply(value: Any?, fn: (T) -> T): Any? =
         when (value) {
             is Iterable<*> -> {
@@ -594,7 +586,6 @@ internal object Utils {
      * @param skipNulls If true, empty Strings and URIs are not considered non-nullish.
      * @return True if the value is a non-nullish primitive, false otherwise.
      */
-    @JvmStatic
     fun isNonNullishPrimitive(value: Any?, skipNulls: Boolean = false): Boolean =
         when (value) {
             is String -> if (skipNulls) value.isNotEmpty() else true
@@ -618,7 +609,6 @@ internal object Utils {
      * @param value The value to check.
      * @return True if the value is empty, false otherwise.
      */
-    @JvmStatic
     fun isEmpty(value: Any?): Boolean =
         when (value) {
             null,
@@ -636,7 +626,6 @@ internal object Utils {
      * @param str The input string potentially containing numeric entities.
      * @return A new string with numeric entities replaced by their corresponding characters.
      */
-    @JvmStatic
     fun interpretNumericEntities(str: String): String {
         if (str.length < 4) return str
         val first = str.indexOf("&#")

@@ -11,13 +11,15 @@ import java.net.URLDecoder
 /**
  * The URI query split into a map. Providing custom [options] will override the default behavior.
  */
-fun URI.queryParametersQs(options: DecodeOptions?): Map<String, Any?> =
+@JvmOverloads
+fun URI.queryParametersQs(options: DecodeOptions? = null): Map<String, Any?> =
     if (!rawQuery.isNullOrEmpty()) QS.decode(rawQuery, options) else emptyMap()
 
 /**
  * The normalized string representation of the URI. Providing custom [options] will override the
  * default behavior.
  */
+@JvmOverloads
 fun URI.toStringQs(
     options: EncodeOptions =
         EncodeOptions(listFormat = ListFormat.REPEAT, skipNulls = false, strictNullHandling = false)

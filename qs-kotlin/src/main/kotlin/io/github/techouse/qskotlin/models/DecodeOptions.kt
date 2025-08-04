@@ -130,6 +130,7 @@ data class DecodeOptions(
     }
 
     /** Decode the input using the specified Decoder. */
+    @JvmOverloads
     fun getDecoder(value: String?, charset: Charset? = null): Any? =
         if (decoder != null) decoder.invoke(value, charset) else Utils.decode(value, charset)
 }

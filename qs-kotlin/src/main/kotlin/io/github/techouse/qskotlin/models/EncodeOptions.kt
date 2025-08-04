@@ -153,6 +153,7 @@ data class EncodeOptions(
      *
      * Uses the provided encoder if available, otherwise uses Utils.encode.
      */
+    @JvmOverloads
     fun getEncoder(value: Any?, charset: Charset? = null, format: Format? = null): String =
         encoder?.invoke(value, charset ?: this.charset, format ?: this.format)
             ?: Utils.encode(value, charset ?: this.charset, format ?: this.format)
