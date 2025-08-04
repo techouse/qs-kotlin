@@ -1,7 +1,7 @@
 package io.github.techouse.qskotlin.models
 
-import io.github.techouse.qskotlin.Utils
 import io.github.techouse.qskotlin.enums.Duplicates
+import io.github.techouse.qskotlin.internal.Utils
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 

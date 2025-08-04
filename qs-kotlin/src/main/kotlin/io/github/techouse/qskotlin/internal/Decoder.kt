@@ -1,4 +1,4 @@
-package io.github.techouse.qskotlin
+package io.github.techouse.qskotlin.internal
 
 import io.github.techouse.qskotlin.enums.Duplicates
 import io.github.techouse.qskotlin.enums.Sentinel
@@ -226,7 +226,7 @@ internal object Decoder {
                         index.toString() == decodedRoot &&
                         options.parseLists &&
                         index <= options.listLimit -> {
-                        val list = MutableList<Any?>(index + 1) { Undefined() }
+                        val list = MutableList<Any?>(index + 1) { Undefined.Companion() }
                         list[index] = leaf
                         obj = list
                     }

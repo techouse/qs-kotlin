@@ -1,9 +1,9 @@
 package io.github.techouse.qskotlin.models
 
-import io.github.techouse.qskotlin.Utils
 import io.github.techouse.qskotlin.enums.Format
 import io.github.techouse.qskotlin.enums.Formatter
 import io.github.techouse.qskotlin.enums.ListFormat
+import io.github.techouse.qskotlin.internal.Utils
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime

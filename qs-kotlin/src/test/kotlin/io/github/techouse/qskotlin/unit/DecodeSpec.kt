@@ -1,10 +1,10 @@
 package io.github.techouse.qskotlin.unit
 
-import io.github.techouse.qskotlin.Utils
 import io.github.techouse.qskotlin.decode
 import io.github.techouse.qskotlin.encode
 import io.github.techouse.qskotlin.enums.Duplicates
 import io.github.techouse.qskotlin.fixtures.data.EmptyTestCases
+import io.github.techouse.qskotlin.internal.Utils
 import io.github.techouse.qskotlin.models.DecodeOptions
 import io.github.techouse.qskotlin.models.RegexDelimiter
 import io.github.techouse.qskotlin.models.StringDelimiter

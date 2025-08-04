@@ -1,8 +1,8 @@
 package io.github.techouse.qskotlin.unit
 
-import io.github.techouse.qskotlin.Utils
 import io.github.techouse.qskotlin.enums.Format
 import io.github.techouse.qskotlin.fixtures.DummyEnum
+import io.github.techouse.qskotlin.internal.Utils
 import io.github.techouse.qskotlin.models.Undefined
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.maps.shouldContainKey

@@ -1,4 +1,4 @@
-package io.github.techouse.qskotlin
+package io.github.techouse.qskotlin.internal
 
 import io.github.techouse.qskotlin.constants.HexTable
 import io.github.techouse.qskotlin.enums.Format
@@ -11,6 +11,8 @@ import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.LocalDateTime
+import java.util.Collections
+import java.util.IdentityHashMap
 
 /** A collection of utility methods used by the library. */
 internal object Utils {
@@ -473,8 +475,7 @@ internal object Utils {
         stack.add(root)
 
         // Identity-based visited set: avoids infinite loops on cycles
-        val visited: MutableSet<Any> =
-            java.util.Collections.newSetFromMap(java.util.IdentityHashMap())
+        val visited: MutableSet<Any> = Collections.newSetFromMap(IdentityHashMap())
 
         visited.add(root)
 

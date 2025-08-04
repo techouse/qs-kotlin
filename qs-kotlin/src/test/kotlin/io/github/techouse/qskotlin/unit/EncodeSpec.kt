@@ -1,11 +1,11 @@
 package io.github.techouse.qskotlin.unit
 
-import io.github.techouse.qskotlin.Utils
 import io.github.techouse.qskotlin.encode
 import io.github.techouse.qskotlin.enums.Format
 import io.github.techouse.qskotlin.enums.ListFormat
 import io.github.techouse.qskotlin.fixtures.DummyEnum
 import io.github.techouse.qskotlin.fixtures.data.EmptyTestCases
+import io.github.techouse.qskotlin.internal.Utils
 import io.github.techouse.qskotlin.models.*
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
