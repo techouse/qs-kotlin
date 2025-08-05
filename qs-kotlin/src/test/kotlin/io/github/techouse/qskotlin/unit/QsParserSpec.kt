@@ -11,6 +11,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import java.nio.charset.StandardCharsets
 
+/** Test cases ported from the QsParser Java library https://github.com/atek-software/qsparser */
 class QsParserSpec :
     DescribeSpec({
         /// Ported from
