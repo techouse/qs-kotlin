@@ -476,13 +476,18 @@ internal object Utils {
      * intact.
      *
      * @param root The root of the Map or List structure to compact.
+     * @param allowSparseLists If true, allows sparse Lists (i.e., Lists with Undefined values). If
+     *   false, removes all Undefined values from Lists.
      * @return The compacted Map or List structure.
      */
-    fun compact(root: MutableMap<String, Any?>): MutableMap<String, Any?> {
+    fun compact(
+        root: MutableMap<String, Any?>,
+        allowSparseLists: Boolean = false,
+    ): MutableMap<String, Any?> {
         val stack = ArrayDeque<Any>()
         stack.add(root)
 
-        // Identity-based visited set: avoids infinite loops on cycles
+        // Identity-based visited set to prevent cycles
         val visited: MutableSet<Any> = Collections.newSetFromMap(IdentityHashMap())
 
         visited.add(root)
@@ -518,7 +523,7 @@ internal object Utils {
                     val it = list.listIterator()
                     while (it.hasNext()) {
                         when (val v = it.next()) {
-                            is Undefined -> it.remove()
+                            is Undefined -> if (allowSparseLists) it.set(null) else it.remove()
 
                             is MutableMap<*, *> -> {
                                 if (visited.add(v)) {

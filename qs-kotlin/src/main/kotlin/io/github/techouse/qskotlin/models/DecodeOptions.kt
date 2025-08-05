@@ -34,6 +34,9 @@ data class DecodeOptions(
     /** Set to `true` to allow empty List values inside Maps in the encoded input. */
     val allowEmptyLists: Boolean = false,
 
+    /** Set to `true` to allow sparse Lists in the encoded input. */
+    val allowSparseLists: Boolean = false,
+
     /**
      * QS will limit specifying indices in a List to a maximum index of `20`. Any List members with
      * an index of greater than `20` will instead be converted to a Map with the index as the key.

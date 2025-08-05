@@ -69,7 +69,7 @@ fun decode(input: Any?, options: DecodeOptions? = null): Map<String, Any?> {
         }
     }
 
-    return Utils.compact(obj)
+    return Utils.compact(obj, options.allowSparseLists)
 }
 
 /**

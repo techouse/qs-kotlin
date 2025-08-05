@@ -366,7 +366,7 @@ class QsParserSpec :
             }
 
             it("should parse sparse arrays") {
-                val optionsAllowSparse = DecodeOptions(allowSparse = true)
+                val optionsAllowSparse = DecodeOptions(allowSparseLists = true)
 
                 decode("a[4]=1&a[1]=2", optionsAllowSparse) shouldBe
                     mapOf("a" to listOf(null, "2", null, null, "1"))
@@ -510,11 +510,11 @@ class QsParserSpec :
             }
 
             it("should use number decoder") {
-                val numberDecoder: io.github.techouse.qskotlin.models.Decoder = { value, _ ->
+                val numberDecoder: Decoder = { value, _ ->
                     try {
                         val intValue = value?.toInt()
                         "[$intValue]"
-                    } catch (e: NumberFormatException) {
+                    } catch (_: NumberFormatException) {
                         value
                     }
                 }
@@ -665,10 +665,8 @@ class QsParserSpec :
             }
 
             it("should allow for decoding keys and values") {
-                val keyValueDecoder: io.github.techouse.qskotlin.models.Decoder = { content, _ ->
-                    // Note: Kotlin implementation doesn't distinguish between key and value
-                    // decoding
-                    // This is a simplified version
+                val keyValueDecoder: Decoder = { content, _ ->
+                    // Note: Kotlin implementation doesn't distinguish between key and value decoding
                     content?.lowercase()
                 }
                 val options = DecodeOptions(decoder = keyValueDecoder)
