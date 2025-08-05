@@ -1,3 +1,10 @@
+## 1.1.1
+
+* [FEAT] add support for sparse Lists in `DecodeOptions` - if set to `true`, the lists will contain `null` values for missing values
+* [FIX] fix parsing of negative integer indices in query strings by replacing `decodedRoot.all(Char::isDigit)` with `decodedRoot.toIntOrNull() != null` to properly handle negative numbers
+* [FIX] fix merge semantics for `Map` targets: ignore `null`/`Undefined` sources and treat scalar sources as flag keys (`map[k] = true`) instead of merging—prevents accidental `"Undefined"` keys and duplicate `[true, true]` entries
+* [CHORE] add comprehensive unit tests for query string encoding and decoding ported from https://github.com/atek-software/qsparser
+
 ## 1.1.0
 
 * [CHORE] replace `QS` with top-level `encode` and `decode` functions for improved clarity
