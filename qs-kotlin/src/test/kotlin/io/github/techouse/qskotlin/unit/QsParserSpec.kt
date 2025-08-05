@@ -666,7 +666,8 @@ class QsParserSpec :
 
             it("should allow for decoding keys and values") {
                 val keyValueDecoder: Decoder = { content, _ ->
-                    // Note: Kotlin implementation doesn't distinguish between key and value decoding
+                    // Note: Kotlin implementation doesn't distinguish between key and value
+                    // decoding
                     content?.lowercase()
                 }
                 val options = DecodeOptions(decoder = keyValueDecoder)
