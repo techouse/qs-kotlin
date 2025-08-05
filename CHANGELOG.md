@@ -1,3 +1,9 @@
+## 1.1.2
+
+* [FIX] change `HashMa`p to `LinkedHashMap` in `Decoder.parseObject` for consistent iteration order
+* [CHORE] update Android Gradle Plugin to v8.11.1
+* [CHORE] add comparison tests with Node.js `qs` library to ensure compatibility with the original library
+
 ## 1.1.1
 
 * [FEAT] add support for sparse Lists in `DecodeOptions` - if set to `true`, the lists will contain `null` values for missing values
