@@ -33,4 +33,4 @@ develocity {
 
 rootProject.name = "qs-kotlin"
 
-include(":qs-kotlin", ":qs-kotlin-android")
+include(":qs-kotlin", ":qs-kotlin-android", ":comparison")

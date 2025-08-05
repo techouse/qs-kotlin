@@ -16,8 +16,10 @@ allprojects {
 }
 
 subprojects {
-    plugins.withId("org.jetbrains.kotlin.jvm") { apply(plugin = "org.jetbrains.dokka") }
-    plugins.withId("org.jetbrains.kotlin.android") { apply(plugin = "org.jetbrains.dokka") }
+    if (name in listOf("qs-kotlin", "qs-kotlin-android")) {
+        plugins.withId("org.jetbrains.kotlin.jvm") { apply(plugin = "org.jetbrains.dokka") }
+        plugins.withId("org.jetbrains.kotlin.android") { apply(plugin = "org.jetbrains.dokka") }
+    }
 }
 
 nexusPublishing {
