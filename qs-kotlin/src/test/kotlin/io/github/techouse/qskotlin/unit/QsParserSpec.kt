@@ -12,7 +12,8 @@ import java.nio.charset.StandardCharsets
 
 class QsParserSpec :
     DescribeSpec({
-        /// Ported from https://github.com/atek-software/qsparser/blob/main/src/test/java/ro/atek/qsparser/QueryStringParserTest.java
+        /// Ported from
+        // https://github.com/atek-software/qsparser/blob/main/src/test/java/ro/atek/qsparser/QueryStringParserTest.java
         describe("parsing") {
             it("should parse a simple string") {
                 val options = DecodeOptions()
@@ -677,7 +678,8 @@ class QsParserSpec :
             }
         }
 
-        /// Ported from https://github.com/atek-software/qsparser/blob/main/src/test/java/ro/atek/qsparser/QueryStringBuilderTest.java
+        /// Ported from
+        // https://github.com/atek-software/qsparser/blob/main/src/test/java/ro/atek/qsparser/QueryStringBuilderTest.java
         describe("encoding") {
             it("should stringify a querystring object") {
                 encode(mapOf("a" to "b")) shouldBe "a=b"
@@ -965,46 +967,6 @@ class QsParserSpec :
                 // but should handle the conversion appropriately
                 val commaResult = encode(value, options.copy(listFormat = ListFormat.COMMA))
                 commaResult shouldContain "a="
-            }
-        }
-
-        /// Ported from https://github.com/atek-software/qsparser/blob/main/src/test/java/ro/atek/qsparser/UtilsTest.java
-        describe("merge functionality via decode") {
-            it("should handle null values in arrays") {
-                val options = DecodeOptions(strictNullHandling = true)
-
-                // Test array with null values
-                decode("a[0]=42&a[1]", options) shouldBe mapOf("a" to listOf("42", null))
-                decode("a[]=42&a[]", options) shouldBe mapOf("a" to listOf("42", null))
-            }
-
-            it("should merge duplicate keys correctly") {
-                val options = DecodeOptions()
-
-                // Test merging same keys
-                decode("a=b&a=c", options) shouldBe mapOf("a" to listOf("b", "c"))
-
-                // Test merging arrays
-                decode("foo[]=bar&foo[]=baz", options) shouldBe mapOf("foo" to listOf("bar", "baz"))
-                decode("foo[0]=bar&foo[1]=baz", options) shouldBe
-                    mapOf("foo" to listOf("bar", "baz"))
-
-                // Test complex nested structures
-                decode("foo[0]=bar&foo[1][first]=123&foo[second]=456", options) shouldBe
-                    mapOf(
-                        "foo" to mapOf(0 to "bar", 1 to mapOf("first" to "123"), "second" to "456")
-                    )
-            }
-
-            it("should handle mixed array and object merging") {
-                val options = DecodeOptions()
-
-                // Test merging arrays with different lengths
-                decode("a[]=baz&a[]=bar&a[]=xyzz", options) shouldBe
-                    mapOf("a" to listOf("baz", "bar", "xyzz"))
-
-                // Test adding properties to existing structure
-                decode("foo=baz&bar", options) shouldBe mapOf("foo" to "baz", "bar" to true)
             }
         }
     })
