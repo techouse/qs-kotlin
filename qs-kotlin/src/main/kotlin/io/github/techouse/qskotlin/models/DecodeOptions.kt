@@ -37,7 +37,7 @@ data class DecodeOptions(
     /**
      * Set to `true` to allow sparse Lists in the encoded input.
      *
-     * Note: If set to `true`, the lists will contain `null` values for missing indices.
+     * Note: If set to `true`, the lists will contain `null` values for missing values.
      */
     val allowSparseLists: Boolean = false,
 
