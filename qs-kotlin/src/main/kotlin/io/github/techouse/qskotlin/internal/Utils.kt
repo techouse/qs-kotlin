@@ -13,6 +13,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.util.Collections
 import java.util.IdentityHashMap
+import kotlin.collections.ArrayDeque
 
 /** A collection of utility methods used by the library. */
 internal object Utils {
@@ -82,9 +83,9 @@ internal object Utils {
                                                     }
                                             }
 
-                                            when {
-                                                target is Set<*> -> mutableTarget.values.toSet()
-                                                else -> mutableTarget.values.toSet()
+                                            when (target) {
+                                                is Set<*> -> mutableTarget.values.toSet()
+                                                else -> mutableTarget.values.toList()
                                             }
                                         }
 
@@ -110,21 +111,28 @@ internal object Utils {
                     }
 
                 is Map<*, *> -> {
+                    val mutableTarget = target.toMutableMap()
+
                     when (source) {
                         is Iterable<*> -> {
-                            val mutableTarget = target.toMutableMap()
-
                             source.forEachIndexed { i, item ->
                                 if (item !is Undefined) {
                                     mutableTarget[i] = item
                                 }
                             }
-
-                            mutableTarget
                         }
-
-                        else -> target
+                        is Undefined -> {
+                            // ignore
+                        }
+                        else -> {
+                            val k = source.toString()
+                            if (k.isNotEmpty()) {
+                                mutableTarget[k] = true
+                            }
+                        }
                     }
+
+                    mutableTarget
                 }
 
                 else ->
