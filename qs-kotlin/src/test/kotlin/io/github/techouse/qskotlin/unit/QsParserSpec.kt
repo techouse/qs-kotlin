@@ -351,26 +351,9 @@ class QsParserSpec :
             }
 
             it("should compact sparse arrays") {
-                val options20 = DecodeOptions(listLimit = 20)
+                val options = DecodeOptions(listLimit = 20)
 
-                decode("a[10]=1&a[2]=2", options20) shouldBe mapOf("a" to listOf("2", "1"))
-
-                decode("a[1][b][2][c]=1", options20) shouldBe
-                    mapOf("a" to listOf(mapOf("b" to listOf(mapOf("c" to "1")))))
-
-                decode("a[1][2][3][c]=1", options20) shouldBe
-                    mapOf("a" to listOf(listOf(listOf(mapOf("c" to "1")))))
-
-                decode("a[1][2][3][c][1]=1", options20) shouldBe
-                    mapOf("a" to listOf(listOf(listOf(mapOf("c" to listOf("1"))))))
-            }
-
-            it("should parse sparse arrays") {
-                // Note: Kotlin implementation doesn't have allowSparse option,
-                // sparse arrays are handled by default behavior
-                val options = DecodeOptions()
-
-                decode("a[4]=1&a[1]=2", options) shouldBe mapOf("a" to mapOf(1 to "2", 4 to "1"))
+                decode("a[10]=1&a[2]=2", options) shouldBe mapOf("a" to listOf("2", "1"))
 
                 decode("a[1][b][2][c]=1", options) shouldBe
                     mapOf("a" to listOf(mapOf("b" to listOf(mapOf("c" to "1")))))
@@ -380,6 +363,38 @@ class QsParserSpec :
 
                 decode("a[1][2][3][c][1]=1", options) shouldBe
                     mapOf("a" to listOf(listOf(listOf(mapOf("c" to listOf("1"))))))
+            }
+
+            it("should parse sparse arrays") {
+                val optionsAllowSparse = DecodeOptions(allowSparse = true)
+
+                decode("a[4]=1&a[1]=2", optionsAllowSparse) shouldBe
+                    mapOf("a" to listOf(null, "2", null, null, "1"))
+
+                decode("a[1][b][2][c]=1", optionsAllowSparse) shouldBe
+                    mapOf("a" to listOf(null, mapOf("b" to listOf(null, null, mapOf("c" to "1")))))
+
+                decode("a[1][2][3][c]=1", optionsAllowSparse) shouldBe
+                    mapOf(
+                        "a" to
+                            listOf(
+                                null,
+                                listOf(null, null, listOf(null, null, null, mapOf("c" to "1"))),
+                            )
+                    )
+
+                decode("a[1][2][3][c][1]=1", optionsAllowSparse) shouldBe
+                    mapOf(
+                        "a" to
+                            listOf(
+                                null,
+                                listOf(
+                                    null,
+                                    null,
+                                    listOf(null, null, null, mapOf("c" to listOf(null, "1"))),
+                                ),
+                            )
+                    )
             }
 
             it("should parse jQuery param strings") {
@@ -694,15 +709,17 @@ class QsParserSpec :
 
             it("should stringify falsy values") {
                 encode(null) shouldBe ""
+                encode(null, EncodeOptions(strictNullHandling = true)) shouldBe ""
+                encode(false) shouldBe ""
+                encode(0) shouldBe ""
                 encode(emptyMap<String, Any>()) shouldBe ""
-                encode(mapOf("a" to false)) shouldBe ""
-                encode(mapOf("a" to 0)) shouldBe ""
             }
 
             it("should stringify integers with custom encoder") {
                 val encoder: ValueEncoder = { value, _, _ ->
                     val stringValue = value.toString()
-                    if (stringValue.toIntOrNull() != null) "${stringValue}n" else stringValue
+                    // Only encode actual integer values, not string representations of indices
+                    if (value is Int) "${stringValue}n" else stringValue
                 }
 
                 val options = EncodeOptions(encoder = encoder)
