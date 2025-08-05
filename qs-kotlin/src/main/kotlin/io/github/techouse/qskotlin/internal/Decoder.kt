@@ -198,7 +198,7 @@ internal object Decoder {
                         else -> Utils.combine<Any?>(emptyList<Any?>(), leaf)
                     }
             } else {
-                val mutableObj = HashMap<Any, Any?>(1)
+                val mutableObj = LinkedHashMap<Any, Any?>(1)
                 val cleanRoot =
                     if (root.startsWith("[") && root.endsWith("]")) {
                         root.substring(1, root.length - 1)
