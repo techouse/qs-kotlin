@@ -3,6 +3,7 @@ package io.github.techouse.qskotlin.unit
 import io.github.techouse.qskotlin.decode
 import io.github.techouse.qskotlin.encode
 import io.github.techouse.qskotlin.enums.ListFormat
+import io.github.techouse.qskotlin.internal.Utils
 import io.github.techouse.qskotlin.models.*
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.core.spec.style.DescribeSpec
@@ -983,6 +984,38 @@ class QsParserSpec :
                 // but should handle the conversion appropriately
                 val commaResult = encode(value, options.copy(listFormat = ListFormat.COMMA))
                 commaResult shouldContain "a="
+            }
+        }
+
+        describe("Utils.merge") {
+            it("should merge with null values") {
+                Utils.merge(null, listOf(42)) shouldBe listOf(null, 42)
+                Utils.merge(null, true) shouldBe listOf(null, true)
+            }
+
+            it("should merge maps and arrays") {
+                val dict1 = mapOf("a" to "b")
+                val dict2 = mapOf("a" to "c")
+                val dict3 = mapOf("a" to dict2)
+
+                Utils.merge(dict1, dict2) shouldBe mapOf("a" to listOf("b", "c"))
+                Utils.merge(dict1, dict3) shouldBe mapOf("a" to listOf("b", mapOf("a" to "c")))
+
+                val d1 = mapOf("foo" to listOf("bar", mapOf("first" to "123")))
+                val d2 = mapOf("foo" to mapOf("second" to "456"))
+
+                val expected1 =
+                    mapOf(
+                        "foo" to mapOf(0 to "bar", 1 to mapOf("first" to "123"), "second" to "456")
+                    )
+                Utils.merge(d1, d2) shouldBe expected1
+
+                val a = mapOf("foo" to listOf("baz"))
+                val b = mapOf("foo" to listOf("bar", "xyzz"))
+                Utils.merge(a, b) shouldBe mapOf("foo" to listOf("baz", "bar", "xyzz"))
+
+                val x = mapOf("foo" to "baz")
+                Utils.merge(x, "bar") shouldBe mapOf("foo" to "baz", "bar" to true)
             }
         }
     })
