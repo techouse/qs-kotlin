@@ -368,7 +368,7 @@ class UtilsSpec :
         }
 
         context("Utils.merge") {
-            test("merges SplayTreeMap with List") {
+            test("merges Map with List") {
                 Utils.merge(mapOf(0 to "a"), listOf(Undefined(), "b")) shouldBe
                     mapOf(0 to "a", 1 to "b")
             }
