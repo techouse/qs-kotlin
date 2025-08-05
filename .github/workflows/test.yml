@@ -34,7 +34,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Run ktfmtCheck (qs-kotlin)
         run: ./gradlew :qs-kotlin:ktfmtCheck --stacktrace
-  jvm-tests:
+  jvm_tests:
     name: JVM tests (Java ${{ matrix.java }})
     runs-on: ubuntu-latest
     needs: style
@@ -66,7 +66,7 @@ jobs:
           name: qs-kotlin-jvm-${{ matrix.java }}
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-  android-aar:
+  android_aar:
     name: Android AAR (AGP) + unit tests
     runs-on: ubuntu-latest
     needs: style
@@ -90,3 +90,41 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Assemble AAR + run unit tests
         run: ./gradlew :qs-kotlin-android:assembleRelease :qs-kotlin-android:testReleaseUnitTest --stacktrace
+  ensure_compatibility:
+    name: Ensure compatibility with qs
+    needs: style
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install JS dependencies
+        run: npm ci
+        working-directory: comparison/js
+      - name: Run Kotlin comparison
+        run: ./gradlew -q :comparison:run --console=plain --warning-mode=none > kotlin.out
+      - name: Run Node comparison
+        run: node comparison/js/qs.js > node.out
+      - name: Show first lines (debug)
+        if: ${{ always() }}
+        run: |
+          echo "=== Kotlin (first 80 lines) ==="
+          head -n 80 kotlin.out || true
+          echo "=== Node (first 80 lines) ==="
+          head -n 80 node.out || true
+      - name: Diff outputs
+        run: |
+          set -eo pipefail
+          diff -u node.out kotlin.out > diff.out || (echo "::error::Differences found between Node and Kotlin outputs. See artifact diff.out"; exit 1)
+      - name: Upload diff artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparison-diff
+          path: |
+            node.out
+            kotlin.out
+            diff.out
