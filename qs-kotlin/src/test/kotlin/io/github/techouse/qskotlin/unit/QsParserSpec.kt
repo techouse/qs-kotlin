@@ -987,6 +987,8 @@ class QsParserSpec :
             }
         }
 
+        /// Ported from
+        // https://github.com/atek-software/qsparser/blob/main/src/test/java/ro/atek/qsparser/UtilsTest.java
         describe("Utils.merge") {
             it("should merge with null values") {
                 Utils.merge(null, listOf(42)) shouldBe listOf(null, 42)
