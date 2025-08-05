@@ -34,7 +34,11 @@ data class DecodeOptions(
     /** Set to `true` to allow empty List values inside Maps in the encoded input. */
     val allowEmptyLists: Boolean = false,
 
-    /** Set to `true` to allow sparse Lists in the encoded input. */
+    /**
+     * Set to `true` to allow sparse Lists in the encoded input.
+     *
+     * Note: If set to `true`, the lists will contain `null` values for missing indices.
+     */
     val allowSparseLists: Boolean = false,
 
     /**
