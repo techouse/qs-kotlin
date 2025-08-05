@@ -102,7 +102,7 @@ jobs:
         with:
           node-version: '20'
       - name: Install JS dependencies
-        run: npm ci
+        run: npm install
         working-directory: comparison/js
       - name: Run Kotlin comparison
         run: ./gradlew -q :comparison:run --console=plain --warning-mode=none > kotlin.out
