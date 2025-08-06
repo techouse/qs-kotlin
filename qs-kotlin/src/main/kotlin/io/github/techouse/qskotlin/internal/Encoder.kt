@@ -69,7 +69,7 @@ internal object Encoder {
         encodeValuesOnly: Boolean = false,
         charset: Charset = StandardCharsets.UTF_8,
         addQueryPrefix: Boolean = false,
-    ): Any? {
+    ): Any {
         val prefix: String = prefix ?: if (addQueryPrefix) "?" else ""
         val generateArrayPrefix: ListFormatGenerator =
             generateArrayPrefix ?: ListFormat.INDICES.generator
