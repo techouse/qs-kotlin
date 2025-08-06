@@ -145,7 +145,7 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
             continue
         }
 
-        val encoded: Any? =
+        val encoded: Any =
             Encoder.encode(
                 data = obj[key],
                 undefined = !obj.containsKey(key),
