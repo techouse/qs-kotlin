@@ -254,7 +254,7 @@ internal object Encoder {
             val valueSideChannel = WeakHashMap<Any?, Any?>()
             valueSideChannel[SENTINEL] = sideChannel
 
-            val encoded: Any? =
+            val encoded: Any =
                 encode(
                     data = value,
                     undefined = valueUndefined,
