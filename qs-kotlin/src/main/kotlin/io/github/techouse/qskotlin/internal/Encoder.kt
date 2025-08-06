@@ -238,7 +238,7 @@ internal object Encoder {
             }
 
             val encodedKey: String =
-                if ((allowDots && encodeDotInKeys)) key.toString().replace(".", "%2E")
+                if (allowDots && encodeDotInKeys) key.toString().replace(".", "%2E")
                 else key.toString()
 
             val keyPrefix: String =
