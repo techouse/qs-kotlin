@@ -750,8 +750,9 @@ class DecodeSpec :
 
             describe("charset") {
                 it("throws an exception when given an unknown charset") {
+                    @Suppress("CHARSET")
                     shouldThrow<Exception> {
-                        decode("a=b", DecodeOptions(charset = Charset.forName("Shift_JIS")))
+                        decode("a=b", DecodeOptions(charset = Charset.forName("foo")))
                     }
                 }
 
