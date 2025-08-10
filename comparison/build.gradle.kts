@@ -7,7 +7,7 @@ repositories { mavenCentral() }
 
 dependencies {
     implementation(project(":qs-kotlin"))
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
 }
 
 application { mainClass.set("io.github.techouse.qskotlin.compare.MainKt") }
