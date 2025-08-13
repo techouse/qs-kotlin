@@ -1,3 +1,7 @@
+## 1.1.3
+
+* [FIX] ensure consistent string key usage for maps and correct numeric key handling in `Decoder`
+
 ## 1.1.2
 
 * [FIX] change `HashMap` to `LinkedHashMap` in `Decoder.parseObject` for consistent iteration order
