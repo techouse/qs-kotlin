@@ -198,45 +198,42 @@ internal object Decoder {
                         else -> Utils.combine<Any?>(emptyList<Any?>(), leaf)
                     }
             } else {
-                val mutableObj = LinkedHashMap<Any, Any?>(1)
+                // Always build *string-keyed* maps here
+                val mutableObj = LinkedHashMap<String, Any?>(1)
+
                 val cleanRoot =
                     if (root.startsWith("[") && root.endsWith("]")) {
                         root.substring(1, root.length - 1)
                     } else root
 
                 val decodedRoot =
-                    if (options.getDecodeDotInKeys) {
-                        cleanRoot.replace("%2E", ".")
-                    } else cleanRoot
+                    if (options.getDecodeDotInKeys) cleanRoot.replace("%2E", ".") else cleanRoot
 
-                val index: Int? =
-                    if (decodedRoot.isNotEmpty() && decodedRoot.toIntOrNull() != null)
-                        decodedRoot.toInt()
-                    else null
+                val isPureNumeric = decodedRoot.isNotEmpty() && decodedRoot.all { it.isDigit() }
+                val idx: Int? = if (isPureNumeric) decodedRoot.toInt() else null
+                val isBracketedNumeric =
+                    idx != null && root != decodedRoot && idx.toString() == decodedRoot
 
                 when {
-                    !options.parseLists && decodedRoot == "" -> {
-                        mutableObj[0] = leaf
+                    // If list parsing is disabled OR listLimit < 0: always make a map with string
+                    // key
+                    !options.parseLists || options.listLimit < 0 -> {
+                        val keyForMap = if (decodedRoot == "") "0" else decodedRoot
+                        mutableObj[keyForMap] = leaf
                         obj = mutableObj
                     }
 
-                    index != null &&
-                        index >= 0 &&
-                        root != decodedRoot &&
-                        index.toString() == decodedRoot &&
-                        options.parseLists &&
-                        index <= options.listLimit -> {
-                        val list = MutableList<Any?>(index + 1) { Undefined.Companion() }
-                        list[index] = leaf
+                    // Proper list index (e.g., "[3]") and allowed by listLimit -> build a list
+                    isBracketedNumeric && idx >= 0 && idx <= options.listLimit -> {
+                        val list = MutableList<Any?>(idx + 1) { Undefined.Companion() }
+                        list[idx] = leaf
                         obj = list
                     }
 
+                    // Otherwise, treat it as a map with *string* key (even if numeric)
                     else -> {
-                        if (index != null) {
-                            mutableObj[index] = leaf
-                        } else {
-                            mutableObj[decodedRoot] = leaf
-                        }
+                        val keyForMap = decodedRoot
+                        mutableObj[keyForMap] = leaf
                         obj = mutableObj
                     }
                 }

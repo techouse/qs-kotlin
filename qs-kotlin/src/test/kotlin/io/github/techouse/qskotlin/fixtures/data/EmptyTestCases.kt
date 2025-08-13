@@ -178,12 +178,12 @@ internal val EmptyTestCases: List<Map<String, Any>> =
                     "indices" to "[0]=a&[1]=b& [0]=1",
                     "repeat" to "=a&=b& =1",
                 ),
-            "noEmptyKeys" to mapOf(0 to "a", 1 to "b", " " to listOf("1")),
+            "noEmptyKeys" to mapOf("0" to "a", "1" to "b", " " to listOf("1")),
         ),
         mapOf(
             "input" to "[0]=a&[1]=b&a[0]=1&a[1]=2",
             "withEmptyKeys" to mapOf("" to listOf("a", "b"), "a" to listOf("1", "2")),
-            "noEmptyKeys" to mapOf(0 to "a", 1 to "b", "a" to listOf("1", "2")),
+            "noEmptyKeys" to mapOf("0" to "a", "1" to "b", "a" to listOf("1", "2")),
             "stringifyOutput" to
                 mapOf(
                     "brackets" to "[]=a&[]=b&a[]=1&a[]=2",
@@ -207,6 +207,6 @@ internal val EmptyTestCases: List<Map<String, Any>> =
             "withEmptyKeys" to mapOf("" to listOf("a", "b")),
             "stringifyOutput" to
                 mapOf("brackets" to "[]=a&[]=b", "indices" to "[0]=a&[1]=b", "repeat" to "=a&=b"),
-            "noEmptyKeys" to mapOf(0 to "a", 1 to "b"),
+            "noEmptyKeys" to mapOf("0" to "a", "1" to "b"),
         ),
     )

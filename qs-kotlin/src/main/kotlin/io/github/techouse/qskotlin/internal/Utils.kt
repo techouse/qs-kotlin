@@ -37,18 +37,21 @@ internal object Utils {
                 is Iterable<*> ->
                     when {
                         target.any { it is Undefined } -> {
-                            val mutableTarget: MutableMap<Any, Any?> =
-                                target.withIndex().associate { it.index to it.value }.toMutableMap()
+                            val mutableTarget: MutableMap<String, Any?> =
+                                target
+                                    .withIndex()
+                                    .associate { it.index.toString() to it.value }
+                                    .toMutableMap()
 
                             when (source) {
                                 is Iterable<*> ->
                                     source.forEachIndexed { i, item ->
                                         if (item !is Undefined) {
-                                            mutableTarget[i] = item
+                                            mutableTarget[i.toString()] = item
                                         }
                                     }
 
-                                else -> mutableTarget[mutableTarget.size] = source
+                                else -> mutableTarget[mutableTarget.size.toString()] = source
                             }
 
                             when {
@@ -117,7 +120,7 @@ internal object Utils {
                         is Iterable<*> -> {
                             source.forEachIndexed { i, item ->
                                 if (item !is Undefined) {
-                                    mutableTarget[i] = item
+                                    mutableTarget[i.toString()] = item
                                 }
                             }
                         }
@@ -146,16 +149,16 @@ internal object Utils {
         if (target == null || target !is Map<*, *>) {
             return when (target) {
                 is Iterable<*> -> {
-                    val mutableTarget: MutableMap<Any, Any?> =
+                    val mutableTarget: MutableMap<String, Any?> =
                         target
                             .withIndex()
-                            .associate { it.index to it.value }
+                            .associate { it.index.toString() to it.value }
                             .filterValues { it !is Undefined }
                             .toMutableMap()
 
                     @Suppress("UNCHECKED_CAST")
                     (source as Map<Any, Any?>).forEach { (key, value) ->
-                        mutableTarget[key] = value
+                        mutableTarget[key.toString()] = value
                     }
                     mutableTarget
                 }
@@ -183,10 +186,9 @@ internal object Utils {
                 target is Iterable<*> && source !is Iterable<*> ->
                     target
                         .withIndex()
-                        .associate { it.index to it.value }
+                        .associate { it.index.toString() to it.value }
                         .filterValues { it !is Undefined }
                         .toMutableMap()
-
                 else -> (target as Map<Any, Any?>).toMutableMap()
             }
 

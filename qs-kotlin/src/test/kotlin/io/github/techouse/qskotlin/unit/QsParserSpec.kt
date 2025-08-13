@@ -21,7 +21,7 @@ class QsParserSpec :
                 val options = DecodeOptions()
                 val optionsStrictNullHandling = DecodeOptions(strictNullHandling = true)
 
-                decode("0=foo", options) shouldBe mapOf(0 to "foo")
+                decode("0=foo", options) shouldBe mapOf("0" to "foo")
 
                 decode("foo=c++", options) shouldBe mapOf("foo" to "c  ")
 
@@ -172,7 +172,7 @@ class QsParserSpec :
 
                 decode("a[1]=c", options20) shouldBe mapOf("a" to listOf("c"))
 
-                decode("a[1]=c", options0) shouldBe mapOf("a" to mapOf(1 to "c"))
+                decode("a[1]=c", options0) shouldBe mapOf("a" to mapOf("1" to "c"))
 
                 decode("a[1]=c", options) shouldBe mapOf("a" to listOf("c"))
             }
@@ -183,11 +183,11 @@ class QsParserSpec :
 
                 decode("a[20]=a", options20) shouldBe mapOf("a" to listOf("a"))
 
-                decode("a[21]=a", options20) shouldBe mapOf("a" to mapOf(21 to "a"))
+                decode("a[21]=a", options20) shouldBe mapOf("a" to mapOf("21" to "a"))
 
                 decode("a[20]=a", options) shouldBe mapOf("a" to listOf("a"))
 
-                decode("a[21]=a", options) shouldBe mapOf("a" to mapOf(21 to "a"))
+                decode("a[21]=a", options) shouldBe mapOf("a" to mapOf("21" to "a"))
             }
 
             it("should support keys that begin with a number") {
@@ -231,19 +231,19 @@ class QsParserSpec :
                 val options = DecodeOptions()
 
                 decode("foo[0]=bar&foo[bad]=baz", options) shouldBe
-                    mapOf("foo" to mapOf(0 to "bar", "bad" to "baz"))
+                    mapOf("foo" to mapOf("0" to "bar", "bad" to "baz"))
 
                 decode("foo[bad]=baz&foo[0]=bar", options) shouldBe
-                    mapOf("foo" to mapOf("bad" to "baz", 0 to "bar"))
+                    mapOf("foo" to mapOf("bad" to "baz", "0" to "bar"))
 
                 decode("foo[bad]=baz&foo[]=bar", options) shouldBe
-                    mapOf("foo" to mapOf("bad" to "baz", 0 to "bar"))
+                    mapOf("foo" to mapOf("bad" to "baz", "0" to "bar"))
 
                 decode("foo[]=bar&foo[bad]=baz", options) shouldBe
-                    mapOf("foo" to mapOf(0 to "bar", "bad" to "baz"))
+                    mapOf("foo" to mapOf("0" to "bar", "bad" to "baz"))
 
                 decode("foo[bad]=baz&foo[]=bar&foo[]=foo", options) shouldBe
-                    mapOf("foo" to mapOf("bad" to "baz", 0 to "bar", 1 to "foo"))
+                    mapOf("foo" to mapOf("bad" to "baz", "0" to "bar", "1" to "foo"))
 
                 decode("foo[0][a]=a&foo[0][b]=b&foo[1][a]=aa&foo[1][b]=bb", options) shouldBe
                     mapOf(
@@ -277,16 +277,16 @@ class QsParserSpec :
                     mapOf("foo" to listOf(mapOf("baz" to listOf("15", "16"), "bar" to "2")))
 
                 decode("foo.bad=baz&foo[0]=bar", optionsAllowDots) shouldBe
-                    mapOf("foo" to mapOf("bad" to "baz", 0 to "bar"))
+                    mapOf("foo" to mapOf("bad" to "baz", "0" to "bar"))
 
                 decode("foo.bad=baz&foo[]=bar", optionsAllowDots) shouldBe
-                    mapOf("foo" to mapOf("bad" to "baz", 0 to "bar"))
+                    mapOf("foo" to mapOf("bad" to "baz", "0" to "bar"))
 
                 decode("foo[]=bar&foo.bad=baz", optionsAllowDots) shouldBe
-                    mapOf("foo" to mapOf(0 to "bar", "bad" to "baz"))
+                    mapOf("foo" to mapOf("0" to "bar", "bad" to "baz"))
 
                 decode("foo.bad=baz&foo[]=bar&foo[]=foo", optionsAllowDots) shouldBe
-                    mapOf("foo" to mapOf("bad" to "baz", 0 to "bar", 1 to "foo"))
+                    mapOf("foo" to mapOf("bad" to "baz", "0" to "bar", "1" to "foo"))
 
                 decode("foo[0].a=a&foo[0].b=b&foo[1].a=aa&foo[1].b=bb", optionsAllowDots) shouldBe
                     mapOf(
@@ -299,7 +299,7 @@ class QsParserSpec :
                 val options = DecodeOptions()
 
                 decode("a[2]=b&a[99999999]=c", options) shouldBe
-                    mapOf("a" to mapOf(2 to "b", 99999999 to "c"))
+                    mapOf("a" to mapOf("2" to "b", "99999999" to "c"))
             }
 
             it("should support malformed URI characters") {
@@ -416,9 +416,9 @@ class QsParserSpec :
                 val options = DecodeOptions()
                 val optionsStrictNullHandling = DecodeOptions(strictNullHandling = true)
 
-                decode("[]=&a=b", options) shouldBe mapOf(0 to "", "a" to "b")
+                decode("[]=&a=b", options) shouldBe mapOf("0" to "", "a" to "b")
 
-                decode("[]&a=b", optionsStrictNullHandling) shouldBe mapOf(0 to null, "a" to "b")
+                decode("[]&a=b", optionsStrictNullHandling) shouldBe mapOf("0" to null, "a" to "b")
 
                 decode("[foo]=bar", optionsStrictNullHandling) shouldBe mapOf("foo" to "bar")
             }
@@ -455,20 +455,21 @@ class QsParserSpec :
             it("should allow overriding list limit") {
                 val optionsNegative = DecodeOptions(listLimit = -1)
 
-                decode("a[0]=b", optionsNegative) shouldBe mapOf("a" to mapOf(0 to "b"))
+                decode("a[0]=b", optionsNegative) shouldBe mapOf("a" to mapOf("0" to "b"))
 
-                decode("a[-1]=b", optionsNegative) shouldBe mapOf("a" to mapOf(-1 to "b"))
+                decode("a[-1]=b", optionsNegative) shouldBe mapOf("a" to mapOf("-1" to "b"))
 
                 decode("a[0]=b&a[1]=c", optionsNegative) shouldBe
-                    mapOf("a" to mapOf(0 to "b", 1 to "c"))
+                    mapOf("a" to mapOf("0" to "b", "1" to "c"))
             }
 
             it("should allow disabling list parsing") {
                 val options = DecodeOptions(parseLists = false)
 
-                decode("a[0]=b&a[1]=c", options) shouldBe mapOf("a" to mapOf(0 to "b", 1 to "c"))
+                decode("a[0]=b&a[1]=c", options) shouldBe
+                    mapOf("a" to mapOf("0" to "b", "1" to "c"))
 
-                decode("a[]=b", options) shouldBe mapOf("a" to mapOf(0 to "b"))
+                decode("a[]=b", options) shouldBe mapOf("a" to mapOf("0" to "b"))
             }
 
             it("should allow for query string prefix") {
@@ -1009,7 +1010,8 @@ class QsParserSpec :
 
                 val expected1 =
                     mapOf(
-                        "foo" to mapOf(0 to "bar", 1 to mapOf("first" to "123"), "second" to "456")
+                        "foo" to
+                            mapOf("0" to "bar", "1" to mapOf("first" to "123"), "second" to "456")
                     )
                 Utils.merge(d1, d2) shouldBe expected1
 

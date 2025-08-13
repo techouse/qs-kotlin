@@ -370,7 +370,7 @@ class UtilsSpec :
         context("Utils.merge") {
             test("merges Map with List") {
                 Utils.merge(mapOf(0 to "a"), listOf(Undefined(), "b")) shouldBe
-                    mapOf(0 to "a", 1 to "b")
+                    mapOf(0 to "a", "1" to "b")
             }
 
             test("merges two objects with the same key and different values") {
@@ -438,7 +438,8 @@ class UtilsSpec :
                     mapOf("foo" to mapOf("second" to "456")),
                 ) shouldBe
                     mapOf(
-                        "foo" to mapOf(0 to "bar", 1 to mapOf("first" to "123"), "second" to "456")
+                        "foo" to
+                            mapOf("0" to "bar", "1" to mapOf("first" to "123"), "second" to "456")
                     )
             }
 
@@ -520,7 +521,7 @@ class UtilsSpec :
                         mapOf("foo" to listOf("bar")),
                         mapOf("foo" to mapOf("baz" to "xyzzy")),
                     )
-                result shouldBe mapOf("foo" to mapOf(0 to "bar", "baz" to "xyzzy"))
+                result shouldBe mapOf("foo" to mapOf("0" to "bar", "baz" to "xyzzy"))
 
                 @Suppress("UNCHECKED_CAST") val map = result as Map<String, Any>
                 map.shouldContainKey("foo")
@@ -533,7 +534,7 @@ class UtilsSpec :
                         mapOf("foo" to mapOf("bar" to "baz")),
                         mapOf("foo" to listOf("xyzzy")),
                     )
-                result shouldBe mapOf("foo" to mapOf("bar" to "baz", 0 to "xyzzy"))
+                result shouldBe mapOf("foo" to mapOf("bar" to "baz", "0" to "xyzzy"))
 
                 @Suppress("UNCHECKED_CAST") val map = result as Map<String, Any>
                 map.shouldContainKey("foo")
