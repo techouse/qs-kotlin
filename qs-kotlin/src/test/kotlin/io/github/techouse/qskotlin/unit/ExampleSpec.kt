@@ -179,21 +179,21 @@ class ExampleSpec :
                 }
 
                 it("converts high indices to Map keys") {
-                    decode("a[100]=b") shouldBe mapOf("a" to mapOf(100 to "b"))
+                    decode("a[100]=b") shouldBe mapOf("a" to mapOf("100" to "b"))
                 }
 
                 it("can override list limit") {
                     decode("a[1]=b", DecodeOptions(listLimit = 0)) shouldBe
-                        mapOf("a" to mapOf(1 to "b"))
+                        mapOf("a" to mapOf("1" to "b"))
                 }
 
                 it("can disable list parsing entirely") {
                     decode("a[]=b", DecodeOptions(parseLists = false)) shouldBe
-                        mapOf("a" to mapOf(0 to "b"))
+                        mapOf("a" to mapOf("0" to "b"))
                 }
 
                 it("merges mixed notations into Map") {
-                    decode("a[0]=b&a[b]=c") shouldBe mapOf("a" to mapOf(0 to "b", "b" to "c"))
+                    decode("a[0]=b&a[b]=c") shouldBe mapOf("a" to mapOf("0" to "b", "b" to "c"))
                 }
 
                 it("can create lists of Maps") {

@@ -74,7 +74,7 @@ class DecodeSpec :
             }
 
             it("parses a simple string") {
-                decode("0=foo") shouldBe mapOf(0 to "foo")
+                decode("0=foo") shouldBe mapOf("0" to "foo")
                 decode("foo=c++") shouldBe mapOf("foo" to "c  ")
                 decode("a[>=]=23") shouldBe mapOf("a" to mapOf(">=" to "23"))
                 decode("a[<=>]==23") shouldBe mapOf("a" to mapOf("<=>" to "=23"))
@@ -304,14 +304,14 @@ class DecodeSpec :
                 decode("a[1]=c&a[0]=b") shouldBe mapOf("a" to listOf("b", "c"))
                 decode("a[1]=c", DecodeOptions(listLimit = 20)) shouldBe mapOf("a" to listOf("c"))
                 decode("a[1]=c", DecodeOptions(listLimit = 0)) shouldBe
-                    mapOf("a" to mapOf(1 to "c"))
+                    mapOf("a" to mapOf("1" to "c"))
                 decode("a[1]=c") shouldBe mapOf("a" to listOf("c"))
                 decode("a[0]=b&a[2]=c", DecodeOptions(parseLists = false)) shouldBe
-                    mapOf("a" to mapOf(0 to "b", 2 to "c"))
+                    mapOf("a" to mapOf("0" to "b", "2" to "c"))
                 decode("a[0]=b&a[2]=c", DecodeOptions(parseLists = true)) shouldBe
                     mapOf("a" to listOf("b", "c"))
                 decode("a[1]=b&a[15]=c", DecodeOptions(parseLists = false)) shouldBe
-                    mapOf("a" to mapOf(1 to "b", 15 to "c"))
+                    mapOf("a" to mapOf("1" to "b", "15" to "c"))
                 decode("a[1]=b&a[15]=c", DecodeOptions(parseLists = true)) shouldBe
                     mapOf("a" to listOf("b", "c"))
             }
@@ -319,10 +319,10 @@ class DecodeSpec :
             it("limits specific list indices to listLimit") {
                 decode("a[20]=a", DecodeOptions(listLimit = 20)) shouldBe mapOf("a" to listOf("a"))
                 decode("a[21]=a", DecodeOptions(listLimit = 20)) shouldBe
-                    mapOf("a" to mapOf(21 to "a"))
+                    mapOf("a" to mapOf("21" to "a"))
 
                 decode("a[20]=a") shouldBe mapOf("a" to listOf("a"))
-                decode("a[21]=a") shouldBe mapOf("a" to mapOf(21 to "a"))
+                decode("a[21]=a") shouldBe mapOf("a" to mapOf("21" to "a"))
             }
 
             it("supports keys that begin with a number") {
@@ -351,15 +351,15 @@ class DecodeSpec :
 
             it("transforms lists to maps") {
                 decode("foo[0]=bar&foo[bad]=baz") shouldBe
-                    mapOf("foo" to mapOf(0 to "bar", "bad" to "baz"))
+                    mapOf("foo" to mapOf("0" to "bar", "bad" to "baz"))
                 decode("foo[bad]=baz&foo[0]=bar") shouldBe
-                    mapOf("foo" to mapOf("bad" to "baz", 0 to "bar"))
+                    mapOf("foo" to mapOf("bad" to "baz", "0" to "bar"))
                 decode("foo[bad]=baz&foo[]=bar") shouldBe
-                    mapOf("foo" to mapOf("bad" to "baz", 0 to "bar"))
+                    mapOf("foo" to mapOf("bad" to "baz", "0" to "bar"))
                 decode("foo[]=bar&foo[bad]=baz") shouldBe
-                    mapOf("foo" to mapOf(0 to "bar", "bad" to "baz"))
+                    mapOf("foo" to mapOf("0" to "bar", "bad" to "baz"))
                 decode("foo[bad]=baz&foo[]=bar&foo[]=foo") shouldBe
-                    mapOf("foo" to mapOf("bad" to "baz", 0 to "bar", 1 to "foo"))
+                    mapOf("foo" to mapOf("bad" to "baz", "0" to "bar", "1" to "foo"))
                 decode("foo[0][a]=a&foo[0][b]=b&foo[1][a]=aa&foo[1][b]=bb") shouldBe
                     mapOf(
                         "foo" to
@@ -387,13 +387,13 @@ class DecodeSpec :
                     DecodeOptions(allowDots = true),
                 ) shouldBe mapOf("foo" to listOf(mapOf("baz" to listOf("15", "16"), "bar" to "2")))
                 decode("foo.bad=baz&foo[0]=bar", DecodeOptions(allowDots = true)) shouldBe
-                    mapOf("foo" to mapOf("bad" to "baz", 0 to "bar"))
+                    mapOf("foo" to mapOf("bad" to "baz", "0" to "bar"))
                 decode("foo.bad=baz&foo[]=bar", DecodeOptions(allowDots = true)) shouldBe
-                    mapOf("foo" to mapOf("bad" to "baz", 0 to "bar"))
+                    mapOf("foo" to mapOf("bad" to "baz", "0" to "bar"))
                 decode("foo[]=bar&foo.bad=baz", DecodeOptions(allowDots = true)) shouldBe
-                    mapOf("foo" to mapOf(0 to "bar", "bad" to "baz"))
+                    mapOf("foo" to mapOf("0" to "bar", "bad" to "baz"))
                 decode("foo.bad=baz&foo[]=bar&foo[]=foo", DecodeOptions(allowDots = true)) shouldBe
-                    mapOf("foo" to mapOf("bad" to "baz", 0 to "bar", 1 to "foo"))
+                    mapOf("foo" to mapOf("bad" to "baz", "0" to "bar", "1" to "foo"))
                 decode(
                     "foo[0].a=a&foo[0].b=b&foo[1].a=aa&foo[1].b=bb",
                     DecodeOptions(allowDots = true),
@@ -406,7 +406,7 @@ class DecodeSpec :
 
             it("correctly prunes undefined values when converting a list to a map") {
                 decode("a[2]=b&a[99999999]=c") shouldBe
-                    mapOf("a" to mapOf(2 to "b", 99999999 to "c"))
+                    mapOf("a" to mapOf("2" to "b", "99999999" to "c"))
             }
 
             it("supports malformed uri characters") {
@@ -482,9 +482,9 @@ class DecodeSpec :
             }
 
             it("continues parsing when no parent is found") {
-                decode("[]=&a=b") shouldBe mapOf(0 to "", "a" to "b")
+                decode("[]=&a=b") shouldBe mapOf("0" to "", "a" to "b")
                 decode("[]&a=b", DecodeOptions(strictNullHandling = true)) shouldBe
-                    mapOf(0 to null, "a" to "b")
+                    mapOf("0" to null, "a" to "b")
                 decode("[foo]=bar") shouldBe mapOf("foo" to "bar")
             }
 
@@ -519,25 +519,25 @@ class DecodeSpec :
 
             it("allows overriding list limit") {
                 decode("a[0]=b", DecodeOptions(listLimit = -1)) shouldBe
-                    mapOf("a" to mapOf(0 to "b"))
+                    mapOf("a" to mapOf("0" to "b"))
                 decode("a[0]=b", DecodeOptions(listLimit = 0)) shouldBe mapOf("a" to listOf("b"))
 
                 decode("a[-1]=b", DecodeOptions(listLimit = -1)) shouldBe
-                    mapOf("a" to mapOf(-1 to "b"))
+                    mapOf("a" to mapOf("-1" to "b"))
                 decode("a[-1]=b", DecodeOptions(listLimit = 0)) shouldBe
-                    mapOf("a" to mapOf(-1 to "b"))
+                    mapOf("a" to mapOf("-1" to "b"))
 
                 decode("a[0]=b&a[1]=c", DecodeOptions(listLimit = -1)) shouldBe
-                    mapOf("a" to mapOf(0 to "b", 1 to "c"))
+                    mapOf("a" to mapOf("0" to "b", "1" to "c"))
                 decode("a[0]=b&a[1]=c", DecodeOptions(listLimit = 0)) shouldBe
-                    mapOf("a" to mapOf(0 to "b", 1 to "c"))
+                    mapOf("a" to mapOf("0" to "b", "1" to "c"))
             }
 
             it("allows disabling list parsing") {
                 decode("a[0]=b&a[1]=c", DecodeOptions(parseLists = false)) shouldBe
-                    mapOf("a" to mapOf(0 to "b", 1 to "c"))
+                    mapOf("a" to mapOf("0" to "b", "1" to "c"))
                 decode("a[]=b", DecodeOptions(parseLists = false)) shouldBe
-                    mapOf("a" to mapOf(0 to "b"))
+                    mapOf("a" to mapOf("0" to "b"))
             }
 
             it("allows for query string prefix") {
@@ -725,7 +725,7 @@ class DecodeSpec :
 
                 val expectedList = mutableMapOf<Any, Any?>()
                 expectedList["a"] = mutableMapOf<Any, Any?>()
-                (expectedList["a"] as MutableMap<Any, Any?>)[0] = "b"
+                (expectedList["a"] as MutableMap<Any, Any?>)["0"] = "b"
                 (expectedList["a"] as MutableMap<Any, Any?>)["c"] = "d"
                 decode("a[]=b&a[c]=d") shouldBe expectedList
             }
@@ -1032,7 +1032,17 @@ class DecodeSpec :
                     "a[1]=1&a[2]=2&a[3]=3&a[4]=4&a[5]=5&a[6]=6",
                     DecodeOptions(listLimit = 5),
                 ) shouldBe
-                    mapOf("a" to mapOf(1 to "1", 2 to "2", 3 to "3", 4 to "4", 5 to "5", 6 to "6"))
+                    mapOf(
+                        "a" to
+                            mapOf(
+                                "1" to "1",
+                                "2" to "2",
+                                "3" to "3",
+                                "4" to "4",
+                                "5" to "5",
+                                "6" to "6",
+                            )
+                    )
             }
 
             it("handles list limit of zero correctly") {
