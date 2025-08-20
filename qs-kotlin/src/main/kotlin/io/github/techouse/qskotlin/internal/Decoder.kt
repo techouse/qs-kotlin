@@ -110,10 +110,12 @@ internal object Decoder {
             var value: Any?
 
             if (pos == -1) {
-                key = options.getDecoder(part, charset).toString()
+                // Decode a bare key (no '=') using key-aware decoding
+                key = options.decodeKey(part, charset).orEmpty()
                 value = if (options.strictNullHandling) null else ""
             } else {
-                key = options.getDecoder(part.take(pos), charset).toString()
+                // Decode the key slice as a key; values decode as values
+                key = options.decodeKey(part.take(pos), charset).orEmpty()
                 value =
                     Utils.apply<Any?>(
                         parseListValue(
@@ -124,7 +126,7 @@ internal object Decoder {
                             } else 0,
                         )
                     ) { v: Any? ->
-                        options.getDecoder((v as String?), charset)
+                        options.decodeValue(v as String?, charset)
                     }
             }
 
@@ -202,12 +204,15 @@ internal object Decoder {
                 val mutableObj = LinkedHashMap<String, Any?>(1)
 
                 val cleanRoot =
-                    if (root.startsWith("[") && root.endsWith("]")) {
-                        root.substring(1, root.length - 1)
+                    if (root.startsWith("[")) {
+                        val last = root.lastIndexOf(']')
+                        if (last > 0) root.substring(1, last) else root.substring(1)
                     } else root
 
                 val decodedRoot =
-                    if (options.getDecodeDotInKeys) cleanRoot.replace("%2E", ".") else cleanRoot
+                    if (options.getDecodeDotInKeys)
+                        cleanRoot.replace("%2E", ".").replace("%2e", ".")
+                    else cleanRoot
 
                 val isPureNumeric = decodedRoot.isNotEmpty() && decodedRoot.all { it.isDigit() }
                 val idx: Int? = if (isPureNumeric) decodedRoot.toInt() else null
@@ -232,8 +237,7 @@ internal object Decoder {
 
                     // Otherwise, treat it as a map with *string* key (even if numeric)
                     else -> {
-                        val keyForMap = decodedRoot
-                        mutableObj[keyForMap] = leaf
+                        mutableObj[decodedRoot] = leaf
                         obj = mutableObj
                     }
                 }
