@@ -6,7 +6,7 @@ import io.github.techouse.qskotlin.internal.Utils
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 
-/** Unified scalar decoder. Implementations may ignore [charset] and/or [kind]. */
+/** Unified scalar decoder. Implementations may ignore `charset` and/or `kind`. */
 fun interface Decoder {
     fun decode(value: String?, charset: Charset?, kind: DecodeKind?): Any?
 }
