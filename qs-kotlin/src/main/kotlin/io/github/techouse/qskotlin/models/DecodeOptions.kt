@@ -217,7 +217,17 @@ data class DecodeOptions(
         return sb.toString()
     }
 
-    /** Back‑compat: decode a value (no kind context). */
+    /**
+     * Back‑compat helper: decode a value without key/value kind context.
+     *
+     * Prefer calling [decode] directly (or [decodeKey]/[decodeValue] for explicit context).
+     */
+    @Deprecated(
+        message = "Use decode(value, charset) or decodeKey/decodeValue for context‑aware decoding.",
+        replaceWith = ReplaceWith("decode(value, charset)"),
+        level = DeprecationLevel.WARNING,
+    )
+    @Suppress("unused")
     @JvmOverloads
     fun getDecoder(value: String?, charset: Charset? = null): Any? = decode(value, charset)
 
