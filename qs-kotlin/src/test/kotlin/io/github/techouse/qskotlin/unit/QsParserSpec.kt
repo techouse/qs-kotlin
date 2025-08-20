@@ -513,7 +513,7 @@ class QsParserSpec :
             }
 
             it("should use number decoder") {
-                val numberDecoder: Decoder = { value, _ ->
+                val numberDecoder = Decoder { value, _, _ ->
                     try {
                         val intValue = value?.toInt()
                         "[$intValue]"
@@ -587,7 +587,7 @@ class QsParserSpec :
             }
 
             it("should parse with custom encoding") {
-                val customDecoder: Decoder = { content, _ ->
+                val customDecoder: Decoder = Decoder { content: String?, _, _ ->
                     try {
                         java.net.URLDecoder.decode(content ?: "", "Shift_JIS")
                     } catch (_: Exception) {
@@ -668,7 +668,7 @@ class QsParserSpec :
             }
 
             it("should allow for decoding keys and values") {
-                val keyValueDecoder: Decoder = { content, _ ->
+                val keyValueDecoder: Decoder = Decoder { content: String?, _, _ ->
                     // Note: Kotlin implementation doesn't distinguish between key and value
                     // decoding
                     content?.lowercase()
