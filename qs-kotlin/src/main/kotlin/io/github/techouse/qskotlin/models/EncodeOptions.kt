@@ -51,7 +51,12 @@ data class EncodeOptions(
 
     /** The List encoding format to use. */
     private val listFormat: ListFormat? = null,
-    @Deprecated("Use listFormat instead") val indices: Boolean? = null,
+    @Deprecated(
+        message = "Use listFormat instead",
+        replaceWith = ReplaceWith("listFormat"),
+        level = DeprecationLevel.WARNING,
+    )
+    val indices: Boolean? = null,
 
     /** Set to `true` to use dot Map notation in the encoded output. */
     private val allowDots: Boolean? = null,
