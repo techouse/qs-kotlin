@@ -299,16 +299,16 @@ internal object Decoder {
         maxDepth: Int,
         strictDepth: Boolean,
     ): List<String> {
+        // Depth 0 semantics: use the original key as a single segment; never throw.
+        if (maxDepth <= 0) {
+            return listOf(originalKey)
+        }
+
         // Apply dot→bracket *before* splitting, but when depth == 0, we do NOT split at all and do
         // NOT throw.
         val key: String =
             if (allowDots) originalKey.replace(DOT_TO_BRACKET) { "[${it.groupValues[1]}]" }
             else originalKey
-
-        // Depth 0 semantics: use the original key as a single segment; never throw.
-        if (maxDepth <= 0) {
-            return listOf(key)
-        }
 
         val segments = ArrayList<String>(key.count { it == '[' } + 1)
 
