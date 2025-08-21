@@ -1,3 +1,26 @@
+## 1.2.0
+
+* [FEAT] add `DecodeKind` enum to distinguish decoding context for keys and values
+* [FEAT] add `LegacyDecoder` typealias and deprecate legacy decoder support in `DecodeOptions` for backward compatibility
+* [FIX] protect encoded dots in key decoding to prevent premature conversion to '.' and ensure correct parsing
+* [FIX] handle lowercase '%2e' in key decoding and improve bracketed key parsing for accurate dot conversion
+* [FIX] fix key segment handling for depth 0 to preserve original key with encoded dots
+* [FIX] optimize `protectEncodedDotsForKeys` to skip processing when no encoded dots are present; update deprecation message for `getDecoder` to clarify removal timeline
+* [FIX] replace regex-based dot-to-bracket conversion with top-level parser to correctly handle encoded dots in key segments
+* [FIX] fix `allowDots` logic to ensure `decodeDotInKeys` requires `allowDots` not explicitly false
+* [CHORE] update deprecation annotation for indices option in `EncodeOptions` with message, replacement, and level
+* [CHORE] add tests for key coercion and `depth=0` behavior with `allowDots` in `decode`
+* [CHORE] update decoder tests to handle `DecodeKind` for selective key/value decoding
+* [CHORE] remove explicit `Decoder` type annotations in custom decoder test cases for improved readability
+* [CHORE] add tests for `defaultDecode` to verify encoded dot handling in keys with `allowDots` and `decodeDotInKeys` options
+* [CHORE] clarify deprecation message for legacy decoder adapter and document bracket handling in `protectEncodedDotsForKeys`
+* [CHORE] reformat deprecation and documentation comments for improved readability in `DecodeOptions`
+* [CHORE] add comprehensive tests for encoded dot handling in keys with `allowDots` and `decodeDotInKeys` options
+* [CHORE]️ deprecate `getDecoder` in favor of context-aware decode methods for value decoding
+* [CHORE] update `Decoder` interface documentation to use code formatting for parameter names
+* [CHORE] rename local variable for custom decoder in encoding test for clarity
+* [CHORE] add tests for dot-to-bracket conversion guardrails in decode with `allowDots` option
+
 ## 1.1.3
 
 * [FIX] ensure consistent string key usage for maps and correct numeric key handling in `Decoder`
