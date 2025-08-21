@@ -13,7 +13,7 @@ fun interface Decoder {
 
 /** Back‑compat adapter for `(value, charset) -> Any?` decoders. */
 @Deprecated(
-    message = "Use Decoder fun interface; this will be removed in a future major release",
+    message = "Use Decoder fun interface; wrap your two‑arg lambda: Decoder { v, c, _ -> legacy(v, c) }",
     replaceWith = ReplaceWith("Decoder { value, charset, _ -> legacyDecoder(value, charset) }"),
     level = DeprecationLevel.WARNING,
 )
@@ -203,6 +203,8 @@ data class DecodeOptions(
      *
      * When [includeOutsideBrackets] is true, occurrences both inside and outside bracket segments
      * are protected. Otherwise, only those **inside** `[...]` are protected.
+     * Note: only literal `[`/`]` affect depth; percent‑encoded brackets (`%5B`/`%5D`) are treated
+     * as content, not structure.
      */
     private fun protectEncodedDotsForKeys(input: String, includeOutsideBrackets: Boolean): String {
         val pct = input.indexOf('%')
@@ -268,7 +270,7 @@ data class DecodeOptions(
 
     /** Convenience: decode a key to String? */
     internal fun decodeKey(value: String?, charset: Charset?): String? =
-        decode(value, charset, DecodeKind.KEY)?.toString()
+        decode(value, charset, DecodeKind.KEY)?.toString() // keys are always coerced to String
 
     /** Convenience: decode a value */
     internal fun decodeValue(value: String?, charset: Charset?): Any? =
