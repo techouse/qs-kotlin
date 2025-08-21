@@ -11,6 +11,14 @@ fun interface Decoder {
     fun decode(value: String?, charset: Charset?, kind: DecodeKind?): Any?
 }
 
+/** Back‑compat adapter for `(value, charset) -> Any?` decoders. */
+@Deprecated(
+    message = "Use Decoder fun interface; this will be removed in a future major release",
+    replaceWith = ReplaceWith("Decoder { value, charset, _ -> legacyDecoder(value, charset) }"),
+    level = DeprecationLevel.WARNING,
+)
+typealias LegacyDecoder = (String?, Charset?) -> Any?
+
 /** Options that configure the output of Qs.decode. */
 data class DecodeOptions(
     /** Set to `true` to decode dot Map notation in the encoded input. */
@@ -18,6 +26,13 @@ data class DecodeOptions(
 
     /** Set a Decoder to affect the decoding of the input. */
     private val decoder: Decoder? = null,
+    @Deprecated(
+        message = "Use `decoder` fun interface; this will be removed in a future major release",
+        replaceWith = ReplaceWith("decoder"),
+        level = DeprecationLevel.WARNING,
+    )
+    @Suppress("DEPRECATION")
+    private val legacyDecoder: LegacyDecoder? = null,
 
     /**
      * Set to `true` to decode dots in keys.
@@ -103,8 +118,11 @@ data class DecodeOptions(
     val parseLists: Boolean = true,
 
     /**
-     * Set to `true` to add a layer of protection by throwing an error when the limit is exceeded,
-     * allowing you to catch and handle such cases.
+     * Enforce the [depth] limit when parsing nested keys.
+     *
+     * When `true`, exceeding [depth] throws an `IndexOutOfBoundsException` during key splitting.
+     * When `false` (default), any remainder beyond [depth] is treated as a single trailing segment
+     * (matching the reference `qs` behavior).
      */
     val strictDepth: Boolean = false,
 
@@ -114,11 +132,21 @@ data class DecodeOptions(
     /** Set to `true` to throw an error when the limit is exceeded. */
     val throwOnLimitExceeded: Boolean = false,
 ) {
-    /** The List encoding format to use. */
+    /**
+     * Effective `allowDots` value.
+     *
+     * Returns `true` when `allowDots == true` **or** when `decodeDotInKeys == true` (since decoding
+     * dots in keys implies dot‑splitting). Otherwise returns `false`.
+     */
     val getAllowDots: Boolean
         get() = allowDots ?: (decodeDotInKeys == true)
 
-    /** The List encoding format to use. */
+    /**
+     * Effective `decodeDotInKeys` value.
+     *
+     * Defaults to `false` when unspecified. When `true`, encoded dots (`%2E`/`%2e`) inside key
+     * segments are mapped to `.` **after** splitting, without introducing extra dot‑splits.
+     */
     val getDecodeDotInKeys: Boolean
         get() = decodeDotInKeys ?: false
 
@@ -133,21 +161,20 @@ data class DecodeOptions(
     }
 
     /**
-     * Unified scalar decoder with key/value context.
+     * Unified scalar decode with key/value context.
      *
-     * Adapts to user‑provided decoders of various shapes:
-     * - DecoderV3: (value, charset, kind)
-     * - DecoderV2/Decoder: (value, charset)
-     * - DecoderV4: (value, kind)
-     * - DecoderV1: (value) If no decoder is provided or shape is unknown, falls back to
-     *   Utils.decode.
+     * Uses the provided [decoder] when set; otherwise falls back to [Utils.decode]. For backward
+     * compatibility, a [legacyDecoder] `(value, charset)` can be supplied and is adapted
+     * internally. The [kind] will be [DecodeKind.KEY] for keys (and key segments) and
+     * [DecodeKind.VALUE] for values.
      */
     internal fun decode(
         value: String?,
         charset: Charset? = null,
         kind: DecodeKind = DecodeKind.VALUE,
     ): Any? {
-        val d = decoder
+        @Suppress("DEPRECATION")
+        val d = decoder ?: legacyDecoder?.let { legacy -> Decoder { v, c, _ -> legacy(v, c) } }
         return if (d != null) {
             d.decode(value, charset, kind) // honor nulls from user decoder
         } else {
@@ -155,7 +182,12 @@ data class DecodeOptions(
         }
     }
 
-    /** Default library decode. For KEYs, optionally protect encoded dots until after splitting. */
+    /**
+     * Default library decode.
+     *
+     * For [DecodeKind.KEY], protects encoded dots (`%2E`/`%2e`) **before** percent‑decoding so key
+     * splitting and post‑split mapping run on the intended tokens.
+     */
     private fun defaultDecode(value: String?, charset: Charset?, kind: DecodeKind): Any? {
         if (value == null) return null
         if (kind == DecodeKind.KEY) {
