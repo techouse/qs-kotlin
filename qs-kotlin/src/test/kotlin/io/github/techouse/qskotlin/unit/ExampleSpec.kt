@@ -483,13 +483,14 @@ class ExampleSpec :
                 decode(
                     "%61=%68%65%6c%6c%6f",
                     DecodeOptions(
-                        decoder = { str, _ ->
-                            when (str) {
-                                "%61" -> "a"
-                                "%68%65%6c%6c%6f" -> "hello"
-                                else -> str
+                        decoder =
+                            Decoder { str, _, _ ->
+                                when (str) {
+                                    "%61" -> "a"
+                                    "%68%65%6c%6c%6f" -> "hello"
+                                    else -> str
+                                }
                             }
-                        }
                     ),
                 ) shouldBe mapOf("a" to "hello")
             }

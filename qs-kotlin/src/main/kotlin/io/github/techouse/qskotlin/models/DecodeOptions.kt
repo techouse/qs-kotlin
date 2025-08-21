@@ -1,19 +1,24 @@
 package io.github.techouse.qskotlin.models
 
+import io.github.techouse.qskotlin.enums.DecodeKind
 import io.github.techouse.qskotlin.enums.Duplicates
 import io.github.techouse.qskotlin.internal.Utils
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 
-/**
- * A function that decodes a value from a query string or form data. It takes a value and an
- * optional charset, returning the decoded value.
- *
- * @param value The encoded value to decode.
- * @param charset The character set to use for decoding, if any.
- * @return The decoded value, or null if the value is not present.
- */
-typealias Decoder = (value: String?, charset: Charset?) -> Any?
+/** Unified scalar decoder. Implementations may ignore `charset` and/or `kind`. */
+fun interface Decoder {
+    fun decode(value: String?, charset: Charset?, kind: DecodeKind?): Any?
+}
+
+/** Back‑compat adapter for `(value, charset) -> Any?` decoders. */
+@Deprecated(
+    message =
+        "Use Decoder fun interface; wrap your two‑arg lambda: Decoder { v, c, _ -> legacy(v, c) }",
+    replaceWith = ReplaceWith("Decoder { value, charset, _ -> legacyDecoder(value, charset) }"),
+    level = DeprecationLevel.WARNING,
+)
+typealias LegacyDecoder = (String?, Charset?) -> Any?
 
 /** Options that configure the output of Qs.decode. */
 data class DecodeOptions(
@@ -22,6 +27,13 @@ data class DecodeOptions(
 
     /** Set a Decoder to affect the decoding of the input. */
     private val decoder: Decoder? = null,
+    @Deprecated(
+        message = "Use `decoder` fun interface; this will be removed in a future major release",
+        replaceWith = ReplaceWith("decoder"),
+        level = DeprecationLevel.WARNING,
+    )
+    @Suppress("DEPRECATION")
+    private val legacyDecoder: LegacyDecoder? = null,
 
     /**
      * Set to `true` to decode dots in keys.
@@ -107,8 +119,11 @@ data class DecodeOptions(
     val parseLists: Boolean = true,
 
     /**
-     * Set to `true` to add a layer of protection by throwing an error when the limit is exceeded,
-     * allowing you to catch and handle such cases.
+     * Enforce the [depth] limit when parsing nested keys.
+     *
+     * When `true`, exceeding [depth] throws an `IndexOutOfBoundsException` during key splitting.
+     * When `false` (default), any remainder beyond [depth] is treated as a single trailing segment
+     * (matching the reference `qs` behavior).
      */
     val strictDepth: Boolean = false,
 
@@ -118,11 +133,21 @@ data class DecodeOptions(
     /** Set to `true` to throw an error when the limit is exceeded. */
     val throwOnLimitExceeded: Boolean = false,
 ) {
-    /** The List encoding format to use. */
+    /**
+     * Effective `allowDots` value.
+     *
+     * Returns `true` when `allowDots == true` **or** when `decodeDotInKeys == true` (since decoding
+     * dots in keys implies dot‑splitting). Otherwise returns `false`.
+     */
     val getAllowDots: Boolean
         get() = allowDots ?: (decodeDotInKeys == true)
 
-    /** The List encoding format to use. */
+    /**
+     * Effective `decodeDotInKeys` value.
+     *
+     * Defaults to `false` when unspecified. When `true`, encoded dots (`%2E`/`%2e`) inside key
+     * segments are mapped to `.` **after** splitting, without introducing extra dot‑splits.
+     */
     val getDecodeDotInKeys: Boolean
         get() = decodeDotInKeys ?: false
 
@@ -131,13 +156,126 @@ data class DecodeOptions(
             "Invalid charset"
         }
         require(parameterLimit > 0) { "Parameter limit must be positive" }
-        require(!getDecodeDotInKeys || getAllowDots) {
+        // If decodeDotInKeys is enabled, allowDots must not be explicitly false.
+        require(!getDecodeDotInKeys || allowDots != false) {
             "decodeDotInKeys requires allowDots to be true"
         }
     }
 
-    /** Decode the input using the specified Decoder. */
+    /**
+     * Unified scalar decode with key/value context.
+     *
+     * Uses the provided [decoder] when set; otherwise falls back to [Utils.decode]. For backward
+     * compatibility, a [legacyDecoder] `(value, charset)` can be supplied and is adapted
+     * internally. The [kind] will be [DecodeKind.KEY] for keys (and key segments) and
+     * [DecodeKind.VALUE] for values.
+     */
+    internal fun decode(
+        value: String?,
+        charset: Charset? = null,
+        kind: DecodeKind = DecodeKind.VALUE,
+    ): Any? {
+        @Suppress("DEPRECATION")
+        val d = decoder ?: legacyDecoder?.let { legacy -> Decoder { v, c, _ -> legacy(v, c) } }
+        return if (d != null) {
+            d.decode(value, charset, kind) // honor nulls from user decoder
+        } else {
+            defaultDecode(value, charset, kind)
+        }
+    }
+
+    /**
+     * Default library decode.
+     *
+     * For [DecodeKind.KEY], protects encoded dots (`%2E`/`%2e`) **before** percent‑decoding so key
+     * splitting and post‑split mapping run on the intended tokens.
+     */
+    private fun defaultDecode(value: String?, charset: Charset?, kind: DecodeKind): Any? {
+        if (value == null) return null
+        if (kind == DecodeKind.KEY) {
+            val protected =
+                protectEncodedDotsForKeys(value, includeOutsideBrackets = (allowDots == true))
+            return Utils.decode(protected, charset)
+        }
+        return Utils.decode(value, charset)
+    }
+
+    /**
+     * Double‑encode %2E/%2e in KEY strings so the percent‑decoder does not turn them into '.' too
+     * early.
+     *
+     * When [includeOutsideBrackets] is true, occurrences both inside and outside bracket segments
+     * are protected. Otherwise, only those **inside** `[...]` are protected. Note: only literal
+     * `[`/`]` affect depth; percent‑encoded brackets (`%5B`/`%5D`) are treated as content, not
+     * structure.
+     */
+    private fun protectEncodedDotsForKeys(input: String, includeOutsideBrackets: Boolean): String {
+        val pct = input.indexOf('%')
+        if (pct < 0) return input
+        if (input.indexOf("2E", pct) < 0 && input.indexOf("2e", pct) < 0) return input
+        val n = input.length
+        val sb = StringBuilder(n + 8)
+        var depth = 0
+        var i = 0
+        while (i < n) {
+            when (val ch = input[i]) {
+                '[' -> {
+                    depth++
+                    sb.append(ch)
+                    i++
+                }
+                ']' -> {
+                    if (depth > 0) depth--
+                    sb.append(ch)
+                    i++
+                }
+                '%' -> {
+                    if (
+                        i + 2 < n &&
+                            input[i + 1] == '2' &&
+                            (input[i + 2] == 'E' || input[i + 2] == 'e')
+                    ) {
+                        val inside = depth > 0
+                        if (inside || includeOutsideBrackets) {
+                            sb.append("%25").append(if (input[i + 2] == 'E') "2E" else "2e")
+                        } else {
+                            sb.append('%').append('2').append(input[i + 2])
+                        }
+                        i += 3
+                    } else {
+                        sb.append(ch)
+                        i++
+                    }
+                }
+                else -> {
+                    sb.append(ch)
+                    i++
+                }
+            }
+        }
+        return sb.toString()
+    }
+
+    /**
+     * Back‑compat helper: decode a value without key/value kind context.
+     *
+     * Prefer calling [decode] directly (or [decodeKey]/[decodeValue] for explicit context).
+     */
+    @Deprecated(
+        message =
+            "Deprecated: use decodeKey/decodeValue (or decode(value, charset, kind)) to honor key/value context. This will be removed in the next major.",
+        replaceWith = ReplaceWith("decode(value, charset)"),
+        level = DeprecationLevel.WARNING,
+    )
+    @Suppress("unused")
     @JvmOverloads
-    fun getDecoder(value: String?, charset: Charset? = null): Any? =
-        if (decoder != null) decoder.invoke(value, charset) else Utils.decode(value, charset)
+    fun getDecoder(value: String?, charset: Charset? = null): Any? = decode(value, charset)
+
+    /** Convenience: decode a key to String? */
+    internal fun decodeKey(value: String?, charset: Charset?): String? =
+        decode(value, charset, DecodeKind.KEY)?.toString() // keys are always coerced to String
+
+    /** Convenience: decode a value */
+    internal fun decodeValue(value: String?, charset: Charset?): Any? =
+        decode(value, charset, DecodeKind.VALUE)
 }

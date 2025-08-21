@@ -6,6 +6,7 @@ import io.github.techouse.qskotlin.enums.Duplicates
 import io.github.techouse.qskotlin.fixtures.data.EmptyTestCases
 import io.github.techouse.qskotlin.internal.Utils
 import io.github.techouse.qskotlin.models.DecodeOptions
+import io.github.techouse.qskotlin.models.Decoder
 import io.github.techouse.qskotlin.models.RegexDelimiter
 import io.github.techouse.qskotlin.models.StringDelimiter
 import io.kotest.assertions.throwables.shouldNotThrow
@@ -585,7 +586,7 @@ class DecodeSpec :
             }
 
             it("use number decoder, parses string that has one number with comma option enabled") {
-                val decoder: (str: String?, charset: Charset?) -> Any? = { str, charset ->
+                val decoder = Decoder { str, charset, _ ->
                     str?.toIntOrNull() ?: Utils.decode(str, charset)
                 }
 
@@ -593,6 +594,8 @@ class DecodeSpec :
                     mapOf("foo" to 1)
                 decode("foo=0", DecodeOptions(comma = true, decoder = decoder)) shouldBe
                     mapOf("foo" to 0)
+                // ensure keys are not coerced to numbers
+                decode("1=foo", DecodeOptions(decoder = decoder)) shouldBe mapOf("1" to "foo")
             }
 
             it(
@@ -733,11 +736,11 @@ class DecodeSpec :
             it("can parse with custom encoding") {
                 val expected = mapOf("県" to "大阪府")
 
-                val decode: (str: String?, charset: Charset?) -> String? = { str, _ ->
+                val customDecoder = Decoder { str, _, _ ->
                     str?.replace("%8c%a7", "県")?.replace("%91%e5%8d%e3%95%7b", "大阪府")
                 }
 
-                decode("%8c%a7=%91%e5%8d%e3%95%7b", DecodeOptions(decoder = decode)) shouldBe
+                decode("%8c%a7=%91%e5%8d%e3%95%7b", DecodeOptions(decoder = customDecoder)) shouldBe
                     expected
             }
 
@@ -824,7 +827,7 @@ class DecodeSpec :
                 it(
                     "handles a custom decoder returning `null`, in the `iso-8859-1` charset, when `interpretNumericEntities`"
                 ) {
-                    val decoder: (str: String?, charset: Charset?) -> String? = { str, charset ->
+                    val decoder = Decoder { str, charset, _ ->
                         if (!str.isNullOrEmpty()) Utils.decode(str, charset) else null
                     }
 
@@ -1066,6 +1069,111 @@ class DecodeSpec :
                         DecodeOptions(listLimit = 3, throwOnLimitExceeded = true),
                     )
                 }
+            }
+        }
+
+        describe("encoded dot behavior in keys (%2E / %2e)") {
+            it(
+                "allowDots=false, decodeDotInKeys=false: encoded dots decode to literal '.'; no dot-splitting"
+            ) {
+                decode(
+                    "a%2Eb=c",
+                    DecodeOptions(allowDots = false, decodeDotInKeys = false),
+                ) shouldBe mapOf("a.b" to "c")
+                decode(
+                    "a%2eb=c",
+                    DecodeOptions(allowDots = false, decodeDotInKeys = false),
+                ) shouldBe mapOf("a.b" to "c")
+            }
+
+            it(
+                "allowDots=true, decodeDotInKeys=false: encoded dots are preserved inside segments; plain dots split"
+            ) {
+                // Plain dot splits
+                decode("a.b=c", DecodeOptions(allowDots = true, decodeDotInKeys = false)) shouldBe
+                    mapOf("a" to mapOf("b" to "c"))
+                // Encoded dot stays encoded inside segment (no extra split)
+                decode(
+                    "name%252Eobj.first=John",
+                    DecodeOptions(allowDots = true, decodeDotInKeys = false),
+                ) shouldBe mapOf("name%2Eobj" to mapOf("first" to "John"))
+                // Lowercase variant inside first segment
+                decode(
+                    "a%2eb.c=d",
+                    DecodeOptions(allowDots = true, decodeDotInKeys = false),
+                ) shouldBe mapOf("a%2eb" to mapOf("c" to "d"))
+            }
+
+            it(
+                "allowDots=true, decodeDotInKeys=true: encoded dots become literal '.' inside a segment (no extra split)"
+            ) {
+                decode(
+                    "name%252Eobj.first=John",
+                    DecodeOptions(allowDots = true, decodeDotInKeys = true),
+                ) shouldBe mapOf("name.obj" to mapOf("first" to "John"))
+                // Double-encoded single segment becomes a literal dot after post-split mapping
+                decode(
+                    "a%252Eb=c",
+                    DecodeOptions(allowDots = true, decodeDotInKeys = true),
+                ) shouldBe mapOf("a.b" to "c")
+                // Lowercase mapping as well
+                decode("a[%2e]=x", DecodeOptions(allowDots = true, decodeDotInKeys = true)) shouldBe
+                    mapOf("a" to mapOf("." to "x"))
+            }
+
+            it("bracket segment: %2E mapped based on decodeDotInKeys; case-insensitive") {
+                // When disabled, keep %2E literal (no conversion)
+                decode(
+                    "a[%2E]=x",
+                    DecodeOptions(allowDots = false, decodeDotInKeys = false),
+                ) shouldBe mapOf("a" to mapOf("%2E" to "x"))
+                decode(
+                    "a[%2e]=x",
+                    DecodeOptions(allowDots = true, decodeDotInKeys = false),
+                ) shouldBe mapOf("a" to mapOf("%2e" to "x"))
+                // When enabled, convert to '.' regardless of case
+                decode("a[%2E]=x", DecodeOptions(allowDots = true, decodeDotInKeys = true)) shouldBe
+                    mapOf("a" to mapOf("." to "x"))
+                shouldThrow<IllegalArgumentException> {
+                        decode("a[%2e]=x", DecodeOptions(allowDots = false, decodeDotInKeys = true))
+                    }
+                    .message shouldBe "decodeDotInKeys requires allowDots to be true"
+            }
+
+            it("bare-key (no '='): behavior matches key decoding path") {
+                // allowDots=false → %2E decodes to '.'; no splitting because allowDots=false
+                decode(
+                    "a%2Eb",
+                    DecodeOptions(
+                        allowDots = false,
+                        decodeDotInKeys = false,
+                        strictNullHandling = true,
+                    ),
+                ) shouldBe mapOf("a.b" to null)
+                // allowDots=true & decodeDotInKeys=false → keep %2E inside key segment
+                decode("a%2Eb", DecodeOptions(allowDots = true, decodeDotInKeys = false)) shouldBe
+                    mapOf("a%2Eb" to "")
+            }
+
+            it("depth=0 with allowDots=true: do not split key") {
+                decode("a.b=c", DecodeOptions(allowDots = true, depth = 0)) shouldBe
+                    mapOf("a.b" to "c")
+            }
+
+            it("top-level dot→bracket conversion guardrails: leading/trailing/double dots") {
+                // Leading dot: ".a" should yield { "a": ... } when allowDots=true
+                decode(".a=x", DecodeOptions(allowDots = true, decodeDotInKeys = false)) shouldBe
+                    mapOf("a" to "x")
+
+                // Trailing dot: "a." should NOT create an empty bracket segment; remains literal
+                decode("a.=x", DecodeOptions(allowDots = true, decodeDotInKeys = false)) shouldBe
+                    mapOf("a." to "x")
+
+                // Double dots: only the second dot (before a token) causes a split; the empty
+                // middle
+                // segment is preserved as a literal dot in the parent key (no `[]` is created)
+                decode("a..b=x", DecodeOptions(allowDots = true, decodeDotInKeys = false)) shouldBe
+                    mapOf("a." to mapOf("b" to "x"))
             }
         }
     })

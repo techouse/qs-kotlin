@@ -110,10 +110,12 @@ internal object Decoder {
             var value: Any?
 
             if (pos == -1) {
-                key = options.getDecoder(part, charset).toString()
+                // Decode a bare key (no '=') using key-aware decoding
+                key = options.decodeKey(part, charset).orEmpty()
                 value = if (options.strictNullHandling) null else ""
             } else {
-                key = options.getDecoder(part.take(pos), charset).toString()
+                // Decode the key slice as a key; values decode as values
+                key = options.decodeKey(part.take(pos), charset).orEmpty()
                 value =
                     Utils.apply<Any?>(
                         parseListValue(
@@ -124,7 +126,7 @@ internal object Decoder {
                             } else 0,
                         )
                     ) { v: Any? ->
-                        options.getDecoder((v as String?), charset)
+                        options.decodeValue(v as String?, charset)
                     }
             }
 
@@ -202,12 +204,15 @@ internal object Decoder {
                 val mutableObj = LinkedHashMap<String, Any?>(1)
 
                 val cleanRoot =
-                    if (root.startsWith("[") && root.endsWith("]")) {
-                        root.substring(1, root.length - 1)
+                    if (root.startsWith("[")) {
+                        val last = root.lastIndexOf(']')
+                        if (last > 0) root.substring(1, last) else root.substring(1)
                     } else root
 
                 val decodedRoot =
-                    if (options.getDecodeDotInKeys) cleanRoot.replace("%2E", ".") else cleanRoot
+                    if (options.getDecodeDotInKeys)
+                        cleanRoot.replace("%2E", ".").replace("%2e", ".")
+                    else cleanRoot
 
                 val isPureNumeric = decodedRoot.isNotEmpty() && decodedRoot.all { it.isDigit() }
                 val idx: Int? = if (isPureNumeric) decodedRoot.toInt() else null
@@ -232,8 +237,7 @@ internal object Decoder {
 
                     // Otherwise, treat it as a map with *string* key (even if numeric)
                     else -> {
-                        val keyForMap = decodedRoot
-                        mutableObj[keyForMap] = leaf
+                        mutableObj[decodedRoot] = leaf
                         obj = mutableObj
                     }
                 }
@@ -274,10 +278,53 @@ internal object Decoder {
     }
 
     /**
-     * Regular expression to match dots followed by non-dot and non-bracket characters. This is used
-     * to replace dots in keys with brackets for parsing.
+     * Converts a dot notation key to bracket notation at the top level.
+     *
+     * @param s The string to convert, which may contain dot notation.
+     * @return The converted string with brackets replacing dots at the top level.
      */
-    private val DOT_TO_BRACKET = Regex("""\.([^.\[]+)""")
+    private fun dotToBracketTopLevel(s: String): String {
+        val sb = StringBuilder(s.length)
+        var depth = 0
+        var i = 0
+        while (i < s.length) {
+            val ch = s[i]
+            when (ch) {
+                '[' -> {
+                    depth++
+                    sb.append(ch)
+                    i++
+                }
+                ']' -> {
+                    if (depth > 0) depth--
+                    sb.append(ch)
+                    i++
+                }
+                '.' -> {
+                    if (depth == 0) {
+                        // collect the next segment name (stop at '.' or '[')
+                        val start = ++i
+                        var j = start
+                        while (j < s.length && s[j] != '.' && s[j] != '[') j++
+                        if (j > start) {
+                            sb.append('[').append(s, start, j).append(']')
+                            i = j
+                        } else {
+                            sb.append('.') // nothing to convert
+                        }
+                    } else {
+                        sb.append('.')
+                        i++
+                    }
+                }
+                else -> {
+                    sb.append(ch)
+                    i++
+                }
+            }
+        }
+        return sb.toString()
+    }
 
     /**
      * Splits a key into segments based on brackets and dots, handling depth and strictness.
@@ -295,16 +342,14 @@ internal object Decoder {
         maxDepth: Int,
         strictDepth: Boolean,
     ): List<String> {
-        // Apply dot→bracket *before* splitting, but when depth == 0, we do NOT split at all and do
-        // NOT throw.
-        val key: String =
-            if (allowDots) originalKey.replace(DOT_TO_BRACKET) { "[${it.groupValues[1]}]" }
-            else originalKey
-
         // Depth 0 semantics: use the original key as a single segment; never throw.
         if (maxDepth <= 0) {
-            return listOf(key)
+            return listOf(originalKey)
         }
+
+        // Apply dot→bracket *before* splitting, but when depth == 0, we do NOT split at all and do
+        // NOT throw.
+        val key: String = if (allowDots) dotToBracketTopLevel(originalKey) else originalKey
 
         val segments = ArrayList<String>(key.count { it == '[' } + 1)
 
