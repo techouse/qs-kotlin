@@ -205,7 +205,9 @@ data class DecodeOptions(
      * are protected. Otherwise, only those **inside** `[...]` are protected.
      */
     private fun protectEncodedDotsForKeys(input: String, includeOutsideBrackets: Boolean): String {
-        if (input.indexOf('%') < 0) return input
+        val pct = input.indexOf('%')
+        if (pct < 0) return input
+        if (input.indexOf("2E", pct) < 0 && input.indexOf("2e", pct) < 0) return input
         val n = input.length
         val sb = StringBuilder(n + 8)
         var depth = 0
@@ -255,7 +257,8 @@ data class DecodeOptions(
      * Prefer calling [decode] directly (or [decodeKey]/[decodeValue] for explicit context).
      */
     @Deprecated(
-        message = "Use decode(value, charset) or decodeKey/decodeValue for context‑aware decoding.",
+        message =
+            "Deprecated: use decodeKey/decodeValue (or decode(value, charset, kind)) to honor key/value context. This will be removed in the next major.",
         replaceWith = ReplaceWith("decode(value, charset)"),
         level = DeprecationLevel.WARNING,
     )
