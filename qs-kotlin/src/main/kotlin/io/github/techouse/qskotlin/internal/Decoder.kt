@@ -278,10 +278,53 @@ internal object Decoder {
     }
 
     /**
-     * Regular expression to match dots followed by non-dot and non-bracket characters. This is used
-     * to replace dots in keys with brackets for parsing.
+     * Converts a dot notation key to bracket notation at the top level.
+     *
+     * @param s The string to convert, which may contain dot notation.
+     * @return The converted string with brackets replacing dots at the top level.
      */
-    private val DOT_TO_BRACKET = Regex("""\.([^.\[]+)""")
+    private fun dotToBracketTopLevel(s: String): String {
+        val sb = StringBuilder(s.length)
+        var depth = 0
+        var i = 0
+        while (i < s.length) {
+            val ch = s[i]
+            when (ch) {
+                '[' -> {
+                    depth++
+                    sb.append(ch)
+                    i++
+                }
+                ']' -> {
+                    if (depth > 0) depth--
+                    sb.append(ch)
+                    i++
+                }
+                '.' -> {
+                    if (depth == 0) {
+                        // collect the next segment name (stop at '.' or '[')
+                        val start = ++i
+                        var j = start
+                        while (j < s.length && s[j] != '.' && s[j] != '[') j++
+                        if (j > start) {
+                            sb.append('[').append(s, start, j).append(']')
+                            i = j
+                        } else {
+                            sb.append('.') // nothing to convert
+                        }
+                    } else {
+                        sb.append('.')
+                        i++
+                    }
+                }
+                else -> {
+                    sb.append(ch)
+                    i++
+                }
+            }
+        }
+        return sb.toString()
+    }
 
     /**
      * Splits a key into segments based on brackets and dots, handling depth and strictness.
@@ -306,9 +349,7 @@ internal object Decoder {
 
         // Apply dot→bracket *before* splitting, but when depth == 0, we do NOT split at all and do
         // NOT throw.
-        val key: String =
-            if (allowDots) originalKey.replace(DOT_TO_BRACKET) { "[${it.groupValues[1]}]" }
-            else originalKey
+        val key: String = if (allowDots) dotToBracketTopLevel(originalKey) else originalKey
 
         val segments = ArrayList<String>(key.count { it == '[' } + 1)
 
