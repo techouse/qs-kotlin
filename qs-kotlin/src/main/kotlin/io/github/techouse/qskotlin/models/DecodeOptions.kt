@@ -156,7 +156,8 @@ data class DecodeOptions(
             "Invalid charset"
         }
         require(parameterLimit > 0) { "Parameter limit must be positive" }
-        require(!getDecodeDotInKeys || getAllowDots) {
+        // If decodeDotInKeys is enabled, allowDots must not be explicitly false.
+        require(!getDecodeDotInKeys || allowDots != false) {
             "decodeDotInKeys requires allowDots to be true"
         }
     }
@@ -192,7 +193,8 @@ data class DecodeOptions(
     private fun defaultDecode(value: String?, charset: Charset?, kind: DecodeKind): Any? {
         if (value == null) return null
         if (kind == DecodeKind.KEY) {
-            val protected = protectEncodedDotsForKeys(value, includeOutsideBrackets = getAllowDots)
+            val protected =
+                protectEncodedDotsForKeys(value, includeOutsideBrackets = (allowDots == true))
             return Utils.decode(protected, charset)
         }
         return Utils.decode(value, charset)
