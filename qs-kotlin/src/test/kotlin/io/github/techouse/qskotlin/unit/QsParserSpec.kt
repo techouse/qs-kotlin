@@ -2,6 +2,7 @@ package io.github.techouse.qskotlin.unit
 
 import io.github.techouse.qskotlin.decode
 import io.github.techouse.qskotlin.encode
+import io.github.techouse.qskotlin.enums.DecodeKind
 import io.github.techouse.qskotlin.enums.ListFormat
 import io.github.techouse.qskotlin.internal.Utils
 import io.github.techouse.qskotlin.models.*
@@ -513,11 +514,15 @@ class QsParserSpec :
             }
 
             it("should use number decoder") {
-                val numberDecoder = Decoder { value, _, _ ->
-                    try {
-                        val intValue = value?.toInt()
-                        "[$intValue]"
-                    } catch (_: NumberFormatException) {
+                val numberDecoder = Decoder { value, _, kind ->
+                    if (kind == DecodeKind.VALUE) {
+                        try {
+                            value?.toInt()?.let { "[$it]" } ?: value
+                        } catch (_: NumberFormatException) {
+                            value
+                        }
+                    } else {
+                        // Leave keys untouched
                         value
                     }
                 }
@@ -669,8 +674,9 @@ class QsParserSpec :
 
             it("should allow for decoding keys and values") {
                 val keyValueDecoder: Decoder = Decoder { content: String?, _, _ ->
-                    // Note: Kotlin implementation doesn't distinguish between key and value
-                    // decoding
+                    // This decoder lowercases both keys and values. With DecodeKind available,
+                    // you could branch on kind == DecodeKind.KEY or VALUE if different behaviors
+                    // are desired.
                     content?.lowercase()
                 }
                 val options = DecodeOptions(decoder = keyValueDecoder)
