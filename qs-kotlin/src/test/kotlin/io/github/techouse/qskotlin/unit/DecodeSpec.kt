@@ -1159,5 +1159,21 @@ class DecodeSpec :
                 decode("a.b=c", DecodeOptions(allowDots = true, depth = 0)) shouldBe
                     mapOf("a.b" to "c")
             }
+
+            it("top-level dot→bracket conversion guardrails: leading/trailing/double dots") {
+                // Leading dot: ".a" should yield { "a": ... } when allowDots=true
+                decode(".a=x", DecodeOptions(allowDots = true, decodeDotInKeys = false)) shouldBe
+                    mapOf("a" to "x")
+
+                // Trailing dot: "a." should NOT create an empty bracket segment; remains literal
+                decode("a.=x", DecodeOptions(allowDots = true, decodeDotInKeys = false)) shouldBe
+                    mapOf("a." to "x")
+
+                // Double dots: only the second dot (before a token) causes a split; the empty
+                // middle
+                // segment is preserved as a literal dot in the parent key (no `[]` is created)
+                decode("a..b=x", DecodeOptions(allowDots = true, decodeDotInKeys = false)) shouldBe
+                    mapOf("a." to mapOf("b" to "x"))
+            }
         }
     })
