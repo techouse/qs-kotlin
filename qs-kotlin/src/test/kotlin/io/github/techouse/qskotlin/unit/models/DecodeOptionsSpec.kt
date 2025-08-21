@@ -1,10 +1,12 @@
 package io.github.techouse.qskotlin.unit.models
 
+import io.github.techouse.qskotlin.enums.DecodeKind
 import io.github.techouse.qskotlin.enums.Duplicates
 import io.github.techouse.qskotlin.models.DecodeOptions
 import io.github.techouse.qskotlin.models.RegexDelimiter
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 
 class DecodeOptionsSpec :
@@ -99,6 +101,57 @@ class DecodeOptionsSpec :
                 newOptions.parameterLimit shouldBe 200
                 newOptions.parseLists shouldBe true
                 newOptions.strictNullHandling shouldBe false
+            }
+        }
+
+        fun callDefaultDecode(
+            opts: DecodeOptions,
+            s: String?,
+            cs: Charset,
+            kind: DecodeKind,
+        ): Any? {
+            val m =
+                opts.javaClass.getDeclaredMethod(
+                    "defaultDecode",
+                    String::class.java,
+                    Charset::class.java,
+                    DecodeKind::class.java,
+                )
+            m.isAccessible = true
+            return m.invoke(opts, s, cs, kind)
+        }
+
+        val charsets = listOf(StandardCharsets.UTF_8, StandardCharsets.ISO_8859_1)
+
+        describe(
+            "DecodeOptions.defaultDecode: KEY protects encoded dots prior to percent-decoding"
+        ) {
+            it(
+                "KEY preserves %2E / %2e inside brackets when allowDots=true (UTF-8 and ISO-8859-1)"
+            ) {
+                for (cs in charsets) {
+                    val opts = DecodeOptions(allowDots = true)
+                    callDefaultDecode(opts, "a[%2E]", cs, DecodeKind.KEY) shouldBe "a[%2E]"
+                    callDefaultDecode(opts, "a[%2e]", cs, DecodeKind.KEY) shouldBe "a[%2e]"
+                }
+            }
+
+            it(
+                "KEY preserves %2E outside brackets when allowDots=true, regardless of decodeDotInKeys (UTF-8 / ISO)"
+            ) {
+                for (cs in charsets) {
+                    val opts1 = DecodeOptions(allowDots = true, decodeDotInKeys = false)
+                    val opts2 = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+                    callDefaultDecode(opts1, "a%2Eb", cs, DecodeKind.KEY) shouldBe "a%2Eb"
+                    callDefaultDecode(opts2, "a%2Eb", cs, DecodeKind.KEY) shouldBe "a%2Eb"
+                }
+            }
+
+            it("non-KEY decodes %2E to '.' (control)") {
+                for (cs in charsets) {
+                    val opts = DecodeOptions(allowDots = true)
+                    callDefaultDecode(opts, "a%2Eb", cs, DecodeKind.VALUE) shouldBe "a.b"
+                }
             }
         }
     })
