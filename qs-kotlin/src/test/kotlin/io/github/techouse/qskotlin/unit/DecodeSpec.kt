@@ -736,7 +736,7 @@ class DecodeSpec :
             it("can parse with custom encoding") {
                 val expected = mapOf("県" to "大阪府")
 
-                val decode: Decoder = Decoder { str, _, _ ->
+                val decode = Decoder { str, _, _ ->
                     str?.replace("%8c%a7", "県")?.replace("%91%e5%8d%e3%95%7b", "大阪府")
                 }
 

@@ -592,7 +592,7 @@ class QsParserSpec :
             }
 
             it("should parse with custom encoding") {
-                val customDecoder: Decoder = Decoder { content: String?, _, _ ->
+                val customDecoder = Decoder { content: String?, _, _ ->
                     try {
                         java.net.URLDecoder.decode(content ?: "", "Shift_JIS")
                     } catch (_: Exception) {
@@ -673,7 +673,7 @@ class QsParserSpec :
             }
 
             it("should allow for decoding keys and values") {
-                val keyValueDecoder: Decoder = Decoder { content: String?, _, _ ->
+                val keyValueDecoder = Decoder { content: String?, _, _ ->
                     // This decoder lowercases both keys and values. With DecodeKind available,
                     // you could branch on kind == DecodeKind.KEY or VALUE if different behaviors
                     // are desired.
