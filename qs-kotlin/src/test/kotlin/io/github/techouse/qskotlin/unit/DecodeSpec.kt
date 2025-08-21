@@ -594,6 +594,8 @@ class DecodeSpec :
                     mapOf("foo" to 1)
                 decode("foo=0", DecodeOptions(comma = true, decoder = decoder)) shouldBe
                     mapOf("foo" to 0)
+                // ensure keys are not coerced to numbers
+                decode("1=foo", DecodeOptions(decoder = decoder)) shouldBe mapOf("1" to "foo")
             }
 
             it(
@@ -1151,6 +1153,11 @@ class DecodeSpec :
                 // allowDots=true & decodeDotInKeys=false → keep %2E inside key segment
                 decode("a%2Eb", DecodeOptions(allowDots = true, decodeDotInKeys = false)) shouldBe
                     mapOf("a%2Eb" to "")
+            }
+
+            it("depth=0 with allowDots=true: do not split key") {
+                decode("a.b=c", DecodeOptions(allowDots = true, depth = 0)) shouldBe
+                    mapOf("a.b" to "c")
             }
         }
     })
