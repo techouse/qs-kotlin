@@ -11,7 +11,6 @@ import io.github.techouse.qskotlin.models.RegexDelimiter
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
-import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 
 class DecodeOptionsSpec :
@@ -109,23 +108,6 @@ class DecodeOptionsSpec :
             }
         }
 
-        fun callDefaultDecode(
-            opts: DecodeOptions,
-            s: String?,
-            cs: Charset,
-            kind: DecodeKind,
-        ): Any? {
-            val m =
-                opts.javaClass.getDeclaredMethod(
-                    "defaultDecode",
-                    String::class.java,
-                    Charset::class.java,
-                    DecodeKind::class.java,
-                )
-            m.isAccessible = true
-            return m.invoke(opts, s, cs, kind)
-        }
-
         val charsets = listOf(StandardCharsets.UTF_8, StandardCharsets.ISO_8859_1)
 
         describe(
@@ -134,8 +116,8 @@ class DecodeOptionsSpec :
             it("KEY maps %2E/%2e inside brackets to '.' when allowDots=true (UTF-8/ISO-8859-1)") {
                 for (cs in charsets) {
                     val opts = DecodeOptions(allowDots = true)
-                    callDefaultDecode(opts, "a[%2E]", cs, DecodeKind.KEY) shouldBe "a[.]"
-                    callDefaultDecode(opts, "a[%2e]", cs, DecodeKind.KEY) shouldBe "a[.]"
+                    opts.decode("a[%2E]", cs, DecodeKind.KEY) shouldBe "a[.]"
+                    opts.decode("a[%2e]", cs, DecodeKind.KEY) shouldBe "a[.]"
                 }
             }
 
@@ -145,23 +127,23 @@ class DecodeOptionsSpec :
                 for (cs in charsets) {
                     val opts1 = DecodeOptions(allowDots = true, decodeDotInKeys = false)
                     val opts2 = DecodeOptions(allowDots = true, decodeDotInKeys = true)
-                    callDefaultDecode(opts1, "a%2Eb", cs, DecodeKind.KEY) shouldBe "a.b"
-                    callDefaultDecode(opts2, "a%2Eb", cs, DecodeKind.KEY) shouldBe "a.b"
+                    opts1.decode("a%2Eb", cs, DecodeKind.KEY) shouldBe "a.b"
+                    opts2.decode("a%2Eb", cs, DecodeKind.KEY) shouldBe "a.b"
                 }
             }
 
             it("non-KEY decodes %2E to '.' (control)") {
                 for (cs in charsets) {
                     val opts = DecodeOptions(allowDots = true)
-                    callDefaultDecode(opts, "a%2Eb", cs, DecodeKind.VALUE) shouldBe "a.b"
+                    opts.decode("a%2Eb", cs, DecodeKind.VALUE) shouldBe "a.b"
                 }
             }
 
             it("KEY maps %2E/%2e inside brackets even when allowDots=false") {
                 for (cs in charsets) {
                     val opts = DecodeOptions(allowDots = false)
-                    callDefaultDecode(opts, "a[%2E]", cs, DecodeKind.KEY) shouldBe "a[.]"
-                    callDefaultDecode(opts, "a[%2e]", cs, DecodeKind.KEY) shouldBe "a[.]"
+                    opts.decode("a[%2E]", cs, DecodeKind.KEY) shouldBe "a[.]"
+                    opts.decode("a[%2e]", cs, DecodeKind.KEY) shouldBe "a[.]"
                 }
             }
 
@@ -170,8 +152,8 @@ class DecodeOptionsSpec :
             ) {
                 for (cs in charsets) {
                     val opts = DecodeOptions(allowDots = false)
-                    callDefaultDecode(opts, "a%2Eb", cs, DecodeKind.KEY) shouldBe "a.b"
-                    callDefaultDecode(opts, "a%2eb", cs, DecodeKind.KEY) shouldBe "a.b"
+                    opts.decode("a%2Eb", cs, DecodeKind.KEY) shouldBe "a.b"
+                    opts.decode("a%2eb", cs, DecodeKind.KEY) shouldBe "a.b"
                 }
             }
         }
