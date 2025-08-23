@@ -397,6 +397,7 @@ internal object Decoder {
         if (parent.isNotEmpty()) segments.add(parent)
 
         var open = first
+        var unterminated = false
         var depth = 0
         while (open >= 0 && depth < maxDepth) {
             var i2 = open + 1
@@ -420,6 +421,7 @@ internal object Decoder {
             }
 
             if (close < 0) {
+                unterminated = true
                 break // unterminated group; stop collecting
             }
 
@@ -429,13 +431,14 @@ internal object Decoder {
         }
 
         if (open >= 0) {
-            // When depth > 0, strictDepth can apply to the remainder.
-            if (strictDepth) {
+            // When depth > 0, strictDepth can apply to a *well-formed* remainder.
+            // Unterminated remainder is wrapped without throwing.
+            if (strictDepth && !unterminated) {
                 throw IndexOutOfBoundsException(
                     "Input depth exceeded depth option of $maxDepth and strictDepth is true"
                 )
             }
-            // Stash the remainder as a single segment.
+            // Stash the remainder—unterminated or overflow—as a single segment.
             segments.add("[" + key.substring(open) + "]")
         }
 
