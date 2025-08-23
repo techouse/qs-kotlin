@@ -2,6 +2,7 @@ package io.github.techouse.qskotlin.internal
 
 import io.github.techouse.qskotlin.enums.Duplicates
 import io.github.techouse.qskotlin.enums.Sentinel
+import io.github.techouse.qskotlin.internal.Decoder.dotToBracketTopLevel
 import io.github.techouse.qskotlin.models.DecodeOptions
 import io.github.techouse.qskotlin.models.Undefined
 import java.nio.charset.Charset
@@ -41,6 +42,7 @@ internal object Decoder {
 
     /**
      * Parses a query string into a map of key-value pairs, handling various options for decoding.
+     * Percent-encoded brackets `%5B`/`%5D` are normalized to literal `[`/`]` before splitting.
      *
      * @param str The query string to parse.
      * @param options The decoding options that affect how the string is parsed.
@@ -117,7 +119,7 @@ internal object Decoder {
                 // Decode the key slice as a key; values decode as values
                 key = options.decodeKey(part.take(pos), charset).orEmpty()
                 value =
-                    Utils.apply<Any?>(
+                    Utils.apply(
                         parseListValue(
                             part.substring(pos + 1),
                             options,
@@ -196,7 +198,7 @@ internal object Decoder {
                     when {
                         options.allowEmptyLists &&
                             (leaf == "" || (options.strictNullHandling && leaf == null)) ->
-                            mutableListOf<Any?>()
+                            mutableListOf()
                         else -> Utils.combine<Any?>(emptyList<Any?>(), leaf)
                     }
             } else {
@@ -278,18 +280,29 @@ internal object Decoder {
     }
 
     /**
-     * Converts a dot notation key to bracket notation at the top level.
+     * Convert top-level dot segments into bracket segments, preserving dots inside brackets and
+     * ignoring degenerate top-level dots.
      *
-     * @param s The string to convert, which may contain dot notation.
-     * @return The converted string with brackets replacing dots at the top level.
+     * Rules:
+     * - Only dots at depth == 0 split. Dots inside `\[\]` are preserved.
+     * - Percent-encoded dots (`%2E`/`%2e`) never split here (they may map to '.' later).
+     * - Degenerates:
+     *     * leading '.' → preserved (e.g., `".a"` stays `".a"`),
+     *     * double dots `"a..b"` → the first dot is preserved (`"a.\[b]"`),
+     *     * trailing dot `"a."` → trailing '.' is preserved and ignored by the splitter.
+     *
+     * Examples:
+     * - `user.email.name` → `user\[email]\[name]`
+     * - `a\[b].c` → `a\[b]\[c]`
+     * - `a\[.].c` → `a\[.]\[c]`
+     * - `a%2E\[b]` → remains `a%2E\[b]` (no split here)
      */
     private fun dotToBracketTopLevel(s: String): String {
         val sb = StringBuilder(s.length)
         var depth = 0
         var i = 0
         while (i < s.length) {
-            val ch = s[i]
-            when (ch) {
+            when (val ch = s[i]) {
                 '[' -> {
                     depth++
                     sb.append(ch)
@@ -302,20 +315,40 @@ internal object Decoder {
                 }
                 '.' -> {
                     if (depth == 0) {
-                        // collect the next segment name (stop at '.' or '[')
-                        val start = ++i
-                        var j = start
-                        while (j < s.length && s[j] != '.' && s[j] != '[') j++
-                        if (j > start) {
-                            sb.append('[').append(s, start, j).append(']')
-                            i = j
-                        } else {
-                            sb.append('.') // nothing to convert
+                        // Look ahead to decide what to do with a top‑level dot
+                        val hasNext = i + 1 < s.length
+                        val next = if (hasNext) s[i + 1] else '\u0000'
+                        when {
+                            // Degenerate ".[" → skip the dot so "a.[b]" behaves like "a[b]"
+                            next == '[' -> {
+                                i++ // consume the '.'
+                            }
+                            // Preserve literal dot for "a." (trailing) and for "a..b" (the first
+                            // dot)
+                            !hasNext || next == '.' -> {
+                                sb.append('.')
+                                i++
+                            }
+                            else -> {
+                                // Normal split: convert a.b → a[b] at top level
+                                val start = ++i
+                                var j = start
+                                while (j < s.length && s[j] != '.' && s[j] != '[') j++
+                                sb.append('[').append(s, start, j).append(']')
+                                i = j
+                            }
                         }
                     } else {
                         sb.append('.')
                         i++
                     }
+                }
+                '%' -> {
+                    // Preserve percent sequences verbatim at top level. Encoded dots (%2E/%2e)
+                    // are *not* used as separators here; they may be mapped to '.' later
+                    // when parsing segments (see DecodeOptions.defaultDecode/parseObject).
+                    sb.append('%')
+                    i++
                 }
                 else -> {
                     sb.append(ch)
@@ -327,14 +360,20 @@ internal object Decoder {
     }
 
     /**
-     * Splits a key into segments based on brackets and dots, handling depth and strictness.
+     * Split a key into segments based on balanced brackets.
+     *
+     * Notes:
+     * - Top-level dot splitting (`a.b` → `a\[b]`) happens earlier via [dotToBracketTopLevel] when
+     *   [allowDots] is true.
+     * - Unterminated '[': the entire key is treated as a single literal segment (qs semantics).
+     * - If [strictDepth] is false and depth is exceeded, the remainder is kept as one final bracket
+     *   segment.
      *
      * @param originalKey The original key to split.
-     * @param allowDots Whether to allow dots in the key.
-     * @param maxDepth The maximum depth for splitting.
-     * @param strictDepth Whether to enforce strict depth limits.
-     * @return A list of segments derived from the original key.
-     * @throws IndexOutOfBoundsException if the depth exceeds maxDepth and strictDepth is true.
+     * @param allowDots Whether to allow top-level dot splitting (already applied upstream).
+     * @param maxDepth The maximum number of bracket segments to collect.
+     * @param strictDepth When true, exceeding [maxDepth] throws; when false, the remainder is a
+     *   single trailing segment.
      */
     internal fun splitKeyIntoSegments(
         originalKey: String,
@@ -360,9 +399,31 @@ internal object Decoder {
         var open = first
         var depth = 0
         while (open >= 0 && depth < maxDepth) {
-            val close = key.indexOf(']', open + 1)
-            if (close < 0) break
-            segments.add(key.substring(open, close + 1)) // e.g. "[p]" or "[]"
+            var i2 = open + 1
+            var level = 1
+            var close = -1
+
+            // Balance nested '[' and ']' within the same group,
+            // so "[with[inner]]" is treated as one segment.
+            while (i2 < key.length) {
+                val ch2 = key[i2]
+                if (ch2 == '[') {
+                    level++
+                } else if (ch2 == ']') {
+                    level--
+                    if (level == 0) {
+                        close = i2
+                        break
+                    }
+                }
+                i2++
+            }
+
+            if (close < 0) {
+                break // unterminated group; stop collecting
+            }
+
+            segments.add(key.substring(open, close + 1)) // includes the surrounding [ ]
             depth++
             open = key.indexOf('[', close + 1)
         }

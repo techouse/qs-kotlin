@@ -145,8 +145,10 @@ data class DecodeOptions(
     /**
      * Effective `decodeDotInKeys` value.
      *
-     * Defaults to `false` when unspecified. When `true`, encoded dots (`%2E`/`%2e`) inside key
-     * segments are mapped to `.` **after** splitting, without introducing extra dot‑splits.
+     * Defaults to `false` when unspecified. Inside bracket segments, percent-decoding will
+     * naturally yield '.' from `%2E/%2e`. `decodeDotInKeys` controls whether encoded dots at the
+     * top level are treated as additional split points; it does not affect the literal '.' produced
+     * by percent-decoding inside bracket segments.
      */
     val getDecodeDotInKeys: Boolean
         get() = decodeDotInKeys ?: false
@@ -168,7 +170,8 @@ data class DecodeOptions(
      * Uses the provided [decoder] when set; otherwise falls back to [Utils.decode]. For backward
      * compatibility, a [legacyDecoder] `(value, charset)` can be supplied and is adapted
      * internally. The [kind] will be [DecodeKind.KEY] for keys (and key segments) and
-     * [DecodeKind.VALUE] for values.
+     * [DecodeKind.VALUE] for values, and is forwarded to custom decoders. The library default does
+     * not vary decoding based on [kind].
      */
     internal fun decode(
         value: String?,
@@ -180,102 +183,29 @@ data class DecodeOptions(
         return if (d != null) {
             d.decode(value, charset, kind) // honor nulls from user decoder
         } else {
-            defaultDecode(value, charset, kind)
+            defaultDecode(value, charset)
         }
     }
 
     /**
      * Default library decode.
      *
-     * For [DecodeKind.KEY], protects encoded dots (`%2E`/`%2e`) **before** percent‑decoding so key
-     * splitting and post‑split mapping run on the intended tokens.
+     * Keys are decoded identically to values via [Utils.decode], which percent‑decodes `%2E/%2e` to
+     * '.'. Whether a '.' participates in key splitting is decided by the parser (based on options).
      */
-    private fun defaultDecode(value: String?, charset: Charset?, kind: DecodeKind): Any? {
+    private fun defaultDecode(value: String?, charset: Charset?): Any? {
         if (value == null) return null
-        if (kind == DecodeKind.KEY) {
-            val protected =
-                protectEncodedDotsForKeys(value, includeOutsideBrackets = (allowDots == true))
-            return Utils.decode(protected, charset)
-        }
+        // Keys decode exactly like values; do NOT “protect” encoded dots.
         return Utils.decode(value, charset)
     }
 
-    /**
-     * Double‑encode %2E/%2e in KEY strings so the percent‑decoder does not turn them into '.' too
-     * early.
-     *
-     * When [includeOutsideBrackets] is true, occurrences both inside and outside bracket segments
-     * are protected. Otherwise, only those **inside** `[...]` are protected. Note: only literal
-     * `[`/`]` affect depth; percent‑encoded brackets (`%5B`/`%5D`) are treated as content, not
-     * structure.
-     */
-    private fun protectEncodedDotsForKeys(input: String, includeOutsideBrackets: Boolean): String {
-        val pct = input.indexOf('%')
-        if (pct < 0) return input
-        if (input.indexOf("2E", pct) < 0 && input.indexOf("2e", pct) < 0) return input
-        val n = input.length
-        val sb = StringBuilder(n + 8)
-        var depth = 0
-        var i = 0
-        while (i < n) {
-            when (val ch = input[i]) {
-                '[' -> {
-                    depth++
-                    sb.append(ch)
-                    i++
-                }
-                ']' -> {
-                    if (depth > 0) depth--
-                    sb.append(ch)
-                    i++
-                }
-                '%' -> {
-                    if (
-                        i + 2 < n &&
-                            input[i + 1] == '2' &&
-                            (input[i + 2] == 'E' || input[i + 2] == 'e')
-                    ) {
-                        val inside = depth > 0
-                        if (inside || includeOutsideBrackets) {
-                            sb.append("%25").append(if (input[i + 2] == 'E') "2E" else "2e")
-                        } else {
-                            sb.append('%').append('2').append(input[i + 2])
-                        }
-                        i += 3
-                    } else {
-                        sb.append(ch)
-                        i++
-                    }
-                }
-                else -> {
-                    sb.append(ch)
-                    i++
-                }
-            }
-        }
-        return sb.toString()
-    }
-
-    /**
-     * Back‑compat helper: decode a value without key/value kind context.
-     *
-     * Prefer calling [decode] directly (or [decodeKey]/[decodeValue] for explicit context).
-     */
-    @Deprecated(
-        message =
-            "Deprecated: use decodeKey/decodeValue (or decode(value, charset, kind)) to honor key/value context. This will be removed in the next major.",
-        replaceWith = ReplaceWith("decode(value, charset)"),
-        level = DeprecationLevel.WARNING,
-    )
-    @Suppress("unused")
-    @JvmOverloads
-    fun getDecoder(value: String?, charset: Charset? = null): Any? = decode(value, charset)
-
     /** Convenience: decode a key to String? */
-    internal fun decodeKey(value: String?, charset: Charset?): String? =
+    @JvmOverloads
+    fun decodeKey(value: String?, charset: Charset? = this.charset): String? =
         decode(value, charset, DecodeKind.KEY)?.toString() // keys are always coerced to String
 
     /** Convenience: decode a value */
-    internal fun decodeValue(value: String?, charset: Charset?): Any? =
+    @JvmOverloads
+    fun decodeValue(value: String?, charset: Charset? = this.charset): Any? =
         decode(value, charset, DecodeKind.VALUE)
 }
