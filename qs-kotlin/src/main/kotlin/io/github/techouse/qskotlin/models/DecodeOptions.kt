@@ -182,7 +182,7 @@ data class DecodeOptions(
         return if (d != null) {
             d.decode(value, charset, kind) // honor nulls from user decoder
         } else {
-            defaultDecode(value, charset, kind)
+            defaultDecode(value, charset)
         }
     }
 
@@ -192,7 +192,7 @@ data class DecodeOptions(
      * Keys are decoded identically to values via [Utils.decode]. Encoded‑dot handling (e.g.
      * `%2E`/`%2e` in key segments) is performed in the parser’s key‑splitting logic, not here.
      */
-    private fun defaultDecode(value: String?, charset: Charset?, kind: DecodeKind): Any? {
+    private fun defaultDecode(value: String?, charset: Charset?): Any? {
         if (value == null) return null
         // Keys decode exactly like values; do NOT “protect” encoded dots.
         return Utils.decode(value, charset)
