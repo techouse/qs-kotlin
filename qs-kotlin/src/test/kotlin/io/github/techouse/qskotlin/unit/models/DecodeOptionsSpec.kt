@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package io.github.techouse.qskotlin.unit.models
 
 import io.github.techouse.qskotlin.enums.DecodeKind
