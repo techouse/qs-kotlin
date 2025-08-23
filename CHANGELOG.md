@@ -1,3 +1,18 @@
+## 1.2.1
+
+* [FIX] fix key decoding to treat dots consistently with values and update `DecodeOptions.decodeKey`/`DecodeOptions.decodeValue` visibility
+* [FIX] handle encoded dots and nested brackets in key parsing for dot notation
+* [FIX] remove unused `protectEncodedDotsForKeys` utility from `DecodeOptions`
+* [CHORE] clarify `decodeDotInKeys` documentation and improve `DecodeOptions.decodeKey`/`DecodeOptions.decodeValue` convenience methods with default charset
+* [CHORE] refactor `defaultDecode` signature to remove unused `DecodeKind` parameter in key decoding
+* [CHORE]️ refactor dot-to-bracket conversion and key splitting to improve handling of top-level dots and bracket segments
+* [CHORE] suppress deprecation warnings in `DecodeOptionsSpec`
+* [CHORE] clarify documentation for encoded dot handling in key decoding and parser logic
+* [CHORE] expand tests for key decoding with encoded dots and custom decoder behavior
+* [CHORE] add comprehensive tests for encoded dot behavior in keys to ensure C# qs port (`QsNet`) parity and edge case coverage
+* [CHORE] update `DecodeOptionsSpec` to use public decode method instead of `callDefaultDecode` reflection helper
+* [CHORE] expand `DecodeSpec` coverage for encoded dot behavior in keys and C# qs port (`QsNet`) parity scenarios
+
 ## 1.2.0
 
 * [FEAT] add `DecodeKind` enum to distinguish decoding context for keys and values
