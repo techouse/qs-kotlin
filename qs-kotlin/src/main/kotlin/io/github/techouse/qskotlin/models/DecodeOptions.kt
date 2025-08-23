@@ -192,11 +192,7 @@ data class DecodeOptions(
      */
     private fun defaultDecode(value: String?, charset: Charset?, kind: DecodeKind): Any? {
         if (value == null) return null
-        if (kind == DecodeKind.KEY) {
-            val protected =
-                protectEncodedDotsForKeys(value, includeOutsideBrackets = (allowDots == true))
-            return Utils.decode(protected, charset)
-        }
+        // Keys decode exactly like values; do NOT “protect” encoded dots.
         return Utils.decode(value, charset)
     }
 
@@ -256,26 +252,11 @@ data class DecodeOptions(
         return sb.toString()
     }
 
-    /**
-     * Back‑compat helper: decode a value without key/value kind context.
-     *
-     * Prefer calling [decode] directly (or [decodeKey]/[decodeValue] for explicit context).
-     */
-    @Deprecated(
-        message =
-            "Deprecated: use decodeKey/decodeValue (or decode(value, charset, kind)) to honor key/value context. This will be removed in the next major.",
-        replaceWith = ReplaceWith("decode(value, charset)"),
-        level = DeprecationLevel.WARNING,
-    )
-    @Suppress("unused")
-    @JvmOverloads
-    fun getDecoder(value: String?, charset: Charset? = null): Any? = decode(value, charset)
-
     /** Convenience: decode a key to String? */
-    internal fun decodeKey(value: String?, charset: Charset?): String? =
+    fun decodeKey(value: String?, charset: Charset?): String? =
         decode(value, charset, DecodeKind.KEY)?.toString() // keys are always coerced to String
 
     /** Convenience: decode a value */
-    internal fun decodeValue(value: String?, charset: Charset?): Any? =
+    fun decodeValue(value: String?, charset: Charset?): Any? =
         decode(value, charset, DecodeKind.VALUE)
 }
