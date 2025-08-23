@@ -198,66 +198,6 @@ data class DecodeOptions(
         return Utils.decode(value, charset)
     }
 
-    /**
-     * (Currently unused) Utility that double‑encodes `%2E`/`%2e` in *key* strings so a
-     * percent‑decoder would not prematurely turn them into `.`.
-     *
-     * In the current implementation, encoded‑dot behavior is handled during key‑splitting, so this
-     * helper is kept for parity with other ports and potential future reuse.
-     *
-     * When [includeOutsideBrackets] is `true`, occurrences both inside and outside bracket segments
-     * are protected. Otherwise, only those **inside** `\[...\]` are protected. Note: only literal
-     * `[`/`]` affect depth; percent‑encoded brackets (`%5B`/`%5D`) are treated as content, not
-     * structure.
-     */
-    @Suppress("unused")
-    private fun protectEncodedDotsForKeys(input: String, includeOutsideBrackets: Boolean): String {
-        val pct = input.indexOf('%')
-        if (pct < 0) return input
-        if (input.indexOf("2E", pct) < 0 && input.indexOf("2e", pct) < 0) return input
-        val n = input.length
-        val sb = StringBuilder(n + 8)
-        var depth = 0
-        var i = 0
-        while (i < n) {
-            when (val ch = input[i]) {
-                '[' -> {
-                    depth++
-                    sb.append(ch)
-                    i++
-                }
-                ']' -> {
-                    if (depth > 0) depth--
-                    sb.append(ch)
-                    i++
-                }
-                '%' -> {
-                    if (
-                        i + 2 < n &&
-                            input[i + 1] == '2' &&
-                            (input[i + 2] == 'E' || input[i + 2] == 'e')
-                    ) {
-                        val inside = depth > 0
-                        if (inside || includeOutsideBrackets) {
-                            sb.append("%25").append(if (input[i + 2] == 'E') "2E" else "2e")
-                        } else {
-                            sb.append('%').append('2').append(input[i + 2])
-                        }
-                        i += 3
-                    } else {
-                        sb.append(ch)
-                        i++
-                    }
-                }
-                else -> {
-                    sb.append(ch)
-                    i++
-                }
-            }
-        }
-        return sb.toString()
-    }
-
     /** Convenience: decode a key to String? */
     fun decodeKey(value: String?, charset: Charset?): String? =
         decode(value, charset, DecodeKind.KEY)?.toString() // keys are always coerced to String
