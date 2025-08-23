@@ -146,7 +146,8 @@ data class DecodeOptions(
      * Effective `decodeDotInKeys` value.
      *
      * Defaults to `false` when unspecified. When `true`, encoded dots (`%2E`/`%2e`) inside key
-     * segments are mapped to `.` **after** splitting, without introducing extra dot‑splits.
+     * segments are mapped to `.` *after* key‑splitting (in the parser), without introducing extra
+     * dot‑splits.
      */
     val getDecodeDotInKeys: Boolean
         get() = decodeDotInKeys ?: false
@@ -168,7 +169,8 @@ data class DecodeOptions(
      * Uses the provided [decoder] when set; otherwise falls back to [Utils.decode]. For backward
      * compatibility, a [legacyDecoder] `(value, charset)` can be supplied and is adapted
      * internally. The [kind] will be [DecodeKind.KEY] for keys (and key segments) and
-     * [DecodeKind.VALUE] for values.
+     * [DecodeKind.VALUE] for values, and is forwarded to custom decoders. The library default does
+     * not vary decoding based on [kind].
      */
     internal fun decode(
         value: String?,
@@ -187,8 +189,8 @@ data class DecodeOptions(
     /**
      * Default library decode.
      *
-     * For [DecodeKind.KEY], protects encoded dots (`%2E`/`%2e`) **before** percent‑decoding so key
-     * splitting and post‑split mapping run on the intended tokens.
+     * Keys are decoded identically to values via [Utils.decode]. Encoded‑dot handling (e.g.
+     * `%2E`/`%2e` in key segments) is performed in the parser’s key‑splitting logic, not here.
      */
     private fun defaultDecode(value: String?, charset: Charset?, kind: DecodeKind): Any? {
         if (value == null) return null
@@ -197,14 +199,18 @@ data class DecodeOptions(
     }
 
     /**
-     * Double‑encode %2E/%2e in KEY strings so the percent‑decoder does not turn them into '.' too
-     * early.
+     * (Currently unused) Utility that double‑encodes `%2E`/`%2e` in *key* strings so a
+     * percent‑decoder would not prematurely turn them into `.`.
      *
-     * When [includeOutsideBrackets] is true, occurrences both inside and outside bracket segments
-     * are protected. Otherwise, only those **inside** `[...]` are protected. Note: only literal
+     * In the current implementation, encoded‑dot behavior is handled during key‑splitting, so this
+     * helper is kept for parity with other ports and potential future reuse.
+     *
+     * When [includeOutsideBrackets] is `true`, occurrences both inside and outside bracket segments
+     * are protected. Otherwise, only those **inside** `\[...\]` are protected. Note: only literal
      * `[`/`]` affect depth; percent‑encoded brackets (`%5B`/`%5D`) are treated as content, not
      * structure.
      */
+    @Suppress("unused")
     private fun protectEncodedDotsForKeys(input: String, includeOutsideBrackets: Boolean): String {
         val pct = input.indexOf('%')
         if (pct < 0) return input
