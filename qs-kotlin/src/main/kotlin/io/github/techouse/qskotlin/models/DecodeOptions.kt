@@ -145,9 +145,10 @@ data class DecodeOptions(
     /**
      * Effective `decodeDotInKeys` value.
      *
-     * Defaults to `false` when unspecified. When `true`, encoded dots (`%2E`/`%2e`) inside key
-     * segments are mapped to `.` *after* key‑splitting (in the parser), without introducing extra
-     * dot‑splits.
+     * Defaults to `false` when unspecified. Inside bracket segments, percent-decoding will
+     * naturally yield '.' from `%2E/%2e`. `decodeDotInKeys` controls whether encoded dots at the
+     * top level are treated as additional split points; it does not affect the literal '.' produced
+     * by percent-decoding inside bracket segments.
      */
     val getDecodeDotInKeys: Boolean
         get() = decodeDotInKeys ?: false
@@ -189,8 +190,8 @@ data class DecodeOptions(
     /**
      * Default library decode.
      *
-     * Keys are decoded identically to values via [Utils.decode]. Encoded‑dot handling (e.g.
-     * `%2E`/`%2e` in key segments) is performed in the parser’s key‑splitting logic, not here.
+     * Keys are decoded identically to values via [Utils.decode], which percent‑decodes `%2E/%2e` to
+     * '.'. Whether a '.' participates in key splitting is decided by the parser (based on options).
      */
     private fun defaultDecode(value: String?, charset: Charset?): Any? {
         if (value == null) return null
@@ -199,10 +200,12 @@ data class DecodeOptions(
     }
 
     /** Convenience: decode a key to String? */
-    fun decodeKey(value: String?, charset: Charset?): String? =
+    @JvmOverloads
+    fun decodeKey(value: String?, charset: Charset? = this.charset): String? =
         decode(value, charset, DecodeKind.KEY)?.toString() // keys are always coerced to String
 
     /** Convenience: decode a value */
-    fun decodeValue(value: String?, charset: Charset?): Any? =
+    @JvmOverloads
+    fun decodeValue(value: String?, charset: Charset? = this.charset): Any? =
         decode(value, charset, DecodeKind.VALUE)
 }
