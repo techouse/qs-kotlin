@@ -1,3 +1,8 @@
+## 1.2.2
+
+* [FIX] handle unterminated group when stashing remainder in key segmentation
+* [CHORE] add tests for `splitKeyIntoSegments` remainder wrapping and `strictDepth` behavior
+
 ## 1.2.1
 
 * [FIX] fix key decoding to treat dots consistently with values and update `DecodeOptions.decodeKey`/`DecodeOptions.decodeValue` visibility
