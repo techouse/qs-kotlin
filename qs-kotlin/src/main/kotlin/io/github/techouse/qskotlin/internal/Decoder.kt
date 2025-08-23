@@ -272,6 +272,7 @@ internal object Decoder {
                 allowDots = options.getAllowDots,
                 maxDepth = options.depth,
                 strictDepth = options.strictDepth,
+                decodeDotInKeys = options.getDecodeDotInKeys,
             )
 
         return parseObject(segments, value, options, valuesParsed)
@@ -283,7 +284,7 @@ internal object Decoder {
      * @param s The string to convert, which may contain dot notation.
      * @return The converted string with brackets replacing dots at the top level.
      */
-    private fun dotToBracketTopLevel(s: String): String {
+    private fun dotToBracketTopLevel(s: String, decodeDotInKeys: Boolean): String {
         val sb = StringBuilder(s.length)
         var depth = 0
         var i = 0
@@ -302,20 +303,40 @@ internal object Decoder {
                 }
                 '.' -> {
                     if (depth == 0) {
-                        // collect the next segment name (stop at '.' or '[')
-                        val start = ++i
-                        var j = start
-                        while (j < s.length && s[j] != '.' && s[j] != '[') j++
-                        if (j > start) {
-                            sb.append('[').append(s, start, j).append(']')
-                            i = j
-                        } else {
-                            sb.append('.') // nothing to convert
+                        // Look ahead to decide what to do with a top‑level dot
+                        val hasNext = i + 1 < s.length
+                        val next = if (hasNext) s[i + 1] else '\u0000'
+                        when {
+                            // Degenerate ".[" → skip the dot so "a.[b]" behaves like "a[b]"
+                            next == '[' -> {
+                                i++ // consume the '.'
+                            }
+                            // Preserve literal dot for "a." (trailing) and for "a..b" (the first
+                            // dot)
+                            !hasNext || next == '.' -> {
+                                sb.append('.')
+                                i++
+                            }
+                            else -> {
+                                // Normal split: convert a.b → a[b] at top level
+                                val start = ++i
+                                var j = start
+                                while (j < s.length && s[j] != '.' && s[j] != '[') j++
+                                sb.append('[').append(s, start, j).append(']')
+                                i = j
+                            }
                         }
                     } else {
                         sb.append('.')
                         i++
                     }
+                }
+                '%' -> {
+                    // Preserve percent sequences verbatim at top level. Encoded dots (%2E/%2e)
+                    // are *not* used as separators here; they may be mapped to '.' later
+                    // when parsing segments (see DecodeOptions.defaultDecode/parseObject).
+                    sb.append('%')
+                    i++
                 }
                 else -> {
                     sb.append(ch)
@@ -341,6 +362,7 @@ internal object Decoder {
         allowDots: Boolean,
         maxDepth: Int,
         strictDepth: Boolean,
+        decodeDotInKeys: Boolean,
     ): List<String> {
         // Depth 0 semantics: use the original key as a single segment; never throw.
         if (maxDepth <= 0) {
@@ -349,7 +371,8 @@ internal object Decoder {
 
         // Apply dot→bracket *before* splitting, but when depth == 0, we do NOT split at all and do
         // NOT throw.
-        val key: String = if (allowDots) dotToBracketTopLevel(originalKey) else originalKey
+        val key: String =
+            if (allowDots) dotToBracketTopLevel(originalKey, decodeDotInKeys) else originalKey
 
         val segments = ArrayList<String>(key.count { it == '[' } + 1)
 
@@ -360,9 +383,31 @@ internal object Decoder {
         var open = first
         var depth = 0
         while (open >= 0 && depth < maxDepth) {
-            val close = key.indexOf(']', open + 1)
-            if (close < 0) break
-            segments.add(key.substring(open, close + 1)) // e.g. "[p]" or "[]"
+            var i2 = open + 1
+            var level = 1
+            var close = -1
+
+            // Balance nested '[' and ']' within the same group,
+            // so "[with[inner]]" is treated as one segment.
+            while (i2 < key.length) {
+                val ch2 = key[i2]
+                if (ch2 == '[') {
+                    level++
+                } else if (ch2 == ']') {
+                    level--
+                    if (level == 0) {
+                        close = i2
+                        break
+                    }
+                }
+                i2++
+            }
+
+            if (close < 0) {
+                break // unterminated group; stop collecting
+            }
+
+            segments.add(key.substring(open, close + 1)) // includes the surrounding [ ]
             depth++
             open = key.indexOf('[', close + 1)
         }
