@@ -1073,7 +1073,7 @@ class DecodeSpec :
             }
         }
 
-        describe("encoded dot behavior in keys (%2E / %2e)") {
+        describe("encoded dot behavior in keys (%2E / %2e) - comprehensive coverage") {
             it(
                 "allowDots=false, decodeDotInKeys=false: encoded dots decode to literal '.'; no dot-splitting"
             ) {
@@ -1176,211 +1176,213 @@ class DecodeSpec :
                 decode("a..b=x", DecodeOptions(allowDots = true, decodeDotInKeys = false)) shouldBe
                     mapOf("a." to mapOf("b" to "x"))
             }
-        }
 
-        describe("C# parity: encoded dot behavior in keys (%2E / %2e)") {
-            it(
-                "top-level: allowDots=true, decodeDotInKeys=true → plain dot splits; encoded dot also splits (upper/lower)"
-            ) {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+            describe("C# parity: encoded dot behavior in keys (%2E / %2e)") {
+                it(
+                    "top-level: allowDots=true, decodeDotInKeys=true → plain dot splits; encoded dot also splits (upper/lower)"
+                ) {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
 
-                decode("a.b=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
-                decode("a%2Eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
-                decode("a%2eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
-            }
-
-            it(
-                "top-level: allowDots=true, decodeDotInKeys=false → encoded dot also splits (upper/lower)"
-            ) {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = false)
-
-                decode("a%2Eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
-                decode("a%2eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
-            }
-
-            it("allowDots=false, decodeDotInKeys=true is invalid") {
-                shouldThrow<IllegalArgumentException> {
-                    decode("a%2Eb=c", DecodeOptions(allowDots = false, decodeDotInKeys = true))
+                    decode("a.b=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
+                    decode("a%2Eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
+                    decode("a%2eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
                 }
-            }
 
-            it("bracket segment: maps to '.' when decodeDotInKeys=true (case-insensitive)") {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+                it(
+                    "top-level: allowDots=true, decodeDotInKeys=false → encoded dot also splits (upper/lower)"
+                ) {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = false)
 
-                decode("a[%2E]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
-                decode("a[%2e]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
-            }
-
-            it(
-                "bracket segment: when decodeDotInKeys=false, percent-decoding inside brackets yields '.' (case-insensitive)"
-            ) {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = false)
-
-                // Note: key-decoder percent-decodes inside brackets, so %2E → "."
-                decode("a[%2E]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
-                decode("a[%2e]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
-            }
-
-            it("value tokens always decode %2E → '.'") {
-                decode("x=%2E") shouldBe mapOf("x" to ".")
-            }
-
-            it(
-                "latin1: allowDots=true, decodeDotInKeys=true behaves like UTF-8 for top-level & bracket segment"
-            ) {
-                val opt =
-                    DecodeOptions(
-                        allowDots = true,
-                        decodeDotInKeys = true,
-                        charset = StandardCharsets.ISO_8859_1,
-                    )
-
-                decode("a%2Eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
-                decode("a[%2E]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
-            }
-
-            it(
-                "latin1: allowDots=true, decodeDotInKeys=false also splits top-level and decodes inside brackets"
-            ) {
-                val opt =
-                    DecodeOptions(
-                        allowDots = true,
-                        decodeDotInKeys = false,
-                        charset = StandardCharsets.ISO_8859_1,
-                    )
-
-                decode("a%2Eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
-                decode("a[%2E]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
-            }
-
-            it("DecodeOptions.decode (KEY): percent-decoding applies inside brackets") {
-                val o1 = DecodeOptions(allowDots = false, decodeDotInKeys = false)
-                val o2 = DecodeOptions(allowDots = true, decodeDotInKeys = false)
-
-                o1.decode("a[%2Eb]", StandardCharsets.UTF_8, DecodeKind.KEY) shouldBe "a[.b]"
-                o1.decode("a[b%2Ec]", StandardCharsets.UTF_8, DecodeKind.KEY) shouldBe "a[b.c]"
-
-                o2.decode("a[%2Eb]", StandardCharsets.UTF_8, DecodeKind.KEY) shouldBe "a[.b]"
-                o2.decode("a[b%2Ec]", StandardCharsets.UTF_8, DecodeKind.KEY) shouldBe "a[b.c]"
-            }
-
-            it(
-                "mixed-case encoded brackets + encoded dot after brackets (allowDots=true, decodeDotInKeys=true)"
-            ) {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
-
-                // Uppercase
-                decode("a%5Bb%5D%5Bc%5D%2Ed=x", opt) shouldBe
-                    mapOf("a" to mapOf("b" to mapOf("c" to mapOf("d" to "x"))))
-                // Lowercase
-                decode("a%5bb%5d%5bc%5d%2ed=x", opt) shouldBe
-                    mapOf("a" to mapOf("b" to mapOf("c" to mapOf("d" to "x"))))
-            }
-
-            it("nested brackets inside a bracket segment (balanced as one segment)") {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
-
-                // "a[b%5Bc%5D].e=x" → key "b[c]" stays a single segment; then ".e" splits
-                // (allowDots)
-                decode("a[b%5Bc%5D].e=x", opt) shouldBe
-                    mapOf("a" to mapOf("b[c]" to mapOf("e" to "x")))
-            }
-
-            it(
-                "mixed-case encoded brackets + encoded dot with allowDots=false & decodeDotInKeys=true throws"
-            ) {
-                shouldThrow<IllegalArgumentException> {
-                    decode(
-                        "a%5Bb%5D%5Bc%5D%2Ed=x",
-                        DecodeOptions(allowDots = false, decodeDotInKeys = true),
-                    )
+                    decode("a%2Eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
+                    decode("a%2eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
                 }
-            }
 
-            it("top-level encoded dot splits when allowDots=true, decodeDotInKeys=true") {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
-                decode("a%2Eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
-            }
+                it("allowDots=false, decodeDotInKeys=true is invalid") {
+                    shouldThrow<IllegalArgumentException> {
+                        decode("a%2Eb=c", DecodeOptions(allowDots = false, decodeDotInKeys = true))
+                    }
+                }
 
-            it("top-level encoded dot also splits when allowDots=true, decodeDotInKeys=false") {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = false)
-                decode("a%2Eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
-            }
+                it("bracket segment: maps to '.' when decodeDotInKeys=true (case-insensitive)") {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
 
-            it("top-level encoded dot does not split when allowDots=false, decodeDotInKeys=false") {
-                val opt = DecodeOptions(allowDots = false, decodeDotInKeys = false)
-                decode("a%2Eb=c", opt) shouldBe mapOf("a.b" to "c")
-            }
+                    decode("a[%2E]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
+                    decode("a[%2e]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
+                }
 
-            it("bracket then encoded dot to next segment with allowDots=true") {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+                it(
+                    "bracket segment: when decodeDotInKeys=false, percent-decoding inside brackets yields '.' (case-insensitive)"
+                ) {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = false)
 
-                decode("a[b]%2Ec=x", opt) shouldBe mapOf("a" to mapOf("b" to mapOf("c" to "x")))
-                decode("a[b]%2ec=x", opt) shouldBe mapOf("a" to mapOf("b" to mapOf("c" to "x")))
-            }
+                    // Note: key-decoder percent-decodes inside brackets, so %2E → "."
+                    decode("a[%2E]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
+                    decode("a[%2e]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
+                }
 
-            it("mixed-case: top-level encoded dot then bracket with allowDots=true") {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
-                decode("a%2E[b]=x", opt) shouldBe mapOf("a" to mapOf("b" to "x"))
-            }
+                it("value tokens always decode %2E → '.'") {
+                    decode("x=%2E") shouldBe mapOf("x" to ".")
+                }
 
-            it(
-                "top-level lowercase encoded dot splits when allowDots=true (decodeDotInKeys=false)"
-            ) {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = false)
-                decode("a%2eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
-            }
+                it(
+                    "latin1: allowDots=true, decodeDotInKeys=true behaves like UTF-8 for top-level & bracket segment"
+                ) {
+                    val opt =
+                        DecodeOptions(
+                            allowDots = true,
+                            decodeDotInKeys = true,
+                            charset = StandardCharsets.ISO_8859_1,
+                        )
 
-            it("dot before index with allowDots=true: index remains index") {
-                val opt = DecodeOptions(allowDots = true)
-                decode("foo[0].baz[0]=15&foo[0].bar=2", opt) shouldBe
-                    mapOf("foo" to listOf(mapOf("baz" to listOf("15"), "bar" to "2")))
-            }
+                    decode("a%2Eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
+                    decode("a[%2E]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
+                }
 
-            it("trailing dot ignored when allowDots=true") {
-                val opt = DecodeOptions(allowDots = true)
-                decode("user.email.=x", opt) shouldBe mapOf("user" to mapOf("email" to "x"))
-            }
+                it(
+                    "latin1: allowDots=true, decodeDotInKeys=false also splits top-level and decodes inside brackets"
+                ) {
+                    val opt =
+                        DecodeOptions(
+                            allowDots = true,
+                            decodeDotInKeys = false,
+                            charset = StandardCharsets.ISO_8859_1,
+                        )
 
-            it(
-                "bracket segment: encoded dot mapped to '.' (allowDots=true, decodeDotInKeys=true)"
-            ) {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
-                decode("a[%2E]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
-                decode("a[%2e]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
-            }
+                    decode("a%2Eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
+                    decode("a[%2E]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
+                }
 
-            it("top-level encoded dot before bracket (lowercase) with allowDots=true") {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
-                decode("a%2e[b]=x", opt) shouldBe mapOf("a" to mapOf("b" to "x"))
-            }
+                it("DecodeOptions.decode (KEY): percent-decoding applies inside brackets") {
+                    val o1 = DecodeOptions(allowDots = false, decodeDotInKeys = false)
+                    val o2 = DecodeOptions(allowDots = true, decodeDotInKeys = false)
 
-            it("plain dot before bracket with allowDots=true") {
-                val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
-                decode("a.[b]=x", opt) shouldBe mapOf("a" to mapOf("b" to "x"))
-            }
+                    o1.decode("a[%2Eb]", StandardCharsets.UTF_8, DecodeKind.KEY) shouldBe "a[.b]"
+                    o1.decode("a[b%2Ec]", StandardCharsets.UTF_8, DecodeKind.KEY) shouldBe "a[b.c]"
 
-            it("kind-aware decoder receives KEY for top-level and bracketed keys") {
-                val calls = mutableListOf<Pair<String?, DecodeKind>>()
-                val opt =
-                    DecodeOptions(
-                        allowDots = true,
-                        decodeDotInKeys = true,
-                        decoder =
-                            Decoder { s, _, kind ->
-                                calls.add(s to (kind ?: DecodeKind.VALUE))
-                                s
-                            },
-                    )
+                    o2.decode("a[%2Eb]", StandardCharsets.UTF_8, DecodeKind.KEY) shouldBe "a[.b]"
+                    o2.decode("a[b%2Ec]", StandardCharsets.UTF_8, DecodeKind.KEY) shouldBe "a[b.c]"
+                }
 
-                decode("a%2Eb=c&a[b]=d", opt)
+                it(
+                    "mixed-case encoded brackets + encoded dot after brackets (allowDots=true, decodeDotInKeys=true)"
+                ) {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
 
-                calls.any {
-                    it.second == DecodeKind.KEY && (it.first == "a%2Eb" || it.first == "a[b]")
-                } shouldBe true
-                calls.any {
-                    it.second == DecodeKind.VALUE && (it.first == "c" || it.first == "d")
-                } shouldBe true
+                    // Uppercase
+                    decode("a%5Bb%5D%5Bc%5D%2Ed=x", opt) shouldBe
+                        mapOf("a" to mapOf("b" to mapOf("c" to mapOf("d" to "x"))))
+                    // Lowercase
+                    decode("a%5bb%5d%5bc%5d%2ed=x", opt) shouldBe
+                        mapOf("a" to mapOf("b" to mapOf("c" to mapOf("d" to "x"))))
+                }
+
+                it("nested brackets inside a bracket segment (balanced as one segment)") {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+
+                    // "a[b%5Bc%5D].e=x" → key "b[c]" stays a single segment; then ".e" splits
+                    // (allowDots)
+                    decode("a[b%5Bc%5D].e=x", opt) shouldBe
+                        mapOf("a" to mapOf("b[c]" to mapOf("e" to "x")))
+                }
+
+                it(
+                    "mixed-case encoded brackets + encoded dot with allowDots=false & decodeDotInKeys=true throws"
+                ) {
+                    shouldThrow<IllegalArgumentException> {
+                        decode(
+                            "a%5Bb%5D%5Bc%5D%2Ed=x",
+                            DecodeOptions(allowDots = false, decodeDotInKeys = true),
+                        )
+                    }
+                }
+
+                it("top-level encoded dot splits when allowDots=true, decodeDotInKeys=true") {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+                    decode("a%2Eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
+                }
+
+                it("top-level encoded dot also splits when allowDots=true, decodeDotInKeys=false") {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = false)
+                    decode("a%2Eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
+                }
+
+                it(
+                    "top-level encoded dot does not split when allowDots=false, decodeDotInKeys=false"
+                ) {
+                    val opt = DecodeOptions(allowDots = false, decodeDotInKeys = false)
+                    decode("a%2Eb=c", opt) shouldBe mapOf("a.b" to "c")
+                }
+
+                it("bracket then encoded dot to next segment with allowDots=true") {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+
+                    decode("a[b]%2Ec=x", opt) shouldBe mapOf("a" to mapOf("b" to mapOf("c" to "x")))
+                    decode("a[b]%2ec=x", opt) shouldBe mapOf("a" to mapOf("b" to mapOf("c" to "x")))
+                }
+
+                it("mixed-case: top-level encoded dot then bracket with allowDots=true") {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+                    decode("a%2E[b]=x", opt) shouldBe mapOf("a" to mapOf("b" to "x"))
+                }
+
+                it(
+                    "top-level lowercase encoded dot splits when allowDots=true (decodeDotInKeys=false)"
+                ) {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = false)
+                    decode("a%2eb=c", opt) shouldBe mapOf("a" to mapOf("b" to "c"))
+                }
+
+                it("dot before index with allowDots=true: index remains index") {
+                    val opt = DecodeOptions(allowDots = true)
+                    decode("foo[0].baz[0]=15&foo[0].bar=2", opt) shouldBe
+                        mapOf("foo" to listOf(mapOf("baz" to listOf("15"), "bar" to "2")))
+                }
+
+                it("trailing dot ignored when allowDots=true") {
+                    val opt = DecodeOptions(allowDots = true)
+                    decode("user.email.=x", opt) shouldBe mapOf("user" to mapOf("email" to "x"))
+                }
+
+                it(
+                    "bracket segment: encoded dot mapped to '.' (allowDots=true, decodeDotInKeys=true)"
+                ) {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+                    decode("a[%2E]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
+                    decode("a[%2e]=x", opt) shouldBe mapOf("a" to mapOf("." to "x"))
+                }
+
+                it("top-level encoded dot before bracket (lowercase) with allowDots=true") {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+                    decode("a%2e[b]=x", opt) shouldBe mapOf("a" to mapOf("b" to "x"))
+                }
+
+                it("plain dot before bracket with allowDots=true") {
+                    val opt = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+                    decode("a.[b]=x", opt) shouldBe mapOf("a" to mapOf("b" to "x"))
+                }
+
+                it("kind-aware decoder receives KEY for top-level and bracketed keys") {
+                    val calls = mutableListOf<Pair<String?, DecodeKind>>()
+                    val opt =
+                        DecodeOptions(
+                            allowDots = true,
+                            decodeDotInKeys = true,
+                            decoder =
+                                Decoder { s, _, kind ->
+                                    calls.add(s to (kind ?: DecodeKind.VALUE))
+                                    s
+                                },
+                        )
+
+                    decode("a%2Eb=c&a[b]=d", opt)
+
+                    calls.any {
+                        it.second == DecodeKind.KEY && (it.first == "a%2Eb" || it.first == "a[b]")
+                    } shouldBe true
+                    calls.any {
+                        it.second == DecodeKind.VALUE && (it.first == "c" || it.first == "d")
+                    } shouldBe true
+                }
             }
         }
     })
