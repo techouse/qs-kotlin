@@ -5,6 +5,7 @@ import io.github.techouse.qskotlin.encode
 import io.github.techouse.qskotlin.enums.DecodeKind
 import io.github.techouse.qskotlin.enums.Duplicates
 import io.github.techouse.qskotlin.fixtures.data.EmptyTestCases
+import io.github.techouse.qskotlin.internal.Decoder as InternalDecoder
 import io.github.techouse.qskotlin.internal.Utils
 import io.github.techouse.qskotlin.models.DecodeOptions
 import io.github.techouse.qskotlin.models.Decoder
@@ -1383,6 +1384,81 @@ class DecodeSpec :
                         it.second == DecodeKind.VALUE && (it.first == "c" || it.first == "d")
                     } shouldBe true
                 }
+            }
+        }
+
+        describe("splitKeyIntoSegments — remainder wrapping & strictDepth behavior") {
+            it("allowDots=true, depth=1: wrap the remainder from the next unprocessed bracket") {
+                // "a.b.c" -> dot-to-bracket first => "a[b][c]"
+                // With maxDepth=1, we collect "[b]" and then wrap the remainder "[c]" as "[[c]]"
+                val segs =
+                    InternalDecoder.splitKeyIntoSegments(
+                        originalKey = "a.b.c",
+                        allowDots = true,
+                        maxDepth = 1,
+                        strictDepth = false,
+                    )
+                segs shouldBe listOf("a", "[b]", "[[c]]")
+            }
+
+            it(
+                "bracketed input, depth=2: collect two groups, wrap remainder as a single synthetic segment"
+            ) {
+                // "a[b][c][d]" with maxDepth=2 -> ["a", "[b]", "[c]", "[[d]]"]
+                val segs =
+                    InternalDecoder.splitKeyIntoSegments(
+                        originalKey = "a[b][c][d]",
+                        allowDots = false,
+                        maxDepth = 2,
+                        strictDepth = false,
+                    )
+                segs shouldBe listOf("a", "[b]", "[c]", "[[d]]")
+            }
+
+            it(
+                "unterminated bracket group: do not throw even with strictDepth=true; wrap raw remainder"
+            ) {
+                // Unterminated after first '[': "a[b[c" -> ["a", "[[b[c]"]
+                val segs =
+                    InternalDecoder.splitKeyIntoSegments(
+                        originalKey = "a[b[c",
+                        allowDots = false,
+                        maxDepth = 5,
+                        strictDepth = true,
+                    )
+                segs shouldBe listOf("a", "[[b[c]")
+            }
+
+            it("strictDepth=true: well-formed depth overflow raises IndexOutOfBoundsException") {
+                // Well-formed: "a[b][c][d]" with maxDepth=2 should overflow and throw
+                shouldThrow<IndexOutOfBoundsException> {
+                    InternalDecoder.splitKeyIntoSegments(
+                        originalKey = "a[b][c][d]",
+                        allowDots = false,
+                        maxDepth = 2,
+                        strictDepth = true,
+                    )
+                }
+            }
+
+            it("depth=0: never split; return the original key as a single segment") {
+                val segs1 =
+                    InternalDecoder.splitKeyIntoSegments(
+                        originalKey = "a.b.c",
+                        allowDots = true,
+                        maxDepth = 0,
+                        strictDepth = false,
+                    )
+                segs1 shouldBe listOf("a.b.c")
+
+                val segs2 =
+                    InternalDecoder.splitKeyIntoSegments(
+                        originalKey = "a[b][c]",
+                        allowDots = false,
+                        maxDepth = 0,
+                        strictDepth = false,
+                    )
+                segs2 shouldBe listOf("a[b][c]")
             }
         }
     })
