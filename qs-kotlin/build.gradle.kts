@@ -27,7 +27,7 @@ tasks.withType<KotlinCompile> {
 }
 
 dependencies {
-    testImplementation(platform("io.kotest:kotest-bom:5.9.1"))
+    testImplementation(platform("io.kotest:kotest-bom:6.0.0"))
     testImplementation("io.kotest:kotest-runner-junit5")
     testImplementation("io.kotest:kotest-assertions-core")
 }
