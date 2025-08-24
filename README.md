@@ -4,7 +4,10 @@ A query string encoding and decoding library for Android and Kotlin/JVM.
 
 Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
 
+[![Kotlin 2.0.21](https://img.shields.io/badge/Kotlin-2.0.21-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org/docs/whatsnew2020.html)
+[![JVM 17](https://img.shields.io/badge/JVM-17-007396?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/17/)
 [![Maven Central Version](https://img.shields.io/maven-central/v/io.github.techouse/qs-kotlin)](https://central.sonatype.com/artifact/io.github.techouse/qs-kotlin)
+[![Android AAR](https://img.shields.io/badge/Android-AAR-3DDC84?logo=android&logoColor=white)](https://central.sonatype.com/artifact/io.github.techouse/qs-kotlin-android)
 [![Test](https://github.com/techouse/qs-kotlin/actions/workflows/test.yml/badge.svg)](https://github.com/techouse/qs-kotlin/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/techouse/qs-kotlin/graph/badge.svg?token=ClCDNcsxqQ)](https://codecov.io/gh/techouse/qs-kotlin)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/4e9ab7e1fe40412bb3f7709a7d3fff23)](https://app.codacy.com/gh/techouse/qs-kotlin/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
