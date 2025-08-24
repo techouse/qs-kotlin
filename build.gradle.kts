@@ -16,11 +16,12 @@ allprojects {
 }
 
 subprojects {
-    if (name in listOf("qs-kotlin", "qs-kotlin-android")) {
-        plugins.withId("org.jetbrains.kotlin.jvm") { apply(plugin = "org.jetbrains.dokka") }
-        plugins.withId("org.jetbrains.kotlin.android") { apply(plugin = "org.jetbrains.dokka") }
+    if (name in listOf("qs-kotlin")) {
+        apply(plugin = "org.jetbrains.dokka")
     }
 }
+
+tasks.register("docs") { dependsOn("dokkaHtmlMultiModule") }
 
 nexusPublishing {
     repositories {
