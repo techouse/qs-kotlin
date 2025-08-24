@@ -1,3 +1,7 @@
+## 1.2.3
+
+* [CHORE] improve build reproducibility and enhance publication metadata
+
 ## 1.2.2
 
 * [FIX] handle unterminated group when stashing remainder in key segmentation
