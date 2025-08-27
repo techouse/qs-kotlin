@@ -1,7 +1,7 @@
 # qs-kotlin
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/techouse/qs-swift/refs/heads/main/logo.png?raw=true" width="256" alt="RxDart" />
+    <img src="https://raw.githubusercontent.com/techouse/qs-kotlin/refs/heads/main/logo.png?raw=true" width="256" alt="RxDart" />
 </p>
 
 A query string encoding and decoding library for Android and Kotlin/JVM.
