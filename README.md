@@ -1,5 +1,9 @@
 # qs-kotlin
 
+<p align="center">
+    <img src="logo.png?raw=true" width="256" alt="RxDart" />
+</p>
+
 A query string encoding and decoding library for Android and Kotlin/JVM.
 
 Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
