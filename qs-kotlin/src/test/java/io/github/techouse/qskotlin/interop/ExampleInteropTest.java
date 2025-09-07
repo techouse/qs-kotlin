@@ -381,4 +381,10 @@ final class ExampleInteropTest {
         });
         assertNotNull(fn);
     }
+
+    @Test
+    void listFormatGenerate_fromJava() {
+        assertEquals("foo[]", ListFormat.BRACKETS.generate("foo", null));
+        assertEquals("foo[0]", ListFormat.INDICES.generate("foo", "0"));
+    }
 }
