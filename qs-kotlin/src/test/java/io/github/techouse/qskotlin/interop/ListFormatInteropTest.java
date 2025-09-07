@@ -26,6 +26,7 @@ public class ListFormatInteropTest {
     IllegalArgumentException ex =
         assertThrows(
             IllegalArgumentException.class, () -> ListFormat.INDICES.generate("foo", null));
+    assertNotNull(ex.getMessage());
     assertTrue(ex.getMessage().contains("requires a non-null key"));
   }
 
