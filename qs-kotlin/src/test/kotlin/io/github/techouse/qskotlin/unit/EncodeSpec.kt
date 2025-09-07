@@ -1076,7 +1076,7 @@ class EncodeSpec :
             it("encodes a map using an alternative delimiter") {
                 encode(
                     mapOf("a" to "b", "c" to "d"),
-                    EncodeOptions(delimiter = StringDelimiter(";")),
+                    EncodeOptions(delimiter = Delimiter.SEMICOLON),
                 ) shouldBe "a=b;c=d"
             }
 

@@ -82,7 +82,7 @@ class ExampleSpec :
                 }
 
                 it("accepts custom delimiter") {
-                    decode("a=b;c=d", DecodeOptions(delimiter = StringDelimiter(";"))) shouldBe
+                    decode("a=b;c=d", DecodeOptions(delimiter = Delimiter.SEMICOLON)) shouldBe
                         mapOf("a" to "b", "c" to "d")
                 }
 
@@ -330,7 +330,7 @@ class ExampleSpec :
             it("can override delimiter") {
                 encode(
                     mapOf("a" to "b", "c" to "d"),
-                    EncodeOptions(delimiter = StringDelimiter(";")),
+                    EncodeOptions(delimiter = Delimiter.SEMICOLON),
                 ) shouldBe "a=b;c=d"
             }
 

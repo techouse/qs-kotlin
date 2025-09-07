@@ -9,8 +9,8 @@ import io.github.techouse.qskotlin.internal.Decoder as InternalDecoder
 import io.github.techouse.qskotlin.internal.Utils
 import io.github.techouse.qskotlin.models.DecodeOptions
 import io.github.techouse.qskotlin.models.Decoder
+import io.github.techouse.qskotlin.models.Delimiter
 import io.github.techouse.qskotlin.models.RegexDelimiter
-import io.github.techouse.qskotlin.models.StringDelimiter
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
@@ -502,7 +502,7 @@ class DecodeSpec :
             }
 
             it("parses a string with an alternative string delimiter") {
-                decode("a=b;c=d", DecodeOptions(delimiter = StringDelimiter(";"))) shouldBe
+                decode("a=b;c=d", DecodeOptions(delimiter = Delimiter.SEMICOLON)) shouldBe
                     mapOf("a" to "b", "c" to "d")
             }
 

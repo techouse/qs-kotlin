@@ -87,7 +87,7 @@ data class EncodeOptions(
     val charsetSentinel: Boolean = false,
 
     /** The delimiter to use when joining key-value pairs in the encoded output. */
-    val delimiter: StringDelimiter = StringDelimiter("&"),
+    val delimiter: StringDelimiter = Delimiter.AMPERSAND,
 
     /** Set to `false` to disable encoding. */
     val encode: Boolean = true,

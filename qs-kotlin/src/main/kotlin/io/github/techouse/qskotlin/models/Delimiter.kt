@@ -10,9 +10,9 @@ sealed class Delimiter {
 
         @JvmStatic fun regex(pattern: String): Delimiter = RegexDelimiter(pattern)
 
-        @JvmField val AMPERSAND: Delimiter = StringDelimiter("&")
-        @JvmField val COMMA: Delimiter = StringDelimiter(",")
-        @JvmField val SEMICOLON: Delimiter = StringDelimiter(";")
+        @JvmField val AMPERSAND: StringDelimiter = StringDelimiter("&")
+        @JvmField val COMMA: StringDelimiter = StringDelimiter(",")
+        @JvmField val SEMICOLON: StringDelimiter = StringDelimiter(";")
     }
 }
 

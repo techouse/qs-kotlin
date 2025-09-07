@@ -436,7 +436,7 @@ class QsParserSpec :
             }
 
             it("should parse a string with an alternative string delimiter") {
-                val optionsSemicolon = DecodeOptions(delimiter = StringDelimiter(";"))
+                val optionsSemicolon = DecodeOptions(delimiter = Delimiter.SEMICOLON)
                 val optionsRegex = DecodeOptions(delimiter = RegexDelimiter("[;,] *"))
 
                 decode("a=b;c=d", optionsSemicolon) shouldBe mapOf("a" to "b", "c" to "d")
