@@ -8,7 +8,8 @@ import org.junit.jupiter.api.Test;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 public class FormatInteropTest {
 
@@ -55,7 +56,7 @@ public class FormatInteropTest {
     @Test
     @DisplayName("Distinct adapters produce independent instances")
     void distinctAdaptersIndependence() {
-        kotlin.jvm.functions.Function1<String, String> f1 = Format.formatter((Function<String, String>) s -> s.toUpperCase());
+        kotlin.jvm.functions.Function1<String, String> f1 = Format.formatter((Function<String, String>) String::toUpperCase);
         kotlin.jvm.functions.Function1<String, String> f2 = Format.formatter((UnaryOperator<String>) String::toLowerCase);
         assertNotEquals(f1.invoke("aBc"), f2.invoke("aBc"));
         assertEquals("ABC", f1.invoke("aBc"));
