@@ -1,9 +1,8 @@
 package io.github.techouse.qskotlin.interop;
 
 import io.github.techouse.qskotlin.QS;
-import io.github.techouse.qskotlin.enums.Format;
-import io.github.techouse.qskotlin.enums.ListFormat;
-import io.github.techouse.qskotlin.models.EncodeOptions;
+import io.github.techouse.qskotlin.enums.*;
+import io.github.techouse.qskotlin.models.*;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -30,7 +29,7 @@ final class ExtensionsInteropTest {
         for (var tc : EndToEndTestCases) {
             Map<String, Object> input = (Map<String, Object>) tc.getData();
 
-            EncodeOptions opts = new EncodeOptions(null, null, ListFormat.INDICES, null, null, false, false, StandardCharsets.UTF_8, false, "&", false, false, true, Format.RFC3986, null, false, false, null, null);
+            EncodeOptions opts = new EncodeOptions(null, null, ListFormat.INDICES, null, null, false, false, StandardCharsets.UTF_8, false, new StringDelimiter("&"), false, false, true, Format.RFC3986, null, false, false, null, null);
 
             String qs = QS.toQueryString(input, opts);
             assertEquals(tc.getEncoded(), qs, "encode mismatch for: " + input);

@@ -328,8 +328,10 @@ class ExampleSpec :
             }
 
             it("can override delimiter") {
-                encode(mapOf("a" to "b", "c" to "d"), EncodeOptions(delimiter = ";")) shouldBe
-                    "a=b;c=d"
+                encode(
+                    mapOf("a" to "b", "c" to "d"),
+                    EncodeOptions(delimiter = StringDelimiter(";")),
+                ) shouldBe "a=b;c=d"
             }
 
             it("can serialize DateTime objects") {

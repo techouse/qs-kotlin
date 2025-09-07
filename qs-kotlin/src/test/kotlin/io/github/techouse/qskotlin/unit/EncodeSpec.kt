@@ -1074,8 +1074,10 @@ class EncodeSpec :
             }
 
             it("encodes a map using an alternative delimiter") {
-                encode(mapOf("a" to "b", "c" to "d"), EncodeOptions(delimiter = ";")) shouldBe
-                    "a=b;c=d"
+                encode(
+                    mapOf("a" to "b", "c" to "d"),
+                    EncodeOptions(delimiter = StringDelimiter(";")),
+                ) shouldBe "a=b;c=d"
             }
 
             it("does not crash when parsing circular references") {
