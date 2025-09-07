@@ -74,6 +74,10 @@ sealed class Delimiter {
  * segments**.
  */
 data class StringDelimiter(val value: String) : Delimiter() {
+    init {
+        require(value.isNotEmpty()) { "Delimiter must not be empty" }
+    }
+
     override fun split(input: String): List<String> = input.split(value)
 }
 
