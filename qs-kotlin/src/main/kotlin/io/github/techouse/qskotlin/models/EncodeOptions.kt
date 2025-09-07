@@ -135,7 +135,7 @@ data class EncodeOptions(
     /** Set a Sorter to affect the order of parameter keys. */
     val sort: Sorter? = null,
 ) {
-    /** Convenience getter for accessing the encoder */
+    /** Convenience getter: effective allowDots (fallbacks to encodeDotInKeys when null). */
     val getAllowDots: Boolean
         get() = allowDots ?: encodeDotInKeys
 
