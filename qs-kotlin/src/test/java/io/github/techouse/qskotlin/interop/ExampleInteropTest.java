@@ -85,7 +85,7 @@ final class ExampleInteropTest {
     @Test
     void encodeWithCustomValueEncoder() {
         // Replace "č" with "c" while encoding AND encode keys (encodeValuesOnly=false)
-        kotlin.jvm.functions.Function3<Object, Charset, Format, String> enc = (value, cs, fmt) -> {
+        JValueEncoder enc = (value, cs, fmt) -> {
             String s = Objects.toString(value, "");
             if (Objects.equals(s, "č")) s = "c"; // custom transform
             try {
@@ -96,8 +96,10 @@ final class ExampleInteropTest {
             }
         };
 
-        EncodeOptions opts = new EncodeOptions(enc, null, ListFormat.INDICES, null, null, false, false, StandardCharsets.UTF_8, false, Delimiter.AMPERSAND, true, false, false, // encode keys too
-                Format.RFC3986, null, false, false, null, null);
+        EncodeOptions opts = EncodeOptions.builder()
+                .encoder(enc)
+                .encodeValuesOnly(false) // encode keys too
+                .build();
 
         assertEquals("a%5Bb%5D=c", QS.encode(Map.of("a", Map.of("b", "č")), opts));
     }
@@ -105,7 +107,9 @@ final class ExampleInteropTest {
     @Test
     void encodeWithCustomDateSerializer() {
         LocalDateTime date = LocalDateTime.ofInstant(Instant.ofEpochMilli(7), ZoneOffset.UTC);
-        EncodeOptions opts = EncodeOptions.withDateSerializer(dt -> Long.toString(dt.atZone(ZoneOffset.UTC).toInstant().toEpochMilli()));
+        EncodeOptions opts = EncodeOptions.builder()
+                .dateSerializer((JDateSerializer) dt -> Long.toString(dt.atZone(ZoneOffset.UTC).toInstant().toEpochMilli()))
+                .build();
         assertEquals("a=7", QS.encode(Map.of("a", date), opts));
     }
 
@@ -116,7 +120,9 @@ final class ExampleInteropTest {
         input.put("z", "y");
         input.put("b", "f");
 
-        EncodeOptions opts = EncodeOptions.withSorter(Comparator.comparing(o -> o == null ? "" : o.toString()));
+        EncodeOptions opts = EncodeOptions.builder()
+                .sort(Comparator.comparing(o -> o == null ? "" : o.toString()))
+                .build();
         assertEquals("a=c&b=f&z=y", QS.encode(input, opts));
     }
 
@@ -349,11 +355,13 @@ final class ExampleInteropTest {
 
     @Test
     void decodeCustomDecoderMock() {
-        DecodeOptions opts = DecodeOptions.withDecoder((value, charset, kind) -> {
-            if (Objects.equals(value, "%61")) return "a";
-            if (Objects.equals(value, "%68%65%6c%6c%6f")) return "hello";
-            return value;
-        });
+        DecodeOptions opts = DecodeOptions.builder()
+                .decoder((JDecoder) (value, charset, kind) -> {
+                    if (Objects.equals(value, "%61")) return "a";
+                    if (Objects.equals(value, "%68%65%6c%6c%6f")) return "hello";
+                    return value;
+                })
+                .build();
         assertEquals(Map.of("a", "hello"), QS.decode("%61=%68%65%6c%6c%6f", opts));
     }
 
