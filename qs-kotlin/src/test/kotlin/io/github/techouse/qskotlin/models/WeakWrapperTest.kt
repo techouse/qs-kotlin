@@ -13,6 +13,7 @@ class WeakWrapperTest {
         // A few GC hints plus some allocation to encourage collection.
         repeat(3) {
             System.gc()
+            System.runFinalization()
             // Allocate and drop some memory to create pressure.
             val junk = Array(128) { ByteArray(1024) }
             @Suppress("UNUSED_VARIABLE") val sink = junk.size // prevent optimization
@@ -21,6 +22,7 @@ class WeakWrapperTest {
     }
 
     private fun waitForCollection(wrapper: WeakWrapper<*>, timeoutMs: Long = 2000): Boolean {
+        if (wrapper.get() == null) return true
         val deadline = System.nanoTime() + timeoutMs * 1_000_000
         while (System.nanoTime() < deadline) {
             if (wrapper.get() == null) return true
@@ -81,7 +83,7 @@ class WeakWrapperTest {
     @DisplayName("toString shows collected state once referent GC'd")
     fun toStringCollected() {
         // Use a large object to encourage prompt collection
-        class Big(val data: ByteArray = ByteArray(2_000_000))
+        class Big(val data: ByteArray = ByteArray(256_000))
         var big: Big? = Big()
         val w = WeakWrapper(big!!)
         assertTrue(
@@ -103,7 +105,7 @@ class WeakWrapperTest {
         class Holder(val onFinalize: AtomicBoolean) {
             // Rely on finalization only as a last resort; not guaranteed, but helps coverage
             // occasionally.
-            @Suppress("deprecation")
+            @Suppress("DEPRECATION")
             protected fun finalize() {
                 onFinalize.set(true)
             }
@@ -114,6 +116,11 @@ class WeakWrapperTest {
         h = null
         waitForCollection(w)
         // Either collected (null) or still there; both acceptable but branch executed.
-        w.get()?.let { assertFalse(flag.get()) } ?: assertNull(w.get())
+        val current = w.get()
+        if (current == null) {
+            assertNull(current)
+        } else {
+            assertFalse(flag.get())
+        }
     }
 }
