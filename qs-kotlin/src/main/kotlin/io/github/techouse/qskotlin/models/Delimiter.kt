@@ -36,8 +36,8 @@ data class StringDelimiter(val value: String) : Delimiter() {
 data class RegexDelimiter(val pattern: String) : Delimiter() {
     constructor(pattern: java.util.regex.Pattern) : this(pattern.pattern())
 
-    // Cache the compiled regex to avoid recompiling on every split.
-    private val regex: Regex by lazy(LazyThreadSafetyMode.NONE) { Regex(pattern) }
+    // Eagerly compile for thread-safe reuse across threads.
+    private val regex: Regex = Regex(pattern)
 
     override fun split(input: String): List<String> = regex.split(input)
 }
