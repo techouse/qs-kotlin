@@ -24,7 +24,8 @@ enum class Sentinel(val value: String, val encoded: String) {
     fun asQueryParam(): String = encoded
 
     /** Java-friendly: return ("utf8", rawValue) as an immutable entry. */
-    fun toEntry(): Map.Entry<String, String> = mapOf(PARAM_NAME to value).entries.first()
+    fun toEntry(): Map.Entry<String, String> =
+        java.util.Map.entry(PARAM_NAME, value) // JDK 9+, immutable
 
     override fun toString(): String = encoded
 
