@@ -34,6 +34,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Run ktfmtCheck (qs-kotlin)
         run: ./gradlew :qs-kotlin:ktfmtCheck --stacktrace
+      - name: Run spotlessCheck (qs-kotlin)
+        run: ./gradlew :qs-kotlin:spotlessCheck --stacktrace
   jvm_tests:
     name: JVM tests (Java ${{ matrix.java }})
     runs-on: ubuntu-latest
