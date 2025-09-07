@@ -17,6 +17,11 @@ import java.time.LocalDateTime
  */
 typealias ValueEncoder = (value: Any?, charset: Charset?, format: Format?) -> String
 
+/** Java-friendly functional interface for value encoding (Tri-function). */
+fun interface JValueEncoder {
+    fun apply(value: Any?, charset: Charset?, format: Format?): String
+}
+
 /**
  * DateSerializer function typealias that takes a LocalDateTime and returns a String representation
  * of the date.
@@ -25,6 +30,11 @@ typealias ValueEncoder = (value: Any?, charset: Charset?, format: Format?) -> St
  * no serializer is provided, the default ISO format will be used.
  */
 typealias DateSerializer = (date: LocalDateTime) -> String
+
+/** Java-friendly functional interface for date serialization. */
+fun interface JDateSerializer {
+    fun apply(date: LocalDateTime): String
+}
 
 /**
  * Sorter function typealias that takes two values (a and b) and returns an Int indicating their
@@ -171,4 +181,62 @@ data class EncodeOptions(
      */
     fun getDateSerializer(date: LocalDateTime): String =
         dateSerializer?.invoke(date) ?: date.toString()
+
+    /**
+     * Java‑friendly ctor: construct with the most common knobs without passing all parameters.
+     *
+     * Examples (Java): new EncodeOptions(true); // addQueryPrefix = true, listFormat = INDICES new
+     * EncodeOptions(true, ListFormat.BRACKETS); // addQueryPrefix = true, bracket arrays
+     */
+    @JvmOverloads
+    constructor(
+        addQueryPrefix: Boolean,
+        listFormat: ListFormat = ListFormat.INDICES,
+    ) : this(
+        encoder = null,
+        dateSerializer = null,
+        listFormat = listFormat,
+        indices = null,
+        allowDots = null,
+        addQueryPrefix = addQueryPrefix,
+        allowEmptyLists = false,
+        charset = StandardCharsets.UTF_8,
+        charsetSentinel = false,
+        delimiter = "&",
+        encode = true,
+        encodeDotInKeys = false,
+        encodeValuesOnly = false,
+        format = Format.RFC3986,
+        filter = null,
+        skipNulls = false,
+        strictNullHandling = false,
+        commaRoundTrip = null,
+        sort = null,
+    )
+
+    companion object {
+        /**
+         * Java-friendly factory: supply a custom value encoder. Usage (Java):
+         * EncodeOptions.withEncoder((v, cs, fmt) -> ...)
+         */
+        @JvmStatic
+        fun withEncoder(encoder: JValueEncoder): EncodeOptions =
+            EncodeOptions(encoder = { v, cs, fmt -> encoder.apply(v, cs, fmt) })
+
+        /**
+         * Java-friendly factory: supply a custom date serializer. Usage (Java):
+         * EncodeOptions.withDateSerializer(dt -> ...)
+         */
+        @JvmStatic
+        fun withDateSerializer(serializer: JDateSerializer): EncodeOptions =
+            EncodeOptions(dateSerializer = { dt -> serializer.apply(dt) })
+
+        /**
+         * Java-friendly factory: supply a key sorter using JDK Comparator. Usage (Java):
+         * EncodeOptions.withSorter(Comparator.comparing(...))
+         */
+        @JvmStatic
+        fun withSorter(comparator: java.util.Comparator<Any?>): EncodeOptions =
+            EncodeOptions(sort = { a, b -> comparator.compare(a, b) })
+    }
 }

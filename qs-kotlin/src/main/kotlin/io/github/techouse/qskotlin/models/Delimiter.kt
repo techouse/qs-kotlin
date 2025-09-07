@@ -3,6 +3,17 @@ package io.github.techouse.qskotlin.models
 /** Represents a delimiter used for splitting key-value pairs. */
 sealed class Delimiter {
     abstract fun split(input: String): List<String>
+
+    /** Java-friendly factories and common constants. */
+    companion object {
+        @JvmStatic fun string(value: String): Delimiter = StringDelimiter(value)
+
+        @JvmStatic fun regex(pattern: String): Delimiter = RegexDelimiter(pattern)
+
+        @JvmField val AMPERSAND: Delimiter = StringDelimiter("&")
+        @JvmField val COMMA: Delimiter = StringDelimiter(",")
+        @JvmField val SEMICOLON: Delimiter = StringDelimiter(";")
+    }
 }
 
 /**
@@ -23,5 +34,10 @@ data class StringDelimiter(val value: String) : Delimiter() {
  * splitting the input string.
  */
 data class RegexDelimiter(val pattern: String) : Delimiter() {
-    override fun split(input: String): List<String> = Regex(pattern).split(input)
+    constructor(pattern: java.util.regex.Pattern) : this(pattern.pattern())
+
+    // Cache the compiled regex to avoid recompiling on every split.
+    private val regex: Regex by lazy(LazyThreadSafetyMode.NONE) { Regex(pattern) }
+
+    override fun split(input: String): List<String> = regex.split(input)
 }

@@ -1,6 +1,10 @@
 package io.github.techouse.qskotlin.enums
 
-/** An enum of all available sentinels. */
+/**
+ * An enum of available charset sentinels.
+ * - [value] is the raw sentinel value (e.g., "✓" or "&#10003;").
+ * - [encoded] is the pre-encoded query pair including the parameter name, e.g. "utf8=%E2%9C%93".
+ */
 enum class Sentinel(val value: String, val encoded: String) {
     /**
      * This is what browsers will submit when the ✓ character occurs in an
@@ -16,5 +20,16 @@ enum class Sentinel(val value: String, val encoded: String) {
      */
     CHARSET(value = "✓", encoded = "utf8=%E2%9C%93");
 
+    /** Return the encoded query parameter (same as [toString]). */
+    fun asQueryParam(): String = encoded
+
+    /** Java-friendly: return ("utf8", rawValue) as an immutable entry. */
+    fun toEntry(): Map.Entry<String, String> = mapOf(PARAM_NAME to value).entries.first()
+
     override fun toString(): String = encoded
+
+    companion object {
+        /** The query parameter name used by charset sentinels. */
+        const val PARAM_NAME: String = "utf8"
+    }
 }

@@ -11,6 +11,16 @@ fun interface Decoder {
     fun decode(value: String?, charset: Charset?, kind: DecodeKind?): Any?
 }
 
+/** Java-friendly functional interface for Decoder (SAM for Java callers). */
+fun interface JDecoder {
+    fun decode(value: String?, charset: Charset?, kind: DecodeKind?): Any?
+}
+
+/** Java-friendly functional interface for the legacy two-arg decoder. */
+fun interface JLegacyDecoder {
+    fun decode(value: String?, charset: Charset?): Any?
+}
+
 /** Back‑compat adapter for `(value, charset) -> Any?` decoders. */
 @Deprecated(
     message =
@@ -165,6 +175,39 @@ data class DecodeOptions(
     }
 
     /**
+     * Java‑friendly ctor: allow constructing with just the common knobs.
+     *
+     * Examples (Java): new DecodeOptions(true); // ignoreQueryPrefix = true new DecodeOptions(true,
+     * true); // ignoreQueryPrefix = true, comma = true
+     */
+    @JvmOverloads
+    constructor(
+        ignoreQueryPrefix: Boolean,
+        comma: Boolean = false,
+    ) : this(
+        allowDots = null,
+        decoder = null,
+        legacyDecoder = null,
+        decodeDotInKeys = null,
+        allowEmptyLists = false,
+        allowSparseLists = false,
+        listLimit = 20,
+        charset = StandardCharsets.UTF_8,
+        charsetSentinel = false,
+        comma = comma,
+        delimiter = StringDelimiter("&"),
+        depth = 5,
+        parameterLimit = 1000,
+        duplicates = Duplicates.COMBINE,
+        ignoreQueryPrefix = ignoreQueryPrefix,
+        interpretNumericEntities = false,
+        parseLists = true,
+        strictDepth = false,
+        strictNullHandling = false,
+        throwOnLimitExceeded = false,
+    )
+
+    /**
      * Unified scalar decode with key/value context.
      *
      * Uses the provided [decoder] when set; otherwise falls back to [Utils.decode]. For backward
@@ -208,4 +251,16 @@ data class DecodeOptions(
     @JvmOverloads
     fun decodeValue(value: String?, charset: Charset? = this.charset): Any? =
         decode(value, charset, DecodeKind.VALUE)
+
+    companion object {
+        /** Java-friendly factory: supply a custom 3-arg decoder. */
+        @JvmStatic
+        fun withDecoder(decoder: JDecoder): DecodeOptions =
+            DecodeOptions(decoder = Decoder { v, c, k -> decoder.decode(v, c, k) })
+
+        /** Java-friendly factory: supply a legacy (value, charset) decoder. */
+        @JvmStatic
+        fun withLegacyDecoder(decoder: JLegacyDecoder): DecodeOptions =
+            DecodeOptions(decoder = Decoder { v, c, _ -> decoder.decode(v, c) })
+    }
 }
