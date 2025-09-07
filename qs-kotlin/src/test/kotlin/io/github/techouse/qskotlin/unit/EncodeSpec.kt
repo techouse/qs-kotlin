@@ -1942,7 +1942,7 @@ class EncodeSpec :
                         EncodeOptions(
                             listFormat = ListFormat.COMMA,
                             encodeValuesOnly = false,
-                            encoder = { v, cs, f -> jEnc.apply(v, cs, f) },
+                            encoder = jEnc::apply,
                         ),
                     )
                 out shouldBe "XL=XA,B"
