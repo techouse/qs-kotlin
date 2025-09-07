@@ -5,6 +5,7 @@ import io.github.techouse.qskotlin.enums.Duplicates
 import io.github.techouse.qskotlin.internal.Utils
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
+import java.util.regex.Pattern
 
 /** Unified scalar decoder. Implementations may ignore `charset` and/or `kind`. */
 fun interface Decoder {
@@ -146,16 +147,18 @@ data class DecodeOptions(
     val throwOnLimitExceeded: Boolean = false,
 ) {
     /**
-     * Java-friendly builder to construct [DecodeOptions] without a long argument list.
+     * Builder for [DecodeOptions]. Prefer this from Java to avoid long, ambiguous constructors.
      *
-     * Usage (Java):
+     * Defaults mirror the primary constructor. Set only the options you need and call [build].
+     *
+     * **Example (Java):**
      * <pre>{@code
-     *   DecodeOptions opts = DecodeOptions.builder()
-     *       .ignoreQueryPrefix(true)
-     *       .delimiter("&")
-     *       .depth(10)
-     *       .decoder((value, cs, kind) -> value) // JDecoder
-     *       .build();
+     * DecodeOptions opts = DecodeOptions.builder()
+     *     .ignoreQueryPrefix(true)
+     *     .delimiter("&")
+     *     .depth(10)
+     *     .decoder((value, cs, kind) -> value) // JDecoder
+     *     .build();
      * }</pre>
      */
     class Builder {
@@ -180,17 +183,25 @@ data class DecodeOptions(
         private var strictNullHandling: Boolean = false
         private var throwOnLimitExceeded: Boolean = false
 
-        // Kotlin-friendly setters
+        /**
+         * Provide a unified Kotlin decoder. If set, this takes precedence over [legacyDecoder]. The
+         * decoder receives the raw token, the effective charset, and the [DecodeKind].
+         */
         fun decoder(decoder: Decoder) = apply { this.decoder = decoder }
 
+        /**
+         * Back-compat: supply a two-arg decoder `(value, charset)`. Prefer [decoder] or the Java
+         * SAM [.decoder(JDecoder)].
+         */
         @Suppress("DEPRECATION")
         fun legacyDecoder(decoder: LegacyDecoder) = apply { this.legacyDecoder = decoder }
 
-        // Java-friendly setters
+        /** Java-friendly SAM for the unified decoder; adapted to Kotlin's [Decoder]. */
         fun decoder(decoder: JDecoder) = apply {
             this.decoder = Decoder { v, c, k -> decoder.decode(v, c, k) }
         }
 
+        /** Java-friendly SAM for the legacy two-arg decoder; adapted internally. */
         fun legacyDecoder(decoder: JLegacyDecoder) = apply {
             @Suppress("DEPRECATION")
             this.legacyDecoder = { v, c ->
@@ -198,54 +209,92 @@ data class DecodeOptions(
             }
         }
 
+        /**
+         * Enable dot-notation splitting in keys. When `true`, `a.b=c` becomes `{a:{b:"c"}}`. If
+         * unspecified, it is implied by [decodeDotInKeys] when that is `true`.
+         */
         fun allowDots(value: Boolean?) = apply { this.allowDots = value }
 
+        /**
+         * Treat encoded dots at the top level as split points (e.g. `a%2Eb`). Requires [allowDots]
+         * not be explicitly `false`.
+         */
         fun decodeDotInKeys(value: Boolean?) = apply { this.decodeDotInKeys = value }
 
+        /** Allow list parameters with no values (e.g., `a[]` → empty list). */
         fun allowEmptyLists(value: Boolean) = apply { this.allowEmptyLists = value }
 
+        /** Allow sparse lists; missing indices are represented as `null`. */
         fun allowSparseLists(value: Boolean) = apply { this.allowSparseLists = value }
 
+        /**
+         * Maximum explicit index allowed when parsing lists. Higher indices trigger a map fallback
+         * to avoid huge sparse allocations. Default is 20.
+         */
         fun listLimit(value: Int) = apply { this.listLimit = value }
 
+        /** Set the decoding charset (UTF-8 or ISO-8859-1). */
         fun charset(value: Charset) = apply { this.charset = value }
 
+        /**
+         * Honor an initial `utf8=✓` parameter to auto-detect charset per qs conventions. When
+         * enabled, the sentinel is consumed and not included in output.
+         */
         fun charsetSentinel(value: Boolean) = apply { this.charsetSentinel = value }
 
+        /** Parse values as comma-separated sequences when appropriate (flat only). */
         fun comma(value: Boolean) = apply { this.comma = value }
 
+        /** Set the pair delimiter using a literal string (e.g., "&" or ";"). */
         fun delimiter(value: String) = apply { this.delimiter = StringDelimiter(value) }
 
+        /** Provide a prebuilt [Delimiter] (e.g., [StringDelimiter] or [RegexDelimiter]). */
         fun delimiter(value: Delimiter) = apply { this.delimiter = value }
 
-        fun delimiter(value: java.util.regex.Pattern) = apply {
-            this.delimiter = RegexDelimiter(value)
-        }
+        /**
+         * Use a Java [Pattern] as a regex delimiter; flags (CASE_INSENSITIVE, DOTALL, …) are
+         * preserved.
+         */
+        fun delimiter(value: Pattern) = apply { this.delimiter = RegexDelimiter(value) }
 
+        /** Compile and use a regex delimiter from pattern + flags, preserving those flags. */
         fun delimiterRegex(pattern: String, flags: Int) = apply {
-            this.delimiter = RegexDelimiter(java.util.regex.Pattern.compile(pattern, flags))
+            this.delimiter = RegexDelimiter(Pattern.compile(pattern, flags))
         }
 
+        /** Maximum nesting depth for parsed objects (default 5). */
         fun depth(value: Int) = apply { this.depth = value }
 
+        /** Maximum number of parameters to parse (default 1000). */
         fun parameterLimit(value: Int) = apply { this.parameterLimit = value }
 
+        /** Strategy for handling duplicate keys; see [Duplicates] (COMBINE, LAST, FIRST). */
         fun duplicates(value: Duplicates) = apply { this.duplicates = value }
 
+        /** Ignore a leading `?` in the input (useful for raw URLs). */
         fun ignoreQueryPrefix(value: Boolean) = apply { this.ignoreQueryPrefix = value }
 
+        /** Convert HTML numeric entities (e.g., `&#9786;`) during decoding. */
         fun interpretNumericEntities(value: Boolean) = apply {
             this.interpretNumericEntities = value
         }
 
+        /** Disable or enable list parsing entirely (default enabled). */
         fun parseLists(value: Boolean) = apply { this.parseLists = value }
 
+        /**
+         * When `true`, exceeding [depth] throws; when `false`, remainder becomes a trailing
+         * segment.
+         */
         fun strictDepth(value: Boolean) = apply { this.strictDepth = value }
 
+        /** When `true`, parameters without `=` decode to `null` (rather than empty string). */
         fun strictNullHandling(value: Boolean) = apply { this.strictNullHandling = value }
 
+        /** Throw when any parsing limit is exceeded (e.g., [parameterLimit]). */
         fun throwOnLimitExceeded(value: Boolean) = apply { this.throwOnLimitExceeded = value }
 
+        /** Build an immutable [DecodeOptions] with the configured values. */
         fun build(): DecodeOptions =
             DecodeOptions(
                 allowDots = allowDots,

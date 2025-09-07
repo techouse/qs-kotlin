@@ -222,22 +222,28 @@ data class EncodeOptions(
         private var commaRoundTrip: Boolean? = null
         private var sort: Sorter? = null
 
-        // Kotlin-friendly setters
+        /** Provide a Kotlin [ValueEncoder]. Ignored when [encode] is `false`. */
         fun encoder(encoder: ValueEncoder) = apply { this.encoder = encoder }
 
+        /**
+         * Provide a Kotlin [DateSerializer] to customize how [java.time.LocalDateTime] is rendered.
+         */
         fun dateSerializer(serializer: DateSerializer) = apply { this.dateSerializer = serializer }
 
-        // Java-friendly setters
+        /** Java-friendly SAM for the value encoder; adapted to Kotlin's [ValueEncoder]. */
         fun encoder(encoder: JValueEncoder) = apply {
             this.encoder = { v, cs, fmt -> encoder.apply(v, cs, fmt) }
         }
 
+        /** Java-friendly SAM for the date serializer; adapted internally. */
         fun dateSerializer(serializer: JDateSerializer) = apply {
             this.dateSerializer = { dt -> serializer.apply(dt) }
         }
 
+        /** Choose how lists are encoded in the query (INDICES, BRACKETS, REPEAT, COMMA). */
         fun listFormat(listFormat: ListFormat?) = apply { this.listFormat = listFormat }
 
+        /** Deprecated: use [listFormat] instead (true→INDICES, false→REPEAT). */
         @Deprecated(
             message = "Use listFormat instead",
             replaceWith = ReplaceWith("listFormat"),
@@ -246,40 +252,60 @@ data class EncodeOptions(
         @Suppress("DEPRECATION")
         fun indices(indices: Boolean?) = apply { this.indices = indices }
 
+        /** When `true`, use dot-notation for nested keys in the output (e.g., `a.b=c`). */
         fun allowDots(allowDots: Boolean?) = apply { this.allowDots = allowDots }
 
+        /** When `true`, prefix the encoded string with a leading `?`. */
         fun addQueryPrefix(add: Boolean) = apply { this.addQueryPrefix = add }
 
+        /** Allow empty lists to appear as `a[]` with no values. */
         fun allowEmptyLists(allow: Boolean) = apply { this.allowEmptyLists = allow }
 
+        /** Output charset for percent-encoding (UTF-8 or ISO-8859-1). */
         fun charset(charset: Charset) = apply { this.charset = charset }
 
+        /** Emit `utf8=✓` sentinel parameter to advertise charset (Rails-style). */
         fun charsetSentinel(enabled: Boolean) = apply { this.charsetSentinel = enabled }
 
+        /** Pair separator to join key-value pairs (e.g., "&" or ";"). */
         fun delimiter(value: String) = apply { this.delimiter = StringDelimiter(value) }
 
+        /** Provide a prebuilt [StringDelimiter] constant. */
         fun delimiter(value: StringDelimiter) = apply { this.delimiter = value }
 
+        /** When `false`, do not percent-encode keys/values (raw output). */
         fun encode(enabled: Boolean) = apply { this.encode = enabled }
 
+        /** When `true`, encode dots in keys as `%2E`. Useful with [allowDots]. */
         fun encodeDotInKeys(enabled: Boolean) = apply { this.encodeDotInKeys = enabled }
 
+        /** When `true`, only values are encoded; keys are left as-is. */
         fun encodeValuesOnly(enabled: Boolean) = apply { this.encodeValuesOnly = enabled }
 
+        /** RFC variant for space encoding: [Format.RFC3986] (`%20`) or [Format.RFC1738] (`+`). */
         fun format(format: Format) = apply { this.format = format }
 
+        /**
+         * Limit or transform output: pass a key/value function or an iterable of keys/indices to
+         * include.
+         */
         fun filter(filter: Filter?) = apply { this.filter = filter }
 
+        /** Skip keys whose values are `null`. */
         fun skipNulls(skip: Boolean) = apply { this.skipNulls = skip }
 
+        /** When `true`, render `null` as a bare key without `=`, distinguishing vs empty string. */
         fun strictNullHandling(strict: Boolean) = apply { this.strictNullHandling = strict }
 
+        /** With COMMA listFormat, append `[]` on single-item lists to allow round trip. */
         fun commaRoundTrip(value: Boolean?) = apply { this.commaRoundTrip = value }
 
+        /** Java-friendly key sorter; adapted to [Sorter]. */
         fun sort(comparator: java.util.Comparator<Any?>) = apply {
             this.sort = { a, b -> comparator.compare(a, b) }
         }
 
+        /** Build an immutable [EncodeOptions] with the configured values. */
         @Suppress("DEPRECATION")
         fun build(): EncodeOptions =
             EncodeOptions(

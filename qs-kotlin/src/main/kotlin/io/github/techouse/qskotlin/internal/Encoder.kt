@@ -9,7 +9,7 @@ import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.LocalDateTime
-import java.util.*
+import java.util.WeakHashMap
 
 /** A helper object for encoding data into a query string format. */
 internal object Encoder {

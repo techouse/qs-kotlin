@@ -13,7 +13,7 @@ import io.github.techouse.qskotlin.models.EncodeOptions
 import io.github.techouse.qskotlin.models.FunctionFilter
 import io.github.techouse.qskotlin.models.IterableFilter
 import java.nio.charset.StandardCharsets
-import java.util.*
+import java.util.WeakHashMap
 
 /**
  * Decode a query [String] or a [Map] into a [Map<String, Any?>].
