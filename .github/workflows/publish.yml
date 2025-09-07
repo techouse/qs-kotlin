@@ -43,6 +43,24 @@ jobs:
           ./gradlew --version
       - name: Publish to Sonatype (staging) and release
         run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --stacktrace
+      - name: Collect built artifacts (JAR/AAR)
+        run: |
+          set -e
+          mkdir -p artifacts
+          # Copy library JARs (exclude sources/javadoc)
+          find . -type f -path "*/build/libs/*.jar" \
+            ! -name "*-sources.jar" ! -name "*-javadoc.jar" \
+            -print -exec cp {} artifacts/ \;
+          # Copy Android AARs if any
+          find . -type f -path "*/build/outputs/aar/*.aar" \
+            -print -exec cp {} artifacts/ \;
+          echo "Collected artifacts:" && ls -la artifacts || true
+      - name: Upload artifacts to workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-artifacts
+          path: artifacts/*
+          if-no-files-found: warn
   release:
     needs:
       - test
@@ -71,6 +89,11 @@ jobs:
           awk '/^##[[:space:]].*/ { if (count == 1) exit; count++; print } count == 1 && !/^##[[:space:]].*/ { print }' CHANGELOG.md | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > $CHANGELOG_PATH
           echo -en "\n[https://central.sonatype.com/artifact/$GROUP/$NAME/$VERSION](https://central.sonatype.com/artifact/$GROUP/$NAME/$VERSION)" >> $CHANGELOG_PATH
           echo "CHANGELOG_PATH=$CHANGELOG_PATH" >> $GITHUB_ENV
+      - name: Download artifacts from publish job
+        uses: actions/download-artifact@v5
+        with:
+          name: maven-artifacts
+          path: ./artifacts
       - name: Create release
         id: create_release
         uses: softprops/action-gh-release@v2
@@ -78,11 +101,14 @@ jobs:
           name: ${{ env.VERSION }}
           tag_name: v${{ env.VERSION }}
           body_path: ${{ env.CHANGELOG_PATH }}
+          files: |
+            artifacts/*
       - name: Clean up
         id: clean_up
         if: ${{ always() }}
         run: |
           rm -rf $CHANGELOG_PATH
+          rm -rf artifacts
   docs:
     uses: ./.github/workflows/docs.yml
     needs:
