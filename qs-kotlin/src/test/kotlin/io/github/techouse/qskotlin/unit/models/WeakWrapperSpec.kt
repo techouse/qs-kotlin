@@ -7,9 +7,10 @@ import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldStartWith
 import java.util.concurrent.atomic.AtomicBoolean
-import org.junit.jupiter.api.Assertions.assertNotEquals
 
 class WeakWrapperSpec :
     DescribeSpec({
@@ -20,7 +21,7 @@ class WeakWrapperSpec :
                 val b = WeakWrapper(o)
                 val c = WeakWrapper(Any())
                 (a == b).shouldBeTrue()
-                assertNotEquals(a, c)
+                a shouldNotBe c
                 a.hashCode() shouldBe System.identityHashCode(o)
             }
 
@@ -60,7 +61,7 @@ class WeakWrapperSpec :
                 w1 shouldBe w2
                 w1.hashCode() shouldBe w2.hashCode()
                 w1 shouldBe w1 // reflexive
-                (w1 == Any()).shouldBeFalse()
+                w1 shouldNotBe Any()
             }
 
             it("Inequality: different referents") {
@@ -74,7 +75,8 @@ class WeakWrapperSpec :
                 val wrapper = WeakWrapper(obj!!)
                 val originalHash = wrapper.hashCode()
                 obj = null
-                waitForCollection(wrapper)
+                val collected = waitForCollection(wrapper)
+                if (!collected) return@it
                 wrapper.hashCode() shouldBe originalHash
             }
 
@@ -92,12 +94,12 @@ class WeakWrapperSpec :
                 class Big(val data: ByteArray = ByteArray(256_000))
                 var big: Big? = Big()
                 val w = WeakWrapper(big!!)
-                w.toString().startsWith("WeakWrapper(Big") shouldBe true
+                w.toString() shouldStartWith "WeakWrapper(Big"
                 big = null
                 waitForCollection(w)
-                val ts = w.toString()
-                val matches = ts == "WeakWrapper(<collected>)" || ts.startsWith("WeakWrapper(Big")
-                matches shouldBe true
+                val collected = waitForCollection(w)
+                if (!collected) return@it
+                w.toString() shouldBe "WeakWrapper(<collected>)"
             }
 
             it("get() reflects liveness") {
@@ -127,15 +129,15 @@ private fun forceGcPass() {
     repeat(3) {
         System.gc()
         System.runFinalization()
-        val junk = Array(128) { ByteArray(1024) }
+        val junk = Array(256) { ByteArray(4096) } // ~1 MiB per pass
         @Suppress("UNUSED_VARIABLE") val sink = junk.size
         Thread.sleep(5)
     }
 }
 
-private fun waitForCollection(wrapper: WeakWrapper<*>, timeoutMs: Long = 2000): Boolean {
+private fun waitForCollection(wrapper: WeakWrapper<*>, timeoutMillis: Long = 2000): Boolean {
     if (wrapper.get() == null) return true
-    val deadline = System.nanoTime() + timeoutMs * 1_000_000
+    val deadline = System.nanoTime() + timeoutMillis * 1_000_000
     while (System.nanoTime() < deadline) {
         if (wrapper.get() == null) return true
         forceGcPass()
