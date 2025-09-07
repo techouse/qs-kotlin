@@ -12,6 +12,8 @@ sealed class Delimiter {
 
         @JvmStatic fun regex(pattern: String): RegexDelimiter = RegexDelimiter(pattern)
 
+        @JvmStatic fun regex(pattern: Pattern): RegexDelimiter = RegexDelimiter(pattern)
+
         @JvmField val AMPERSAND: StringDelimiter = StringDelimiter("&")
         @JvmField val COMMA: StringDelimiter = StringDelimiter(",")
         @JvmField val SEMICOLON: StringDelimiter = StringDelimiter(";")
@@ -41,6 +43,10 @@ class RegexDelimiter(private val jPattern: Pattern) : Delimiter() {
     /** Expose the raw pattern text for compatibility. */
     val pattern: String
         get() = jPattern.pattern()
+
+    /** Expose Pattern flags for Java callers. */
+    val flags: Int
+        get() = jPattern.flags()
 
     override fun split(input: String): List<String> = jPattern.split(input).toList()
 
