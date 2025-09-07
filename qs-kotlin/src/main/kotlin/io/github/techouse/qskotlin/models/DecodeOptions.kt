@@ -222,6 +222,10 @@ data class DecodeOptions(
             this.delimiter = RegexDelimiter(value)
         }
 
+        fun delimiterRegex(pattern: String, flags: Int) = apply {
+            this.delimiter = RegexDelimiter(java.util.regex.Pattern.compile(pattern, flags))
+        }
+
         fun depth(value: Int) = apply { this.depth = value }
 
         fun parameterLimit(value: Int) = apply { this.parameterLimit = value }
@@ -298,6 +302,7 @@ data class DecodeOptions(
             "Invalid charset: only UTF-8 and ISO-8859-1 (Latin1) are supported"
         }
         require(parameterLimit > 0) { "Parameter limit must be positive" }
+        require(depth >= 0) { "Depth must be non-negative" }
         // If decodeDotInKeys is enabled, allowDots must not be explicitly false.
         require(!getDecodeDotInKeys || allowDots != false) {
             "decodeDotInKeys requires allowDots to be true"
