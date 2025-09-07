@@ -10,6 +10,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import java.lang.ref.WeakReference
+import java.util.concurrent.TimeUnit
 
 class WeakWrapperSpec :
     DescribeSpec({
@@ -37,9 +38,8 @@ class WeakWrapperSpec :
                 // Clear the reference and force garbage collection
                 obj = null
                 val collected = waitForCollection(wrapper)
-                if (collected) {
-                    wrapper.toString() shouldContain "<collected>"
-                }
+                if (!collected) return@it
+                wrapper.toString() shouldContain "<collected>"
             }
 
             it("Equality: same referent, different wrappers") {
@@ -64,7 +64,10 @@ class WeakWrapperSpec :
                 val originalHash = wrapper.hashCode()
                 obj = null
                 val collected = waitForCollection(wrapper)
-                if (!collected) return@it
+                org.junit.jupiter.api.Assumptions.assumeTrue(
+                    collected,
+                    "GC did not collect in time; skipping",
+                )
                 wrapper.hashCode() shouldBe originalHash
             }
 
@@ -74,7 +77,10 @@ class WeakWrapperSpec :
                 val w2 = WeakWrapper(obj)
                 obj = null
                 val collected = waitForCollection(w1)
-                if (!collected) return@it // avoid flakiness if GC did not collect in time
+                org.junit.jupiter.api.Assumptions.assumeTrue(
+                    collected,
+                    "GC did not collect in time; skipping",
+                )
                 w1 shouldNotBe w2
             }
 
@@ -84,7 +90,6 @@ class WeakWrapperSpec :
                 val w = WeakWrapper(big!!)
                 w.toString() shouldStartWith "WeakWrapper(Big"
                 big = null
-                waitForCollection(w)
                 val collected = waitForCollection(w)
                 if (!collected) return@it
                 w.toString() shouldContain "<collected>"
@@ -115,13 +120,18 @@ class WeakWrapperSpec :
  * `WeakReference` visibility plus a few GC/Finalization "nudges". This minimizes flakiness across
  * different JVMs/CI runners. Timeouts are increased automatically when running on CI.
  */
-private fun gcTimeoutMs(): Long = if (System.getenv("CI") != null) 6000 else 2000
+private fun gcTimeoutMs(): Long =
+    System.getenv("QS_GC_TIMEOUT_MS")?.toLongOrNull()
+        ?: if (System.getenv("CI") != null) 6000 else 2000
 
 private fun forceGcPass() {
-    repeat(3) {
+    val passes = System.getenv("QS_GC_PASSES")?.toIntOrNull() ?: 3
+    val chunks = System.getenv("QS_GC_CHUNKS")?.toIntOrNull() ?: 256
+    val chunkSize = System.getenv("QS_GC_CHUNK_SIZE")?.toIntOrNull() ?: 4096
+    repeat(passes) {
         System.gc()
         System.runFinalization()
-        val junk = Array(256) { ByteArray(4096) } // ~1 MiB per pass
+        val junk = Array(chunks) { ByteArray(chunkSize) } // ~chunks*chunkSize bytes per pass
         @Suppress("UNUSED_VARIABLE") val sink = junk.size
         Thread.sleep(5)
     }
@@ -132,7 +142,7 @@ private fun waitForCollection(
     timeoutMillis: Long = gcTimeoutMs(),
 ): Boolean {
     if (wrapper.get() == null) return true
-    val deadline = System.nanoTime() + timeoutMillis * 1_000_000
+    val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
     while (System.nanoTime() < deadline) {
         if (wrapper.get() == null) return true
         forceGcPass()
@@ -145,7 +155,7 @@ private fun waitForCleared(
     timeoutMillis: Long = gcTimeoutMs(),
 ): Boolean {
     if (ref.get() == null) return true
-    val deadline = System.nanoTime() + timeoutMillis * 1_000_000
+    val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
     while (System.nanoTime() < deadline) {
         if (ref.get() == null) return true
         forceGcPass()
