@@ -6,9 +6,9 @@ sealed class Delimiter {
 
     /** Java-friendly factories and common constants. */
     companion object {
-        @JvmStatic fun string(value: String): Delimiter = StringDelimiter(value)
+        @JvmStatic fun string(value: String): StringDelimiter = StringDelimiter(value)
 
-        @JvmStatic fun regex(pattern: String): Delimiter = RegexDelimiter(pattern)
+        @JvmStatic fun regex(pattern: String): RegexDelimiter = RegexDelimiter(pattern)
 
         @JvmField val AMPERSAND: StringDelimiter = StringDelimiter("&")
         @JvmField val COMMA: StringDelimiter = StringDelimiter(",")
