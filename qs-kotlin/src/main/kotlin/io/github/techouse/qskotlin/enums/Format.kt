@@ -36,5 +36,11 @@ enum class Format(val formatter: Formatter) {
          * `Formatter f = Format.formatter((JFormatter) v -> v);`
          */
         @JvmStatic fun formatter(fn: JFormatter): Formatter = { v -> fn.format(v) }
+
+        /** Java ergonomic overload. */
+        @JvmStatic
+        fun formatter(fn: java.util.function.UnaryOperator<String>): Formatter = { v ->
+            fn.apply(v)
+        }
     }
 }
