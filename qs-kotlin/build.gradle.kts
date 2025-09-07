@@ -70,6 +70,33 @@ spotless {
     }
 }
 
+val prepareDokkaReadme by
+    tasks.registering {
+        val src = rootProject.layout.projectDirectory.file("README.md").asFile
+        val outDir = layout.buildDirectory.dir("dokka-includes").get().asFile
+        val out = outDir.resolve("Module.md")
+
+        outputs.file(out)
+        doLast {
+            out.parentFile.mkdirs()
+            val readme = src.readText()
+
+            // Remove the first H1 (e.g., "# qs-kotlin") so we don’t have two top-level titles
+            val withoutFirstH1 = readme.replaceFirst(Regex("""^\s*# .*\R+"""), "")
+
+            // Prepend Dokka’s required classifier header
+            val moduleHeader = "# Module qs-kotlin\n\n"
+            out.writeText(moduleHeader + withoutFirstH1)
+        }
+    }
+
+tasks.dokkaHtml {
+    dependsOn(prepareDokkaReadme)
+    dokkaSourceSets.configureEach {
+        includes.from(layout.buildDirectory.file("dokka-includes/Module.md"))
+    }
+}
+
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
