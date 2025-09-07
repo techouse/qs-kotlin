@@ -13,6 +13,7 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldMatch
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.time.Instant
@@ -2053,7 +2054,7 @@ class EncodeSpec :
                         mapOf("arr" to arr),
                         EncodeOptions(encode = false, listFormat = ListFormat.INDICES),
                     )
-                out.startsWith("arr=[Ljava.lang.String;@") shouldBe true
+                out shouldMatch Regex("""^arr=\Q[Ljava.lang.String;\E@.+""")
             }
 
             it("array branch with out-of-range index triggers valueUndefined skip") {
@@ -2067,7 +2068,7 @@ class EncodeSpec :
                             filter = IterableFilter(listOf("arr", 0, 5)),
                         ),
                     )
-                out.startsWith("arr=[Ljava.lang.String;@") shouldBe true
+                out shouldMatch Regex("""^arr=\Q[Ljava.lang.String;\E@.+""")
             }
         }
     })
