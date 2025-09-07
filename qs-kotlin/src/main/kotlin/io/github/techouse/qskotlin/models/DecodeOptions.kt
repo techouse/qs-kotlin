@@ -101,7 +101,7 @@ data class DecodeOptions(
     val comma: Boolean = false,
 
     /** The delimiter to use when splitting key-value pairs in the encoded input. */
-    val delimiter: Delimiter = StringDelimiter("&"),
+    val delimiter: Delimiter = Delimiter.AMPERSAND,
 
     /**
      * By default, when nesting Maps QS will only decode up to 5 children deep. This depth can be
@@ -167,7 +167,7 @@ data class DecodeOptions(
         private var charset: Charset = StandardCharsets.UTF_8
         private var charsetSentinel: Boolean = false
         private var comma: Boolean = false
-        private var delimiter: Delimiter = StringDelimiter("&")
+        private var delimiter: Delimiter = Delimiter.AMPERSAND
         private var depth: Int = 5
         private var parameterLimit: Int = 1000
         private var duplicates: Duplicates = Duplicates.COMBINE
