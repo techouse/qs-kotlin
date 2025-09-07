@@ -119,4 +119,39 @@ public class DelimiterInteropTest {
     Map<String, Object> decoded = QS.decode(encoded);
     assertEquals(data, decoded);
   }
+
+  @Test
+  @DisplayName("Additional regex factory overload coverage and advanced splitting")
+  void regexFactoryOverloadsAndSplit() {
+    // Pattern overload
+    Pattern whitespaceMultiline = Pattern.compile("\\s+", Pattern.MULTILINE);
+    RegexDelimiter viaPattern = Delimiter.regex(whitespaceMultiline);
+    assertEquals(whitespaceMultiline.pattern(), viaPattern.getPattern());
+    assertEquals(whitespaceMultiline.flags(), viaPattern.getFlags());
+
+    // (pattern, flags) overload
+    RegexDelimiter ciUnicode =
+        Delimiter.regex("abc", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+    assertEquals("abc", ciUnicode.getPattern());
+    int flags = ciUnicode.getFlags();
+    assertTrue((flags & Pattern.CASE_INSENSITIVE) != 0);
+    assertTrue((flags & Pattern.UNICODE_CASE) != 0);
+
+    // Distinguish hashCodes by different pattern and flags
+    RegexDelimiter ciOnly = Delimiter.regex("abc", Pattern.CASE_INSENSITIVE);
+    assertNotEquals(ciUnicode, ciOnly);
+    assertNotEquals(ciUnicode.hashCode(), ciOnly.hashCode());
+
+    // Splitting with whitespace regex
+    List<String> parts = viaPattern.split("a  b\tc\n d");
+    assertEquals(List.of("a", "b", "c", "d"), parts);
+
+    // Splitting empty string returns single empty element (Pattern.split behavior)
+    assertEquals(List.of(""), viaPattern.split(""));
+
+    // toString contains flags integer
+    String ts = ciUnicode.toString();
+    assertTrue(ts.contains("abc"));
+    assertTrue(ts.contains(String.valueOf(ciUnicode.getFlags())));
+  }
 }
