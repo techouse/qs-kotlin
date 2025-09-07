@@ -12,11 +12,13 @@ fun interface Decoder {
 }
 
 /** Java-friendly functional interface for Decoder (SAM for Java callers). */
+@FunctionalInterface
 fun interface JDecoder {
     fun decode(value: String?, charset: Charset?, kind: DecodeKind?): Any?
 }
 
 /** Java-friendly functional interface for the legacy two-arg decoder. */
+@FunctionalInterface
 fun interface JLegacyDecoder {
     fun decode(value: String?, charset: Charset?): Any?
 }
@@ -216,6 +218,10 @@ data class DecodeOptions(
 
         fun delimiter(value: Delimiter) = apply { this.delimiter = value }
 
+        fun delimiter(value: java.util.regex.Pattern) = apply {
+            this.delimiter = RegexDelimiter(value)
+        }
+
         fun depth(value: Int) = apply { this.depth = value }
 
         fun parameterLimit(value: Int) = apply { this.parameterLimit = value }
@@ -281,9 +287,15 @@ data class DecodeOptions(
     val getDecodeDotInKeys: Boolean
         get() = decodeDotInKeys ?: false
 
+    // Java-friendly aliases (non-breaking):
+    @JvmName("isAllowDotsEffective") fun isAllowDotsEffective(): Boolean = getAllowDots
+
+    @JvmName("isDecodeDotInKeysEffective")
+    fun isDecodeDotInKeysEffective(): Boolean = getDecodeDotInKeys
+
     init {
         require(charset == StandardCharsets.UTF_8 || charset == StandardCharsets.ISO_8859_1) {
-            "Invalid charset"
+            "Invalid charset: only UTF-8 and ISO-8859-1 (Latin1) are supported"
         }
         require(parameterLimit > 0) { "Parameter limit must be positive" }
         // If decodeDotInKeys is enabled, allowDots must not be explicitly false.
