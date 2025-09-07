@@ -12,6 +12,14 @@ import io.kotest.matchers.string.shouldStartWith
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
 
+/**
+ * Unit tests for [WeakWrapper].
+ *
+ * These tests focus on equality, hashCode, toString, and referent liveness behavior.
+ *
+ * Note: We avoid using finalizers (deprecated) and instead rely on `WeakReference` visibility plus
+ * GC nudges to minimize flakiness across different JVMs/CI runners.
+ */
 class WeakWrapperSpec :
     DescribeSpec({
         describe("equality & hashCode") {
@@ -38,7 +46,7 @@ class WeakWrapperSpec :
                 // Clear the reference and force garbage collection
                 obj = null
                 val collected = waitForCollection(wrapper)
-                if (!collected) return@it
+                assumeOrSkip(collected) { "GC did not collect in time; skipping" }
                 wrapper.toString() shouldContain "<collected>"
             }
 
@@ -64,10 +72,7 @@ class WeakWrapperSpec :
                 val originalHash = wrapper.hashCode()
                 obj = null
                 val collected = waitForCollection(wrapper)
-                org.junit.jupiter.api.Assumptions.assumeTrue(
-                    collected,
-                    "GC did not collect in time; skipping",
-                )
+                assumeOrSkip(collected) { "GC did not collect in time; skipping" }
                 wrapper.hashCode() shouldBe originalHash
             }
 
@@ -77,10 +82,7 @@ class WeakWrapperSpec :
                 val w2 = WeakWrapper(obj)
                 obj = null
                 val collected = waitForCollection(w1)
-                org.junit.jupiter.api.Assumptions.assumeTrue(
-                    collected,
-                    "GC did not collect in time; skipping",
-                )
+                assumeOrSkip(collected) { "GC did not collect in time; skipping" }
                 w1 shouldNotBe w2
             }
 
@@ -91,7 +93,7 @@ class WeakWrapperSpec :
                 w.toString() shouldStartWith "WeakWrapper(Big"
                 big = null
                 val collected = waitForCollection(w)
-                if (!collected) return@it
+                assumeOrSkip(collected) { "GC did not collect in time; skipping" }
                 w.toString() shouldContain "<collected>"
             }
 
@@ -105,13 +107,18 @@ class WeakWrapperSpec :
                 w.get().shouldNotBeNull()
                 h = null
                 val collected = waitForCollection(w)
-                if (!collected) return@it // avoid flakiness if GC did not collect in time
+                assumeOrSkip(collected) { "GC did not collect in time; skipping" }
                 // Ensure the referent is actually cleared from a separate WeakReference as well
                 waitForCleared(weak).shouldBeTrue()
                 w.get().shouldBeNull()
             }
         }
     })
+
+/** Aborts the current test (skips) when [condition] is false. */
+private inline fun assumeOrSkip(condition: Boolean, lazyMessage: () -> String) {
+    if (!condition) throw org.opentest4j.TestAbortedException(lazyMessage())
+}
 
 /**
  * GC/collection helpers used by these tests.
