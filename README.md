@@ -223,7 +223,9 @@ Java:
 ```java
 QS.decode(
   "a[b][c][d][e][f][g][h][i]=j",
-  DecodeOptions.builder().depth(1).build()
+  DecodeOptions.builder()
+    .depth(1)
+    .build()
 );
 // => {a={b={[c][d][e][f][g][h][i]=j}}}
 ```
@@ -430,13 +432,19 @@ QS.decode(
 // Sentinels
 QS.decode(
   "utf8=%E2%9C%93&a=%C3%B8",
-  DecodeOptions(charset = StandardCharsets.ISO_8859_1, charsetSentinel = true)
+  DecodeOptions(
+    charset = StandardCharsets.ISO_8859_1,
+    charsetSentinel = true
+  )
 )
 // => mapOf("a" to "ø")
 
 QS.decode(
   "utf8=%26%2310003%3B&a=%F8",
-  DecodeOptions(charset = StandardCharsets.UTF_8, charsetSentinel = true)
+  DecodeOptions(
+    charset = StandardCharsets.UTF_8,
+    charsetSentinel = true
+  )
 )
 // => mapOf("a" to "ø")
 ```
@@ -475,7 +483,10 @@ Kotlin:
 ```kotlin
 QS.decode(
   "a=%26%239786%3B",
-  DecodeOptions(charset = StandardCharsets.ISO_8859_1, interpretNumericEntities = true)
+  DecodeOptions(
+    charset = StandardCharsets.ISO_8859_1,
+    interpretNumericEntities = true
+  )
 )
 // => mapOf("a" to "☺")
 ```
@@ -685,7 +696,9 @@ Kotlin:
 ```kotlin
 QS.encode(
   mapOf("a" to mapOf("b" to "č")),
-  EncodeOptions(encoder = { v, _, _ -> if (v == "č") "c" else v.toString() })
+  EncodeOptions(
+    encoder = { v, _, _ -> if (v == "č") "c" else v.toString() }
+  )
 )
 // => "a[b]=c"   (with encode=false would be unescaped)
 ```
@@ -716,21 +729,30 @@ QS.encode(
 // brackets
 QS.encode(
   mapOf("a" to listOf("b", "c")),
-  EncodeOptions(encode = false, listFormat = ListFormat.BRACKETS)
+  EncodeOptions(
+    encode = false,
+    listFormat = ListFormat.BRACKETS
+  )
 )
 // => "a[]=b&a[]=c"
 
 // repeat
 QS.encode(
   mapOf("a" to listOf("b", "c")),
-  EncodeOptions(encode = false, listFormat = ListFormat.REPEAT)
+  EncodeOptions(
+    encode = false,
+    listFormat = ListFormat.REPEAT
+  )
 )
 // => "a=b&a=c"
 
 // comma
 QS.encode(
   mapOf("a" to listOf("b", "c")),
-  EncodeOptions(encode = false, listFormat = ListFormat.COMMA)
+  EncodeOptions(
+    encode = false,
+    listFormat = ListFormat.COMMA
+  )
 )
 // => "a=b,c"
 ```
@@ -805,7 +827,10 @@ Kotlin:
 ```kotlin
 QS.encode(
   mapOf("a" to mapOf("b" to mapOf("c" to "d", "e" to "f"))),
-  EncodeOptions(encode = false, allowDots = true)
+  EncodeOptions(
+    encode = false,
+    allowDots = true
+  )
 )
 // => "a.b.c=d&a.b.e=f"
 ```
@@ -827,7 +852,10 @@ Kotlin:
 ```kotlin
 QS.encode(
   mapOf("name.obj" to mapOf("first" to "John", "last" to "Doe")),
-  EncodeOptions(allowDots = true, encodeDotInKeys = true)
+  EncodeOptions(
+    allowDots = true,
+    encodeDotInKeys = true
+  )
 )
 // => "name%252Eobj.first=John&name%252Eobj.last=Doe"
 ```
@@ -849,7 +877,10 @@ Kotlin:
 ```kotlin
 QS.encode(
   mapOf("foo" to emptyList<String>(), "bar" to "baz"),
-  EncodeOptions(encode = false, allowEmptyLists = true)
+  EncodeOptions(
+    encode = false,
+    allowEmptyLists = true
+  )
 )
 // => "foo[]&bar=baz"
 ```
@@ -1007,7 +1038,10 @@ Kotlin:
 // Sort keys
 QS.encode(
   mapOf("a" to "c", "z" to "y", "b" to "f"),
-  EncodeOptions(encode = false, sort = { a, b -> a.toString().compareTo(b.toString()) })
+  EncodeOptions(
+    encode = false,
+    sort = { a, b -> a.toString().compareTo(b.toString()) }
+  )
 )
 // => "a=c&b=f&z=y"
 
@@ -1031,13 +1065,19 @@ QS.encode(
 // Filter by explicit list of keys/indices
 QS.encode(
   mapOf("a" to "b", "c" to "d", "e" to "f"),
-  EncodeOptions(encode = false, filter = IterableFilter(listOf("a", "e")))
+  EncodeOptions(
+    encode = false,
+    filter = IterableFilter(listOf("a", "e"))
+  )
 )
 // => "a=b&e=f"
 
 QS.encode(
   mapOf("a" to listOf("b", "c", "d"), "e" to "f"),
-  EncodeOptions(encode = false, filter = IterableFilter(listOf("a", 0, 2)))
+  EncodeOptions(
+    encode = false,
+    filter = IterableFilter(listOf("a", 0, 2))
+  )
 )
 // => "a[0]=b&a[2]=d"
 ```
