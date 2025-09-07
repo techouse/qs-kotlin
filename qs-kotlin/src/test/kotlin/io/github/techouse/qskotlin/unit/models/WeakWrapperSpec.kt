@@ -8,8 +8,8 @@ import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
-import org.junit.jupiter.api.Assertions.assertNotEquals
 import java.util.concurrent.atomic.AtomicBoolean
+import org.junit.jupiter.api.Assertions.assertNotEquals
 
 class WeakWrapperSpec :
     DescribeSpec({
