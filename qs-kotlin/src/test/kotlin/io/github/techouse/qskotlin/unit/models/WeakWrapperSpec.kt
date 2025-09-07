@@ -10,7 +10,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
-import java.util.concurrent.atomic.AtomicBoolean
+import java.lang.ref.WeakReference
 
 class WeakWrapperSpec :
     DescribeSpec({
@@ -102,28 +102,32 @@ class WeakWrapperSpec :
                 w.toString() shouldBe "WeakWrapper(<collected>)"
             }
 
-            it("get() reflects liveness") {
-                val flag = AtomicBoolean(false)
-                @Suppress("DEPRECATION")
-                class Holder(val onFinalize: AtomicBoolean) {
-                    protected fun finalize() {
-                        onFinalize.set(true)
-                    }
-                }
-                var h: Holder? = Holder(flag)
+            it("get() reflects liveness without finalize (WeakReference)") {
+                // Use a plain WeakReference (no ReferenceQueue) to assert clearing without relying
+                // on
+                // enqueue timing, which varies across JVMs.
+                var h: Any? = Any()
+                @Suppress("UNUSED_VARIABLE") val weak = WeakReference(h)
                 val w = WeakWrapper(h!!)
                 w.get().shouldNotBeNull()
                 h = null
-                waitForCollection(w)
-                val current = w.get()
-                if (current == null) {
-                    current.shouldBeNull()
-                } else {
-                    flag.get() shouldBe false
-                }
+                val collected = waitForCollection(w)
+                if (!collected) return@it // avoid flakiness if GC did not collect in time
+                // Ensure the referent is actually cleared from a separate WeakReference as well
+                waitForCleared(weak).shouldBeTrue()
+                w.get().shouldBeNull()
             }
         }
     })
+
+/**
+ * GC/collection helpers used by these tests.
+ *
+ * We deliberately avoid finalizers (deprecated and may be disabled) and instead rely on
+ * `WeakReference` visibility plus a few GC/Finalization "nudges". This minimizes flakiness across
+ * different JVMs/CI runners. Timeouts are increased automatically when running on CI.
+ */
+private fun gcTimeoutMs(): Long = if (System.getenv("CI") != null) 6000 else 2000
 
 private fun forceGcPass() {
     repeat(3) {
@@ -135,7 +139,10 @@ private fun forceGcPass() {
     }
 }
 
-private fun waitForCollection(wrapper: WeakWrapper<*>, timeoutMillis: Long = 2000): Boolean {
+private fun waitForCollection(
+    wrapper: WeakWrapper<*>,
+    timeoutMillis: Long = gcTimeoutMs(),
+): Boolean {
     if (wrapper.get() == null) return true
     val deadline = System.nanoTime() + timeoutMillis * 1_000_000
     while (System.nanoTime() < deadline) {
@@ -143,4 +150,17 @@ private fun waitForCollection(wrapper: WeakWrapper<*>, timeoutMillis: Long = 200
         forceGcPass()
     }
     return wrapper.get() == null
+}
+
+private fun waitForCleared(
+    ref: WeakReference<out Any?>,
+    timeoutMillis: Long = gcTimeoutMs(),
+): Boolean {
+    if (ref.get() == null) return true
+    val deadline = System.nanoTime() + timeoutMillis * 1_000_000
+    while (System.nanoTime() < deadline) {
+        if (ref.get() == null) return true
+        forceGcPass()
+    }
+    return ref.get() == null
 }
