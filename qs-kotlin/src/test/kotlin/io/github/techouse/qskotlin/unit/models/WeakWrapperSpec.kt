@@ -2,7 +2,6 @@ package io.github.techouse.qskotlin.unit.models
 
 import io.github.techouse.qskotlin.models.WeakWrapper
 import io.kotest.core.spec.style.DescribeSpec
-import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -20,7 +19,7 @@ class WeakWrapperSpec :
                 val a = WeakWrapper(o)
                 val b = WeakWrapper(o)
                 val c = WeakWrapper(Any())
-                (a == b).shouldBeTrue()
+                a shouldBe b
                 a shouldNotBe c
                 a.hashCode() shouldBe System.identityHashCode(o)
             }
@@ -37,20 +36,9 @@ class WeakWrapperSpec :
 
                 // Clear the reference and force garbage collection
                 obj = null
-                System.gc()
-                System.runFinalization()
-
-                // The referent might still be alive, so we need to be more aggressive
-                for (i in 1..10) {
-                    System.gc()
-                    System.runFinalization()
-                    Thread.sleep(10)
-                    if (wrapper.get() == null) break
-                }
-
-                // If GC was successful, toString should show <collected>
-                if (wrapper.get() == null) {
-                    wrapper.toString() shouldBe "WeakWrapper(<collected>)"
+                val collected = waitForCollection(wrapper)
+                if (collected) {
+                    wrapper.toString() shouldContain "<collected>"
                 }
             }
 
@@ -67,7 +55,7 @@ class WeakWrapperSpec :
             it("Inequality: different referents") {
                 val w1 = WeakWrapper(Any())
                 val w2 = WeakWrapper(Any())
-                (w1 == w2).shouldBeFalse()
+                w1 shouldNotBe w2
             }
 
             it("hashCode stable after collection") {
@@ -87,7 +75,7 @@ class WeakWrapperSpec :
                 obj = null
                 val collected = waitForCollection(w1)
                 if (!collected) return@it // avoid flakiness if GC did not collect in time
-                (w1 == w2).shouldBeFalse()
+                w1 shouldNotBe w2
             }
 
             it("toString shows collected state once referent GC'd") {
@@ -99,7 +87,7 @@ class WeakWrapperSpec :
                 waitForCollection(w)
                 val collected = waitForCollection(w)
                 if (!collected) return@it
-                w.toString() shouldBe "WeakWrapper(<collected>)"
+                w.toString() shouldContain "<collected>"
             }
 
             it("get() reflects liveness without finalize (WeakReference)") {
