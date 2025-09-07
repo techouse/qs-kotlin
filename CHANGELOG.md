@@ -1,3 +1,8 @@
+## 1.3.0
+
+* [BREAKING] `EncodeOptions.delimiter` now expects a `StringDelimiter` instead of a `String` for improved type safety
+* [FEAT] add Java-friendly functional interfaces and factories for encoding, decoding, and filtering
+
 ## 1.2.3
 
 * [CHORE] improve build reproducibility and enhance publication metadata
