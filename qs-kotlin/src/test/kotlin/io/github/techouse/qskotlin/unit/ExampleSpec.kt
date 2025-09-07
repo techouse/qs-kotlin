@@ -91,6 +91,12 @@ class ExampleSpec :
                         mapOf("a" to "b", "c" to "d")
                 }
 
+                it("accepts regex Pattern delimiter") {
+                    val pat = java.util.regex.Pattern.compile("[;,]")
+                    decode("a=b;c=d", DecodeOptions(delimiter = RegexDelimiter(pat))) shouldBe
+                        mapOf("a" to "b", "c" to "d")
+                }
+
                 it("can enable dot notation with allowDots") {
                     decode("a.b=c", DecodeOptions(allowDots = true)) shouldBe
                         mapOf("a" to mapOf("b" to "c"))
