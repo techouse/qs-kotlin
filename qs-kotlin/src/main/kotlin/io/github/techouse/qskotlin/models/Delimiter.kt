@@ -1,5 +1,7 @@
 package io.github.techouse.qskotlin.models
 
+import java.util.regex.Pattern
+
 /** Represents a delimiter used for splitting key-value pairs. */
 sealed class Delimiter {
     abstract fun split(input: String): List<String>
@@ -29,15 +31,28 @@ data class StringDelimiter(val value: String) : Delimiter() {
 /**
  * Regex-based delimiter for complex pattern matching.
  *
- * This is useful for delimiters that require regular expression matching, such as `\\s*;\\s*` for
- * semicolon-separated values with optional whitespace. It uses the `Regex.split` method for
- * splitting the input string.
+ * Stores the underlying Java [Pattern] to preserve flags (e.g., CASE_INSENSITIVE, DOTALL) and
+ * delegates splitting to `Pattern.split`.
  */
-data class RegexDelimiter(val pattern: String) : Delimiter() {
-    constructor(pattern: java.util.regex.Pattern) : this(pattern.pattern())
+class RegexDelimiter(private val jPattern: Pattern) : Delimiter() {
+    /** Construct from a raw pattern string (no flags). */
+    constructor(pattern: String) : this(Pattern.compile(pattern))
 
-    // Eagerly compile for thread-safe reuse across threads.
-    private val regex: Regex = Regex(pattern)
+    /** Expose the raw pattern text for compatibility. */
+    val pattern: String
+        get() = jPattern.pattern()
 
-    override fun split(input: String): List<String> = regex.split(input)
+    override fun split(input: String): List<String> = jPattern.split(input).toList()
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is RegexDelimiter) return false
+        return jPattern.pattern() == other.jPattern.pattern() &&
+            jPattern.flags() == other.jPattern.flags()
+    }
+
+    override fun hashCode(): Int = 31 * jPattern.pattern().hashCode() + jPattern.flags()
+
+    override fun toString(): String =
+        "RegexDelimiter(pattern='${jPattern.pattern()}', flags=${jPattern.flags()})"
 }
