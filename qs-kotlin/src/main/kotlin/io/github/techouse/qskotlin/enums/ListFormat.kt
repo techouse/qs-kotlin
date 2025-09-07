@@ -28,7 +28,11 @@ enum class ListFormat(val generator: ListFormatGenerator) {
      * Apply this list format's generator. Java-friendly helper so callers can do: {@code
      * ListFormat.BRACKETS.generate("foo", null)}.
      */
-    fun generate(prefix: String, key: String?): String = generator(prefix, key)
+    fun generate(prefix: String, key: String?): String {
+        if (this == INDICES)
+            requireNotNull(key) { "ListFormat.INDICES requires a non-null key (index)" }
+        return generator(prefix, key)
+    }
 
     companion object {
         /** Adapt a Java BiFunction into a Kotlin [ListFormatGenerator]. */
@@ -36,6 +40,13 @@ enum class ListFormat(val generator: ListFormatGenerator) {
         fun generator(
             fn: java.util.function.BiFunction<String, String?, String>
         ): ListFormatGenerator = { p, k -> fn.apply(p, k) }
+
+        /** Adapt a Java Function<String,String> for generators that ignore the key. */
+        @JvmStatic
+        fun generator(fn: java.util.function.Function<String, String>): ListFormatGenerator =
+            { p, _ ->
+                fn.apply(p)
+            }
 
         /** Adapt a Java-friendly SAM [JListFormatGenerator] into a Kotlin [ListFormatGenerator]. */
         @JvmStatic
