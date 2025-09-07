@@ -5,6 +5,5 @@ internal enum class DummyEnum {
     IPSUM,
     DOLOR;
 
-    // Match Dart’s enum.toString() → lowercase name
     override fun toString(): String = name
 }

@@ -1,6 +1,9 @@
+@file:JvmName("EmptyFixtures")
+
 package io.github.techouse.qskotlin.fixtures.data
 
-internal val EmptyTestCases: List<Map<String, Any>> =
+@JvmField
+val EmptyTestCases: List<Map<String, Any?>> =
     listOf(
         mapOf(
             "input" to "&",

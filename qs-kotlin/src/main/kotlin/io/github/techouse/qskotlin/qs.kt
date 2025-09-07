@@ -180,7 +180,7 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
         }
     }
 
-    val joined: String = keys.joinToString(separator = options.delimiter)
+    val joined: String = keys.joinToString(separator = options.delimiter.value)
     val out: StringBuilder = StringBuilder()
 
     if (options.addQueryPrefix) {
@@ -189,13 +189,12 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
 
     if (options.charsetSentinel) {
         when (options.charset) {
-            /// encodeURIComponent('&#10003;')
-            /// the "numeric entity" representation of a checkmark
-            StandardCharsets.ISO_8859_1 -> out.append("${Sentinel.ISO}&")
-            /// encodeURIComponent('✓')
-            StandardCharsets.UTF_8 -> out.append("${Sentinel.CHARSET}&")
-            else -> out.append("") // No sentinel for other charsets
+            // encodeURIComponent('&#10003') - numeric entity checkmark
+            StandardCharsets.ISO_8859_1 -> out.append(Sentinel.ISO)
+            // encodeURIComponent('✓')
+            StandardCharsets.UTF_8 -> out.append(Sentinel.CHARSET)
         }
+        if (joined.isNotEmpty()) out.append(options.delimiter.value)
     }
 
     if (joined.isNotEmpty()) {

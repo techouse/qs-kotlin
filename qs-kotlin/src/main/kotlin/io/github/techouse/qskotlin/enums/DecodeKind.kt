@@ -1,8 +1,5 @@
 package io.github.techouse.qskotlin.enums
 
-import io.github.techouse.qskotlin.enums.DecodeKind.KEY
-import io.github.techouse.qskotlin.enums.DecodeKind.VALUE
-
 /**
  * Decoding context for a scalar token.
  * - [KEY]: the token is a key or key segment. Callers may want to preserve percent-encoded dots

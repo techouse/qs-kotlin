@@ -1,8 +1,11 @@
+@file:JvmName("E2EFixtures")
+
 package io.github.techouse.qskotlin.fixtures.data
 
-internal data class EndToEndTestCase(val data: Map<String, Any?>, val encoded: String)
+data class EndToEndTestCase(val data: Map<String, Any?>, val encoded: String)
 
-internal val EndToEndTestCases: List<EndToEndTestCase> =
+@JvmField
+val EndToEndTestCases: List<EndToEndTestCase> =
     listOf(
         // empty dict
         EndToEndTestCase(data = emptyMap<String, Any?>(), encoded = ""),

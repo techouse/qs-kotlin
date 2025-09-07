@@ -1,0 +1,41 @@
+package io.github.techouse.qskotlin.interop;
+
+import static io.github.techouse.qskotlin.fixtures.data.E2EFixtures.EndToEndTestCases;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import io.github.techouse.qskotlin.QS;
+import io.github.techouse.qskotlin.enums.ListFormat;
+import io.github.techouse.qskotlin.models.EncodeOptions;
+import java.util.Map;
+import org.junit.jupiter.api.Test;
+
+final class ExtensionsInteropTest {
+
+  @Test
+  void string_toQueryMap_decodes_all_fixtures() {
+    for (var tc : EndToEndTestCases) {
+      Map<String, Object> expected = tc.getData();
+
+      Map<String, Object> actual = QS.toQueryMap(tc.getEncoded());
+
+      assertEquals(expected, actual, "decode mismatch for: " + tc.getEncoded());
+    }
+  }
+
+  @Test
+  void map_toQueryString_encodes_all_fixtures() {
+    for (var tc : EndToEndTestCases) {
+      Map<String, Object> input = tc.getData();
+
+      EncodeOptions opts =
+          EncodeOptions.builder()
+              .listFormat(ListFormat.INDICES)
+              .encode(false) // mirror Kotlin: EncodeOptions(encode = false)
+              .delimiter("&") // deterministic delimiter
+              .build();
+
+      String qs = QS.toQueryString(input, opts);
+      assertEquals(tc.getEncoded(), qs, "encode mismatch for: " + input);
+    }
+  }
+}

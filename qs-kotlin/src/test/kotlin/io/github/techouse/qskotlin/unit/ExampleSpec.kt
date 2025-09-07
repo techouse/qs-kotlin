@@ -82,12 +82,18 @@ class ExampleSpec :
                 }
 
                 it("accepts custom delimiter") {
-                    decode("a=b;c=d", DecodeOptions(delimiter = StringDelimiter(";"))) shouldBe
+                    decode("a=b;c=d", DecodeOptions(delimiter = Delimiter.SEMICOLON)) shouldBe
                         mapOf("a" to "b", "c" to "d")
                 }
 
                 it("accepts regex delimiter") {
                     decode("a=b;c=d", DecodeOptions(delimiter = RegexDelimiter("[;,]"))) shouldBe
+                        mapOf("a" to "b", "c" to "d")
+                }
+
+                it("accepts regex Pattern delimiter") {
+                    val pat = java.util.regex.Pattern.compile("[;,]")
+                    decode("a=b;c=d", DecodeOptions(delimiter = RegexDelimiter(pat))) shouldBe
                         mapOf("a" to "b", "c" to "d")
                 }
 
@@ -328,8 +334,10 @@ class ExampleSpec :
             }
 
             it("can override delimiter") {
-                encode(mapOf("a" to "b", "c" to "d"), EncodeOptions(delimiter = ";")) shouldBe
-                    "a=b;c=d"
+                encode(
+                    mapOf("a" to "b", "c" to "d"),
+                    EncodeOptions(delimiter = Delimiter.SEMICOLON),
+                ) shouldBe "a=b;c=d"
             }
 
             it("can serialize DateTime objects") {

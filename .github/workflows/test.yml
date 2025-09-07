@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   style:
-    name: Code style (ktfmt) + Gradle cache
+    name: Code style
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,10 +30,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Setup Gradle (with caching)
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-      - name: Run ktfmtCheck (qs-kotlin)
+      - name: Run ktfmtCheck
         run: ./gradlew :qs-kotlin:ktfmtCheck --stacktrace
+      - name: Run spotlessCheck
+        run: ./gradlew :qs-kotlin:spotlessCheck --stacktrace
   jvm_tests:
     name: JVM tests (Java ${{ matrix.java }})
     runs-on: ubuntu-latest
