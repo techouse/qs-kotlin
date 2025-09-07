@@ -58,6 +58,11 @@ sealed class Delimiter {
         fun regex(pattern: String, flags: Int): RegexDelimiter =
             RegexDelimiter(Pattern.compile(pattern, flags))
 
+        // Kotlin-friendly
+        @JvmStatic
+        fun regex(pattern: String, options: Set<RegexOption>): RegexDelimiter =
+            RegexDelimiter(Pattern.compile(pattern, options.fold(0) { acc, o -> acc or o.value }))
+
         /** Literal `&` separator. */
         @JvmField val AMPERSAND: StringDelimiter = StringDelimiter("&")
         /** Literal `,` separator. */
