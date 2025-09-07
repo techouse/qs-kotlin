@@ -23,9 +23,10 @@ enum class Format(val formatter: Formatter) {
 
     companion object {
         /**
-         * Adapt a Java 1-arg Function into a Kotlin [Formatter]. Usage (Java):
-         * `var f = Format.formatter((java.util.function.Function<String, String>) (v -> v.replace(" ", "+")));`
-         * or prefer JFormatter: `JFormatter jf = v -> v.replace(" ", "+"); var f = Format.formatter(jf);`
+         * Adapt a Java 1-arg Function into a Kotlin [Formatter]. Usage (Java): `var f =
+         * Format.formatter((java.util.function.Function<String, String>) (v -> v.replace(" ",
+         * "+")));` or prefer JFormatter: `JFormatter jf = v -> v.replace(" ", "+"); var f =
+         * Format.formatter(jf);`
          */
         @JvmStatic
         fun formatter(fn: java.util.function.Function<String, String>): Formatter = { v ->
@@ -33,8 +34,8 @@ enum class Format(val formatter: Formatter) {
         }
 
         /**
-         * Adapt a Java-friendly SAM [JFormatter] into a Kotlin [Formatter]. Usage (Java):
-         * `var f = Format.formatter((JFormatter) v -> v);`
+         * Adapt a Java-friendly SAM [JFormatter] into a Kotlin [Formatter]. Usage (Java): `var f =
+         * Format.formatter((JFormatter) v -> v);`
          */
         @JvmStatic fun formatter(fn: JFormatter): Formatter = { v -> fn.format(v) }
 
