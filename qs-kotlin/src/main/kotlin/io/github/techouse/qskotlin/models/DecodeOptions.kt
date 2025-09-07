@@ -225,9 +225,19 @@ data class DecodeOptions(
         fun withDecoder(decoder: JDecoder): DecodeOptions =
             DecodeOptions(decoder = Decoder { v, c, k -> decoder.decode(v, c, k) })
 
+        /** Java-friendly factory that preserves an existing configuration. */
+        @JvmStatic
+        fun withDecoder(base: DecodeOptions, decoder: JDecoder): DecodeOptions =
+            base.copy(decoder = Decoder { v, c, k -> decoder.decode(v, c, k) })
+
         /** Java-friendly factory: supply a legacy (value, charset) decoder. */
         @JvmStatic
         fun withLegacyDecoder(decoder: JLegacyDecoder): DecodeOptions =
             DecodeOptions(decoder = Decoder { v, c, _ -> decoder.decode(v, c) })
+
+        /** Java-friendly factory that preserves an existing configuration. */
+        @JvmStatic
+        fun withLegacyDecoder(base: DecodeOptions, decoder: JLegacyDecoder): DecodeOptions =
+            base.copy(decoder = Decoder { v, c, _ -> decoder.decode(v, c) })
     }
 }
