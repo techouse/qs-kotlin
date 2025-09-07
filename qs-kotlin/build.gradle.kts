@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     kotlin("jvm")
     id("com.ncorti.ktfmt.gradle") version "0.23.0"
+    id("com.diffplug.spotless") version "7.2.1"
     jacoco
     `maven-publish`
     signing
@@ -61,6 +62,13 @@ tasks.register<JacocoReport>("jacocoJvmReport") {
 }
 
 ktfmt { kotlinLangStyle() }
+
+spotless {
+    java {
+        googleJavaFormat("1.22.0") // pick a version you like
+        target("src/**/*.java")
+    }
+}
 
 publishing {
     publications {
