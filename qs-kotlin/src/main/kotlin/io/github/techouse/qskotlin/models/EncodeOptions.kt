@@ -182,29 +182,134 @@ data class EncodeOptions(
     fun getDateSerializer(date: LocalDateTime): String =
         dateSerializer?.invoke(date) ?: date.toString()
 
+    /**
+     * Java-friendly builder to construct [EncodeOptions] without passing a long argument list.
+     *
+     * Usage from Java:
+     * <pre>{@code
+     *   EncodeOptions opts = EncodeOptions.builder()
+     *       .addQueryPrefix(true)
+     *       .listFormat(ListFormat.BRACKETS)
+     *       .encodeValuesOnly(false)
+     *       .encoder((value, cs, fmt) -> ... ) // JValueEncoder
+     *       .sort(Comparator.naturalOrder())
+     *       .build();
+     * }</pre>
+     */
+    class Builder {
+        private var encoder: ValueEncoder? = null
+        private var dateSerializer: DateSerializer? = null
+        private var listFormat: ListFormat? = null
+        @Deprecated(
+            message = "Use listFormat instead",
+            replaceWith = ReplaceWith("listFormat"),
+            level = DeprecationLevel.WARNING,
+        )
+        private var indices: Boolean? = null
+        private var allowDots: Boolean? = null
+        private var addQueryPrefix: Boolean = false
+        private var allowEmptyLists: Boolean = false
+        private var charset: Charset = StandardCharsets.UTF_8
+        private var charsetSentinel: Boolean = false
+        private var delimiter: StringDelimiter = Delimiter.AMPERSAND
+        private var encode: Boolean = true
+        private var encodeDotInKeys: Boolean = false
+        private var encodeValuesOnly: Boolean = false
+        private var format: Format = Format.RFC3986
+        private var filter: Filter? = null
+        private var skipNulls: Boolean = false
+        private var strictNullHandling: Boolean = false
+        private var commaRoundTrip: Boolean? = null
+        private var sort: Sorter? = null
+
+        // Kotlin-friendly setters
+        fun encoder(encoder: ValueEncoder) = apply { this.encoder = encoder }
+
+        fun dateSerializer(serializer: DateSerializer) = apply { this.dateSerializer = serializer }
+
+        // Java-friendly setters
+        fun encoder(encoder: JValueEncoder) = apply {
+            this.encoder = { v, cs, fmt -> encoder.apply(v, cs, fmt) }
+        }
+
+        fun dateSerializer(serializer: JDateSerializer) = apply {
+            this.dateSerializer = { dt -> serializer.apply(dt) }
+        }
+
+        fun listFormat(listFormat: ListFormat?) = apply { this.listFormat = listFormat }
+
+        @Deprecated(
+            message = "Use listFormat instead",
+            replaceWith = ReplaceWith("listFormat"),
+            level = DeprecationLevel.WARNING,
+        )
+        @Suppress("DEPRECATION")
+        fun indices(indices: Boolean?) = apply { this.indices = indices }
+
+        fun allowDots(allowDots: Boolean?) = apply { this.allowDots = allowDots }
+
+        fun addQueryPrefix(add: Boolean) = apply { this.addQueryPrefix = add }
+
+        fun allowEmptyLists(allow: Boolean) = apply { this.allowEmptyLists = allow }
+
+        fun charset(charset: Charset) = apply { this.charset = charset }
+
+        fun charsetSentinel(enabled: Boolean) = apply { this.charsetSentinel = enabled }
+
+        fun delimiter(value: String) = apply { this.delimiter = StringDelimiter(value) }
+
+        fun delimiter(value: StringDelimiter) = apply { this.delimiter = value }
+
+        fun encode(enabled: Boolean) = apply { this.encode = enabled }
+
+        fun encodeDotInKeys(enabled: Boolean) = apply { this.encodeDotInKeys = enabled }
+
+        fun encodeValuesOnly(enabled: Boolean) = apply { this.encodeValuesOnly = enabled }
+
+        fun format(format: Format) = apply { this.format = format }
+
+        fun filter(filter: Filter?) = apply { this.filter = filter }
+
+        fun skipNulls(skip: Boolean) = apply { this.skipNulls = skip }
+
+        fun strictNullHandling(strict: Boolean) = apply { this.strictNullHandling = strict }
+
+        fun commaRoundTrip(value: Boolean?) = apply { this.commaRoundTrip = value }
+
+        fun sort(comparator: java.util.Comparator<Any?>) = apply {
+            this.sort = { a, b -> comparator.compare(a, b) }
+        }
+
+        @Suppress("DEPRECATION")
+        fun build(): EncodeOptions =
+            EncodeOptions(
+                encoder = encoder,
+                dateSerializer = dateSerializer,
+                listFormat = listFormat,
+                indices = indices,
+                allowDots = allowDots,
+                addQueryPrefix = addQueryPrefix,
+                allowEmptyLists = allowEmptyLists,
+                charset = charset,
+                charsetSentinel = charsetSentinel,
+                delimiter = delimiter,
+                encode = encode,
+                encodeDotInKeys = encodeDotInKeys,
+                encodeValuesOnly = encodeValuesOnly,
+                format = format,
+                filter = filter,
+                skipNulls = skipNulls,
+                strictNullHandling = strictNullHandling,
+                commaRoundTrip = commaRoundTrip,
+                sort = sort,
+            )
+    }
+
     companion object {
-        /**
-         * Java-friendly factory: supply a custom value encoder. Usage (Java):
-         * EncodeOptions.withEncoder((v, cs, fmt) -> ...)
-         */
-        @JvmStatic
-        fun withEncoder(encoder: JValueEncoder): EncodeOptions =
-            EncodeOptions(encoder = { v, cs, fmt -> encoder.apply(v, cs, fmt) })
+        /** Obtain a Java-friendly builder. */
+        @JvmStatic fun builder(): Builder = Builder()
 
-        /**
-         * Java-friendly factory: supply a custom date serializer. Usage (Java):
-         * EncodeOptions.withDateSerializer(dt -> ...)
-         */
-        @JvmStatic
-        fun withDateSerializer(serializer: JDateSerializer): EncodeOptions =
-            EncodeOptions(dateSerializer = { dt -> serializer.apply(dt) })
-
-        /**
-         * Java-friendly factory: supply a key sorter using JDK Comparator. Usage (Java):
-         * EncodeOptions.withSorter(Comparator.comparing(...))
-         */
-        @JvmStatic
-        fun withSorter(comparator: java.util.Comparator<Any?>): EncodeOptions =
-            EncodeOptions(sort = { a, b -> comparator.compare(a, b) })
+        /** A handy defaults instance for Java call sites. */
+        @JvmStatic fun defaults(): EncodeOptions = EncodeOptions()
     }
 }
