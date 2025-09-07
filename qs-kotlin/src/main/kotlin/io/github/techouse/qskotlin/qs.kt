@@ -189,11 +189,10 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
 
     if (options.charsetSentinel) {
         when (options.charset) {
-            /// encodeURIComponent('&#10003;')
-            /// the "numeric entity" representation of a checkmark
-            StandardCharsets.ISO_8859_1 -> out.append("${Sentinel.ISO}&")
-            /// encodeURIComponent('✓')
-            StandardCharsets.UTF_8 -> out.append("${Sentinel.CHARSET}&")
+            // encodeURIComponent('&#10003') - numeric entity checkmark
+            StandardCharsets.ISO_8859_1 -> out.append("${Sentinel.ISO}${options.delimiter.value}")
+            // encodeURIComponent('✓')
+            StandardCharsets.UTF_8 -> out.append("${Sentinel.CHARSET}${options.delimiter.value}")
             else -> out.append("") // No sentinel for other charsets
         }
     }
