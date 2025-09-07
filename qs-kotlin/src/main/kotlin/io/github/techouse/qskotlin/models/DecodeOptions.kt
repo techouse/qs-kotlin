@@ -144,6 +144,124 @@ data class DecodeOptions(
     val throwOnLimitExceeded: Boolean = false,
 ) {
     /**
+     * Java-friendly builder to construct [DecodeOptions] without a long argument list.
+     *
+     * Usage (Java):
+     * <pre>{@code
+     *   DecodeOptions opts = DecodeOptions.builder()
+     *       .ignoreQueryPrefix(true)
+     *       .delimiter("&")
+     *       .depth(10)
+     *       .decoder((value, cs, kind) -> value) // JDecoder
+     *       .build();
+     * }</pre>
+     */
+    class Builder {
+        private var allowDots: Boolean? = null
+        private var decoder: Decoder? = null
+        @Suppress("DEPRECATION") private var legacyDecoder: LegacyDecoder? = null
+        private var decodeDotInKeys: Boolean? = null
+        private var allowEmptyLists: Boolean = false
+        private var allowSparseLists: Boolean = false
+        private var listLimit: Int = 20
+        private var charset: Charset = StandardCharsets.UTF_8
+        private var charsetSentinel: Boolean = false
+        private var comma: Boolean = false
+        private var delimiter: Delimiter = StringDelimiter("&")
+        private var depth: Int = 5
+        private var parameterLimit: Int = 1000
+        private var duplicates: Duplicates = Duplicates.COMBINE
+        private var ignoreQueryPrefix: Boolean = false
+        private var interpretNumericEntities: Boolean = false
+        private var parseLists: Boolean = true
+        private var strictDepth: Boolean = false
+        private var strictNullHandling: Boolean = false
+        private var throwOnLimitExceeded: Boolean = false
+
+        // Kotlin-friendly setters
+        fun decoder(decoder: Decoder) = apply { this.decoder = decoder }
+
+        @Suppress("DEPRECATION")
+        fun legacyDecoder(decoder: LegacyDecoder) = apply { this.legacyDecoder = decoder }
+
+        // Java-friendly setters
+        fun decoder(decoder: JDecoder) = apply {
+            this.decoder = Decoder { v, c, k -> decoder.decode(v, c, k) }
+        }
+
+        fun legacyDecoder(decoder: JLegacyDecoder) = apply {
+            @Suppress("DEPRECATION")
+            this.legacyDecoder = { v, c ->
+                decoder.decode(v, c)
+            }
+        }
+
+        fun allowDots(value: Boolean?) = apply { this.allowDots = value }
+
+        fun decodeDotInKeys(value: Boolean?) = apply { this.decodeDotInKeys = value }
+
+        fun allowEmptyLists(value: Boolean) = apply { this.allowEmptyLists = value }
+
+        fun allowSparseLists(value: Boolean) = apply { this.allowSparseLists = value }
+
+        fun listLimit(value: Int) = apply { this.listLimit = value }
+
+        fun charset(value: Charset) = apply { this.charset = value }
+
+        fun charsetSentinel(value: Boolean) = apply { this.charsetSentinel = value }
+
+        fun comma(value: Boolean) = apply { this.comma = value }
+
+        fun delimiter(value: String) = apply { this.delimiter = StringDelimiter(value) }
+
+        fun delimiter(value: Delimiter) = apply { this.delimiter = value }
+
+        fun depth(value: Int) = apply { this.depth = value }
+
+        fun parameterLimit(value: Int) = apply { this.parameterLimit = value }
+
+        fun duplicates(value: Duplicates) = apply { this.duplicates = value }
+
+        fun ignoreQueryPrefix(value: Boolean) = apply { this.ignoreQueryPrefix = value }
+
+        fun interpretNumericEntities(value: Boolean) = apply {
+            this.interpretNumericEntities = value
+        }
+
+        fun parseLists(value: Boolean) = apply { this.parseLists = value }
+
+        fun strictDepth(value: Boolean) = apply { this.strictDepth = value }
+
+        fun strictNullHandling(value: Boolean) = apply { this.strictNullHandling = value }
+
+        fun throwOnLimitExceeded(value: Boolean) = apply { this.throwOnLimitExceeded = value }
+
+        fun build(): DecodeOptions =
+            DecodeOptions(
+                allowDots = allowDots,
+                decoder = decoder,
+                legacyDecoder = legacyDecoder,
+                decodeDotInKeys = decodeDotInKeys,
+                allowEmptyLists = allowEmptyLists,
+                allowSparseLists = allowSparseLists,
+                listLimit = listLimit,
+                charset = charset,
+                charsetSentinel = charsetSentinel,
+                comma = comma,
+                delimiter = delimiter,
+                depth = depth,
+                parameterLimit = parameterLimit,
+                duplicates = duplicates,
+                ignoreQueryPrefix = ignoreQueryPrefix,
+                interpretNumericEntities = interpretNumericEntities,
+                parseLists = parseLists,
+                strictDepth = strictDepth,
+                strictNullHandling = strictNullHandling,
+                throwOnLimitExceeded = throwOnLimitExceeded,
+            )
+    }
+
+    /**
      * Effective `allowDots` value.
      *
      * Returns `true` when `allowDots == true` **or** when `decodeDotInKeys == true` (since decoding
@@ -220,24 +338,10 @@ data class DecodeOptions(
         decode(value, charset, DecodeKind.VALUE)
 
     companion object {
-        /** Java-friendly factory: supply a custom 3-arg decoder. */
-        @JvmStatic
-        fun withDecoder(decoder: JDecoder): DecodeOptions =
-            DecodeOptions(decoder = Decoder { v, c, k -> decoder.decode(v, c, k) })
+        /** Obtain a Java-friendly builder. */
+        @JvmStatic fun builder(): Builder = Builder()
 
-        /** Java-friendly factory that preserves an existing configuration. */
-        @JvmStatic
-        fun withDecoder(base: DecodeOptions, decoder: JDecoder): DecodeOptions =
-            base.copy(decoder = Decoder { v, c, k -> decoder.decode(v, c, k) })
-
-        /** Java-friendly factory: supply a legacy (value, charset) decoder. */
-        @JvmStatic
-        fun withLegacyDecoder(decoder: JLegacyDecoder): DecodeOptions =
-            DecodeOptions(decoder = Decoder { v, c, _ -> decoder.decode(v, c) })
-
-        /** Java-friendly factory that preserves an existing configuration. */
-        @JvmStatic
-        fun withLegacyDecoder(base: DecodeOptions, decoder: JLegacyDecoder): DecodeOptions =
-            base.copy(decoder = Decoder { v, c, _ -> decoder.decode(v, c) })
+        /** A handy defaults instance for Java call sites. */
+        @JvmStatic fun defaults(): DecodeOptions = DecodeOptions()
     }
 }
