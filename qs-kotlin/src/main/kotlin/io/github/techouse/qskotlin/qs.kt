@@ -13,7 +13,7 @@ import io.github.techouse.qskotlin.models.EncodeOptions
 import io.github.techouse.qskotlin.models.FunctionFilter
 import io.github.techouse.qskotlin.models.IterableFilter
 import java.nio.charset.StandardCharsets
-import java.util.WeakHashMap
+import java.util.*
 
 /**
  * Decode a query [String] or a [Map] into a [Map<String, Any?>].
@@ -190,11 +190,11 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
     if (options.charsetSentinel) {
         when (options.charset) {
             // encodeURIComponent('&#10003') - numeric entity checkmark
-            StandardCharsets.ISO_8859_1 -> out.append("${Sentinel.ISO}${options.delimiter.value}")
+            StandardCharsets.ISO_8859_1 -> out.append(Sentinel.ISO)
             // encodeURIComponent('✓')
-            StandardCharsets.UTF_8 -> out.append("${Sentinel.CHARSET}${options.delimiter.value}")
-            else -> out.append("") // No sentinel for other charsets
+            StandardCharsets.UTF_8 -> out.append(Sentinel.CHARSET)
         }
+        if (joined.isNotEmpty()) out.append(options.delimiter.value)
     }
 
     if (joined.isNotEmpty()) {
