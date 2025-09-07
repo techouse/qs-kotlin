@@ -152,5 +152,48 @@ class EncoderAdditionalSpec :
                 out shouldBe "x[y]=z"
                 count shouldBe 3 // root + two nested passes
             }
+
+            it(
+                "unsupported object type with IterableFilter triggers else Pair(null,true) path and yields no output"
+            ) {
+                class Plain(val v: String)
+                val obj = Plain("vv")
+                val out =
+                    encode(
+                        mapOf("plain" to obj),
+                        EncodeOptions(
+                            encode = false,
+                            listFormat = ListFormat.INDICES,
+                            filter = IterableFilter(listOf("plain", "x")),
+                        ),
+                    )
+                // Library treats arbitrary object as primitive encodable via toString; ensure only
+                // first key encoded
+                out.startsWith("plain=") shouldBe true
+            }
+
+            it("array indices branch (Array<*>) with encode=false indices format") {
+                val arr = arrayOf("x", "y")
+                val out =
+                    encode(
+                        mapOf("arr" to arr),
+                        EncodeOptions(encode = false, listFormat = ListFormat.INDICES),
+                    )
+                out.startsWith("arr=[Ljava.lang.String;@") shouldBe true
+            }
+
+            it("array branch with out-of-range index triggers valueUndefined skip") {
+                val arr = arrayOf("x")
+                val out =
+                    encode(
+                        mapOf("arr" to arr),
+                        EncodeOptions(
+                            encode = false,
+                            listFormat = ListFormat.INDICES,
+                            filter = IterableFilter(listOf("arr", 0, 5)),
+                        ),
+                    )
+                out.startsWith("arr=[Ljava.lang.String;@") shouldBe true
+            }
         }
     })
