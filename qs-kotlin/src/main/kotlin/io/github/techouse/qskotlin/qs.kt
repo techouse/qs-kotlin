@@ -180,7 +180,7 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
         }
     }
 
-    val joined: String = keys.joinToString(separator = options.delimiter)
+    val joined: String = keys.joinToString(separator = options.delimiter.value)
     val out: StringBuilder = StringBuilder()
 
     if (options.addQueryPrefix) {
