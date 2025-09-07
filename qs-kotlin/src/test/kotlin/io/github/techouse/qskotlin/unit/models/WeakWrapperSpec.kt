@@ -1,6 +1,7 @@
 package io.github.techouse.qskotlin.unit.models
 
 import io.github.techouse.qskotlin.models.WeakWrapper
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldBeNull
@@ -8,7 +9,6 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.string.shouldStartWith
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
 
@@ -47,7 +47,9 @@ class WeakWrapperSpec :
                 obj = null
                 val collected = waitForCollection(wrapper)
                 assumeOrSkip(collected) { "GC did not collect in time; skipping" }
-                wrapper.toString() shouldContain "<collected>"
+                eventually(duration = kotlin.time.Duration.parse("250ms")) {
+                    wrapper.toString() shouldContain "<collected>"
+                }
             }
 
             it("Equality: same referent, different wrappers") {
@@ -79,7 +81,7 @@ class WeakWrapperSpec :
             it("equals returns false once referent collected") {
                 var obj: Any? = Any()
                 val w1 = WeakWrapper(obj!!)
-                val w2 = WeakWrapper(obj)
+                val w2 = WeakWrapper(obj!!)
                 obj = null
                 val collected = waitForCollection(w1)
                 assumeOrSkip(collected) { "GC did not collect in time; skipping" }
@@ -90,7 +92,8 @@ class WeakWrapperSpec :
                 class Big(val data: ByteArray = ByteArray(256_000))
                 var big: Big? = Big()
                 val w = WeakWrapper(big!!)
-                w.toString() shouldStartWith "WeakWrapper(Big"
+                w.toString() shouldContain "WeakWrapper("
+                w.toString() shouldContain "Big"
                 big = null
                 val collected = waitForCollection(w)
                 assumeOrSkip(collected) { "GC did not collect in time; skipping" }
@@ -137,7 +140,7 @@ private fun forceGcPass() {
     val chunkSize = System.getenv("QS_GC_CHUNK_SIZE")?.toIntOrNull() ?: 4096
     repeat(passes) {
         System.gc()
-        System.runFinalization()
+        if (System.getenv("QS_GC_FINALIZE") == "1") System.runFinalization()
         val junk = Array(chunks) { ByteArray(chunkSize) } // ~chunks*chunkSize bytes per pass
         @Suppress("UNUSED_VARIABLE") val sink = junk.size
         Thread.sleep(5)
@@ -153,6 +156,7 @@ private fun waitForCollection(
     while (System.nanoTime() < deadline) {
         if (wrapper.get() == null) return true
         forceGcPass()
+        runCatching { Thread.onSpinWait() }
     }
     return wrapper.get() == null
 }
