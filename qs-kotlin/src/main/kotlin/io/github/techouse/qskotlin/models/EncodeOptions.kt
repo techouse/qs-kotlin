@@ -182,38 +182,6 @@ data class EncodeOptions(
     fun getDateSerializer(date: LocalDateTime): String =
         dateSerializer?.invoke(date) ?: date.toString()
 
-    /**
-     * Java‑friendly ctor: construct with the most common knobs without passing all parameters.
-     *
-     * Examples (Java): new EncodeOptions(true); // addQueryPrefix = true, listFormat = INDICES new
-     * EncodeOptions(true, ListFormat.BRACKETS); // addQueryPrefix = true, bracket arrays
-     */
-    @JvmOverloads
-    constructor(
-        addQueryPrefix: Boolean,
-        listFormat: ListFormat = ListFormat.INDICES,
-    ) : this(
-        encoder = null,
-        dateSerializer = null,
-        listFormat = listFormat,
-        indices = null,
-        allowDots = null,
-        addQueryPrefix = addQueryPrefix,
-        allowEmptyLists = false,
-        charset = StandardCharsets.UTF_8,
-        charsetSentinel = false,
-        delimiter = "&",
-        encode = true,
-        encodeDotInKeys = false,
-        encodeValuesOnly = false,
-        format = Format.RFC3986,
-        filter = null,
-        skipNulls = false,
-        strictNullHandling = false,
-        commaRoundTrip = null,
-        sort = null,
-    )
-
     companion object {
         /**
          * Java-friendly factory: supply a custom value encoder. Usage (Java):

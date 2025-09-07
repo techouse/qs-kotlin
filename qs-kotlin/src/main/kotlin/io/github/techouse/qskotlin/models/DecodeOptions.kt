@@ -175,39 +175,6 @@ data class DecodeOptions(
     }
 
     /**
-     * Java‑friendly ctor: allow constructing with just the common knobs.
-     *
-     * Examples (Java): new DecodeOptions(true); // ignoreQueryPrefix = true new DecodeOptions(true,
-     * true); // ignoreQueryPrefix = true, comma = true
-     */
-    @JvmOverloads
-    constructor(
-        ignoreQueryPrefix: Boolean,
-        comma: Boolean = false,
-    ) : this(
-        allowDots = null,
-        decoder = null,
-        legacyDecoder = null,
-        decodeDotInKeys = null,
-        allowEmptyLists = false,
-        allowSparseLists = false,
-        listLimit = 20,
-        charset = StandardCharsets.UTF_8,
-        charsetSentinel = false,
-        comma = comma,
-        delimiter = StringDelimiter("&"),
-        depth = 5,
-        parameterLimit = 1000,
-        duplicates = Duplicates.COMBINE,
-        ignoreQueryPrefix = ignoreQueryPrefix,
-        interpretNumericEntities = false,
-        parseLists = true,
-        strictDepth = false,
-        strictNullHandling = false,
-        throwOnLimitExceeded = false,
-    )
-
-    /**
      * Unified scalar decode with key/value context.
      *
      * Uses the provided [decoder] when set; otherwise falls back to [Utils.decode]. For backward
