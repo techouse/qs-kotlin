@@ -1,3 +1,7 @@
+## 1.3.1
+
+* [CHORE] update Android compileSdk to 36 
+
 ## 1.3.0
 
 * [BREAKING] `EncodeOptions.delimiter` now expects a `StringDelimiter` instead of a `String` for improved type safety
