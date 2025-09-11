@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 plugins {
     kotlin("android")
     id("com.android.library")
+    id("com.ncorti.ktfmt.gradle") version "0.23.0"
     `maven-publish`
     signing
 }
@@ -41,6 +42,8 @@ dependencies {
     api(project(":qs-kotlin"))
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
+
+ktfmt { kotlinLangStyle() }
 
 afterEvaluate {
     publishing {
@@ -106,15 +109,15 @@ afterEvaluate {
     }
 
     signing {
-    val hasKey = providers.gradleProperty("signingInMemoryKey").isPresent
-    val isSnapshot = project.version.toString().endsWith("-SNAPSHOT", ignoreCase = true)
+        val hasKey = providers.gradleProperty("signingInMemoryKey").isPresent
+        val isSnapshot = project.version.toString().endsWith("-SNAPSHOT", ignoreCase = true)
 
-    if (hasKey && !isSnapshot) {
-        useInMemoryPgpKeys(
-            providers.gradleProperty("signingInMemoryKey").get(),
-            providers.gradleProperty("signingInMemoryKeyPassword").getOrElse(""),
-        )
-        sign(publishing.publications)
+        if (hasKey && !isSnapshot) {
+            useInMemoryPgpKeys(
+                providers.gradleProperty("signingInMemoryKey").get(),
+                providers.gradleProperty("signingInMemoryKeyPassword").getOrElse(""),
+            )
+            sign(publishing.publications)
+        }
     }
-}
 }
