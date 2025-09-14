@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm")
-    id("com.ncorti.ktfmt.gradle") version "0.23.0"
+    id("com.ncorti.ktfmt.gradle") version "0.24.0"
     id("com.diffplug.spotless") version "7.2.1"
     jacoco
     `maven-publish`
