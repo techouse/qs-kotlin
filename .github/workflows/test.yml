@@ -46,6 +46,7 @@ jobs:
         java:
           - '17'
           - '21'
+          - '25-ea'
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -54,7 +55,7 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: ${{ matrix.java }}
       - name: Setup Gradle (with caching)
         uses: gradle/actions/setup-gradle@v4
