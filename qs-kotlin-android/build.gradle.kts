@@ -2,17 +2,17 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
-    kotlin("android")
-    id("com.android.library")
-    id("com.ncorti.ktfmt.gradle") version "0.24.0"
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.ktfmt)
     `maven-publish`
     signing
 }
 
 android {
     namespace = "io.github.techouse.qskotlin.android"
-    compileSdk = 36
-    defaultConfig { minSdk = 25 }
+    compileSdk = libs.versions.androidCompileSdk.get().toInt()
+    defaultConfig { minSdk = libs.versions.androidMinSdk.get().toInt() }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -40,7 +40,7 @@ android {
 
 dependencies {
     api(project(":qs-kotlin"))
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    coreLibraryDesugaring(libs.android.desugarJdkLibs)
 }
 
 ktfmt { kotlinLangStyle() }

@@ -1,0 +1,31 @@
+[versions]
+kotlin = "2.0.21"
+agp = "8.11.1"
+dokka = "1.9.20"
+nexusPublish = "2.0.0"
+kotest = "5.9.1"
+junit = "5.13.4"
+ktfmt = "0.24.0"
+spotless = "7.2.1"
+jacoco = "0.8.13"
+googleJavaFormat = "1.22.0"
+desugarJdkLibs = "2.1.5"
+androidCompileSdk = "36"
+androidMinSdk = "25"
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+android-library = { id = "com.android.library", version.ref = "agp" }
+dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
+nexus-publish = { id = "io.github.gradle-nexus.publish-plugin", version.ref = "nexusPublish" }
+ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+
+[libraries]
+kotest-bom = { module = "io.kotest:kotest-bom", version.ref = "kotest" }
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+android-desugarJdkLibs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }

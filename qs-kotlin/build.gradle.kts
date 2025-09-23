@@ -4,9 +4,9 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-    kotlin("jvm")
-    id("com.ncorti.ktfmt.gradle") version "0.24.0"
-    id("com.diffplug.spotless") version "7.2.1"
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.ktfmt)
+    alias(libs.plugins.spotless)
     jacoco
     `maven-publish`
     signing
@@ -18,7 +18,7 @@ java {
     withJavadocJar()
 }
 
-jacoco { toolVersion = "0.8.13" }
+jacoco { toolVersion = libs.versions.jacoco.get() }
 
 tasks.withType<Jar>().configureEach {
     isPreserveFileTimestamps = false
@@ -34,11 +34,11 @@ tasks.withType<KotlinCompile> {
 }
 
 dependencies {
-    testImplementation(platform("io.kotest:kotest-bom:5.9.1"))
-    testImplementation("io.kotest:kotest-runner-junit5")
-    testImplementation("io.kotest:kotest-assertions-core")
-    testImplementation(platform("org.junit:junit-bom:5.13.4"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation(platform(libs.kotest.bom))
+    testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.kotest.assertions.core)
+    testImplementation(platform(libs.junit.bom))
+    testImplementation(libs.junit.jupiter)
 }
 
 tasks.test {
@@ -65,7 +65,7 @@ ktfmt { kotlinLangStyle() }
 
 spotless {
     java {
-        googleJavaFormat("1.22.0") // pick a version you like
+        googleJavaFormat(libs.versions.googleJavaFormat.get()) // pick a version you like
         target("src/**/*.java")
     }
 }
