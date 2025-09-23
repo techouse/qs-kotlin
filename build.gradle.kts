@@ -7,7 +7,6 @@ plugins {
 }
 
 allprojects {
-    group = "io.github.techouse"
     repositories {
         google()
         mavenCentral()
