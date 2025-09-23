@@ -15,6 +15,7 @@ import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeSameInstanceAs
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import kotlin.time.Duration.Companion.seconds
@@ -660,7 +661,8 @@ class DecodeSpec :
                 (parsed["foo"] as Map<*, *>).containsKey("bar") shouldBe true
                 (parsed["foo"] as Map<*, *>).containsKey("baz") shouldBe true
                 (parsed["foo"] as Map<*, *>)["bar"] shouldBe "baz"
-                (parsed["foo"] as Map<*, *>)["baz"] shouldBe a
+                val baz = (parsed["foo"] as Map<*, *>)["baz"]
+                baz shouldBeSameInstanceAs a // identity check avoids deep recursive Eq on cycles
             }
 
             it("does not crash or time out when parsing deep maps").config(timeout = 5.seconds) {

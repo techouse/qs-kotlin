@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.kotlin.android)
@@ -23,11 +22,7 @@ android {
     kotlin {
         jvmToolchain(17)
 
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_17)
-            languageVersion.set(KotlinVersion.KOTLIN_2_0)
-            apiVersion.set(KotlinVersion.KOTLIN_2_0)
-        }
+        compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
     }
 
     publishing {
