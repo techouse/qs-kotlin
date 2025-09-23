@@ -5,10 +5,14 @@ import io.github.techouse.qskotlin.enums.ListFormat
 import io.github.techouse.qskotlin.models.Delimiter
 import io.github.techouse.qskotlin.models.EncodeOptions
 import io.github.techouse.qskotlin.models.FunctionFilter
+import io.github.techouse.qskotlin.models.JDateSerializer
+import io.github.techouse.qskotlin.models.JValueEncoder
 import io.github.techouse.qskotlin.models.StringDelimiter
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import java.nio.charset.StandardCharsets
+import java.time.LocalDateTime
+import java.util.Comparator
 
 class EncodeOptionsSpec :
     DescribeSpec({
@@ -103,6 +107,91 @@ class EncodeOptionsSpec :
                 newOptions.skipNulls shouldBe false
                 newOptions.strictNullHandling shouldBe false
                 newOptions.commaRoundTrip shouldBe false
+            }
+
+            it("builder produces java-friendly configuration") {
+                val calls = mutableListOf<String>()
+                val options =
+                    @Suppress("DEPRECATION")
+                    EncodeOptions.builder()
+                        .encoder(
+                            JValueEncoder { value, charset, format ->
+                                calls += "encoder"
+                                "${charset?.displayName()}-${format?.name}-${value ?: ""}"
+                            }
+                        )
+                        .dateSerializer(
+                            JDateSerializer {
+                                calls += "dateSerializer"
+                                "serialized-${it.toLocalDate()}"
+                            }
+                        )
+                        .listFormat(ListFormat.BRACKETS)
+                        .indices(true)
+                        .allowDots(true)
+                        .addQueryPrefix(true)
+                        .allowEmptyLists(true)
+                        .charset(StandardCharsets.ISO_8859_1)
+                        .charsetSentinel(true)
+                        .delimiter(";")
+                        .delimiter(Delimiter.COMMA)
+                        .encode(false)
+                        .encodeDotInKeys(true)
+                        .encodeValuesOnly(true)
+                        .format(Format.RFC1738)
+                        .filter(FunctionFilter { key, value -> "$key=$value" })
+                        .skipNulls(true)
+                        .strictNullHandling(true)
+                        .commaRoundTrip(true)
+                        .sort(Comparator { a, b -> (a.toString()).compareTo(b.toString()) })
+                        .build()
+
+                val now = LocalDateTime.parse("2024-01-01T00:00:00")
+
+                options.addQueryPrefix shouldBe true
+                options.allowEmptyLists shouldBe true
+                options.charset shouldBe StandardCharsets.ISO_8859_1
+                options.charsetSentinel shouldBe true
+                options.delimiter shouldBe Delimiter.COMMA
+                options.encode shouldBe false
+                options.encodeDotInKeys shouldBe true
+                options.encodeValuesOnly shouldBe true
+                options.format shouldBe Format.RFC1738
+                val filter = options.filter as FunctionFilter
+                filter.function("key", 5) shouldBe "key=5"
+                options.skipNulls shouldBe true
+                options.strictNullHandling shouldBe true
+                options.commaRoundTrip shouldBe true
+                options.getAllowDots shouldBe true
+                options.getListFormat shouldBe ListFormat.BRACKETS
+                options.sort!!("b", "a") shouldBe "b".compareTo("a")
+                options.getEncoder("value", StandardCharsets.ISO_8859_1, Format.RFC1738) shouldBe
+                    "ISO-8859-1-RFC1738-value"
+                options.getDateSerializer(now) shouldBe "serialized-2024-01-01"
+                calls.contains("encoder") shouldBe true
+                calls.contains("dateSerializer") shouldBe true
+            }
+
+            it("defaults exposes baseline instance") {
+                EncodeOptions.defaults() shouldBe EncodeOptions()
+                EncodeOptions.builder().build() shouldBe EncodeOptions()
+            }
+
+            it("listFormat falls back to indices when explicit format absent") {
+                val options = EncodeOptions(listFormat = null, indices = false)
+                options.getListFormat shouldBe ListFormat.REPEAT
+            }
+
+            it("custom encoder and serializer override defaults") {
+                val options =
+                    EncodeOptions(
+                        encoder = { value, _, _ -> "K:$value" },
+                        dateSerializer = { "D:${it.toLocalDate()}" },
+                    )
+
+                options.getEncoder("x") shouldBe "K:x"
+                options.getDateSerializer(LocalDateTime.parse("2024-12-31T23:59:59")) shouldBe
+                    "D:2024-12-31"
             }
         }
     })

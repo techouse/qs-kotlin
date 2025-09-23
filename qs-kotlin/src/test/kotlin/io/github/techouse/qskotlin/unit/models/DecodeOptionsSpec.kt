@@ -6,12 +6,16 @@ import io.github.techouse.qskotlin.enums.DecodeKind
 import io.github.techouse.qskotlin.enums.Duplicates
 import io.github.techouse.qskotlin.models.DecodeOptions
 import io.github.techouse.qskotlin.models.Decoder
+import io.github.techouse.qskotlin.models.Delimiter
+import io.github.techouse.qskotlin.models.JDecoder
+import io.github.techouse.qskotlin.models.JLegacyDecoder
 import io.github.techouse.qskotlin.models.LegacyDecoder
 import io.github.techouse.qskotlin.models.RegexDelimiter
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import java.nio.charset.StandardCharsets
+import java.util.regex.Pattern
 
 class DecodeOptionsSpec :
     DescribeSpec({
@@ -273,6 +277,69 @@ class DecodeOptionsSpec :
             ) {
                 val original = DecodeOptions(decodeDotInKeys = true)
                 shouldThrow<IllegalArgumentException> { original.copy(allowDots = false) }
+            }
+        }
+
+        describe("DecodeOptions builder and defaults") {
+            it("builder wires kotlin and java overloads") {
+                @Suppress("DEPRECATION") val legacy: LegacyDecoder = { v, _ -> "L:${v ?: ""}" }
+                val jLegacy = JLegacyDecoder { v, _ -> "JL:${v ?: ""}" }
+                val options =
+                    DecodeOptions.builder()
+                        .decoder(Decoder { v, _, k -> "K:${k ?: DecodeKind.VALUE}:${v ?: ""}" })
+                        .legacyDecoder(legacy)
+                        .decoder(JDecoder { v, _, k -> "J:${k ?: DecodeKind.VALUE}:${v ?: ""}" })
+                        .legacyDecoder(jLegacy)
+                        .allowDots(true)
+                        .decodeDotInKeys(true)
+                        .allowEmptyLists(true)
+                        .allowSparseLists(true)
+                        .listLimit(42)
+                        .charset(StandardCharsets.ISO_8859_1)
+                        .charsetSentinel(true)
+                        .comma(true)
+                        .delimiter("&")
+                        .delimiter(Delimiter.SEMICOLON)
+                        .delimiter(Pattern.compile("[;&]"))
+                        .delimiterRegex("\\s*[;&]\\s*", Pattern.CASE_INSENSITIVE)
+                        .depth(7)
+                        .parameterLimit(123)
+                        .duplicates(Duplicates.FIRST)
+                        .ignoreQueryPrefix(true)
+                        .interpretNumericEntities(true)
+                        .parseLists(false)
+                        .strictDepth(true)
+                        .strictNullHandling(true)
+                        .throwOnLimitExceeded(true)
+                        .build()
+
+                val delimiter = options.delimiter as RegexDelimiter
+                delimiter.pattern shouldBe "\\s*[;&]\\s*"
+                delimiter.flags shouldBe Pattern.CASE_INSENSITIVE
+                options.getAllowDots shouldBe true
+                options.getDecodeDotInKeys shouldBe true
+                options.allowEmptyLists shouldBe true
+                options.allowSparseLists shouldBe true
+                options.listLimit shouldBe 42
+                options.charset shouldBe StandardCharsets.ISO_8859_1
+                options.charsetSentinel shouldBe true
+                options.comma shouldBe true
+                options.depth shouldBe 7
+                options.parameterLimit shouldBe 123
+                options.duplicates shouldBe Duplicates.FIRST
+                options.ignoreQueryPrefix shouldBe true
+                options.interpretNumericEntities shouldBe true
+                options.parseLists shouldBe false
+                options.strictDepth shouldBe true
+                options.strictNullHandling shouldBe true
+                options.throwOnLimitExceeded shouldBe true
+                options.decode("token", StandardCharsets.ISO_8859_1, DecodeKind.KEY) shouldBe
+                    "J:KEY:token"
+            }
+
+            it("defaults exposes baseline instance") {
+                DecodeOptions.defaults() shouldBe DecodeOptions()
+                DecodeOptions.builder().build() shouldBe DecodeOptions()
             }
         }
     })
