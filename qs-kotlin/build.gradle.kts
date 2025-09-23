@@ -24,7 +24,7 @@ tasks.withType<Jar>().configureEach {
     isReproducibleFileOrder = true
 }
 
-tasks.withType<KotlinCompile> { compilerOptions.apply { jvmTarget.set(JvmTarget.JVM_17) } }
+tasks.withType<KotlinCompile>().configureEach { compilerOptions.jvmTarget.set(JvmTarget.JVM_17) }
 
 dependencies {
     testImplementation(platform(libs.kotest.bom))
