@@ -1,14 +1,13 @@
 plugins {
-    kotlin("jvm") version "2.0.21" apply false
-    kotlin("android") version "2.0.21" apply false
-    id("com.android.library") version "8.11.1" apply false
-    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
-    id("org.jetbrains.dokka") version "1.9.20" apply false
+    alias(libs.plugins.kotlin.jvm) apply false
+    alias(libs.plugins.kotlin.android) apply false
+    alias(libs.plugins.android.library) apply false
+    alias(libs.plugins.nexus.publish)
+    alias(libs.plugins.dokka) apply false
 }
 
 allprojects {
     group = "io.github.techouse"
-    version = "1.3.1"
     repositories {
         google()
         mavenCentral()
