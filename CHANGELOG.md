@@ -1,3 +1,9 @@
+## 1.3.2
+
+* [CHORE] update Kotlin to 2.2.20
+* [CHORE] update Android Gradle Plugin to 8.12.3
+* [CHORE] migrate to Gradle version catalog for dependency management
+
 ## 1.3.1
 
 * [CHORE] update Android compileSdk to 36
