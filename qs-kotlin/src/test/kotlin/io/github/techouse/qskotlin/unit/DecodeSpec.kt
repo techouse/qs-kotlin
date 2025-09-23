@@ -660,7 +660,8 @@ class DecodeSpec :
                 (parsed["foo"] as Map<*, *>).containsKey("bar") shouldBe true
                 (parsed["foo"] as Map<*, *>).containsKey("baz") shouldBe true
                 (parsed["foo"] as Map<*, *>)["bar"] shouldBe "baz"
-                (parsed["foo"] as Map<*, *>)["baz"] shouldBe a
+                val baz = (parsed["foo"] as Map<*, *>)["baz"]
+                (baz === a) shouldBe true // identity check avoids deep recursive Eq on cycles
             }
 
             it("does not crash or time out when parsing deep maps").config(timeout = 5.seconds) {
