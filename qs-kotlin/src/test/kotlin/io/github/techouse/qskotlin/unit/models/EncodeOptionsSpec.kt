@@ -8,11 +8,13 @@ import io.github.techouse.qskotlin.models.FunctionFilter
 import io.github.techouse.qskotlin.models.JDateSerializer
 import io.github.techouse.qskotlin.models.JValueEncoder
 import io.github.techouse.qskotlin.models.StringDelimiter
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
-import java.util.Comparator
 
 class EncodeOptionsSpec :
     DescribeSpec({
@@ -90,7 +92,7 @@ class EncodeOptionsSpec :
                         skipNulls = false,
                         strictNullHandling = false,
                         commaRoundTrip = false,
-                        filter = FunctionFilter { _: String, map: Any? -> emptyMap<String, Any?>() },
+                        filter = FunctionFilter { _: String, _: Any? -> emptyMap<String, Any?>() },
                     )
 
                 newOptions.addQueryPrefix shouldBe false
@@ -143,7 +145,7 @@ class EncodeOptionsSpec :
                         .skipNulls(true)
                         .strictNullHandling(true)
                         .commaRoundTrip(true)
-                        .sort(Comparator { a, b -> (a.toString()).compareTo(b.toString()) })
+                        .sort { a, b -> (a.toString()).compareTo(b.toString()) }
                         .build()
 
                 val now = LocalDateTime.parse("2024-01-01T00:00:00")
@@ -192,6 +194,27 @@ class EncodeOptionsSpec :
                 options.getEncoder("x") shouldBe "K:x"
                 options.getDateSerializer(LocalDateTime.parse("2024-12-31T23:59:59")) shouldBe
                     "D:2024-12-31"
+            }
+
+            it("builder accepts kotlin lambdas for encoder and date serializer") {
+                val options =
+                    EncodeOptions.builder()
+                        .encoder { value, _, _ -> "wrapped-${value ?: ""}" }
+                        .dateSerializer { dt -> "d-${dt.toLocalDate()}" }
+                        .addQueryPrefix(false)
+                        .build()
+
+                options.getEncoder("value") shouldBe "wrapped-value"
+                options.getDateSerializer(LocalDateTime.parse("2020-05-01T10:15:00")) shouldBe
+                    "d-2020-05-01"
+            }
+
+            it("rejects unsupported charsets") {
+                val error =
+                    shouldThrow<IllegalArgumentException> {
+                        EncodeOptions(charset = Charset.forName("US-ASCII"))
+                    }
+                error.message.shouldContain("Invalid charset")
             }
         }
     })

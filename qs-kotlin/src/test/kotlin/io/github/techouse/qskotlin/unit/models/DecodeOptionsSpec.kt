@@ -4,16 +4,13 @@ package io.github.techouse.qskotlin.unit.models
 
 import io.github.techouse.qskotlin.enums.DecodeKind
 import io.github.techouse.qskotlin.enums.Duplicates
-import io.github.techouse.qskotlin.models.DecodeOptions
-import io.github.techouse.qskotlin.models.Decoder
-import io.github.techouse.qskotlin.models.Delimiter
-import io.github.techouse.qskotlin.models.JDecoder
-import io.github.techouse.qskotlin.models.JLegacyDecoder
-import io.github.techouse.qskotlin.models.LegacyDecoder
-import io.github.techouse.qskotlin.models.RegexDelimiter
+import io.github.techouse.qskotlin.internal.Utils
+import io.github.techouse.qskotlin.models.*
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.util.regex.Pattern
 
@@ -340,6 +337,31 @@ class DecodeOptionsSpec :
             it("defaults exposes baseline instance") {
                 DecodeOptions.defaults() shouldBe DecodeOptions()
                 DecodeOptions.builder().build() shouldBe DecodeOptions()
+            }
+
+            it("java-friendly aliases mirror computed flags") {
+                val implied = DecodeOptions(decodeDotInKeys = true)
+                implied.isAllowDotsEffective() shouldBe true
+                implied.isDecodeDotInKeysEffective() shouldBe true
+
+                val explicit = DecodeOptions(allowDots = false)
+                explicit.isAllowDotsEffective() shouldBe false
+                explicit.isDecodeDotInKeysEffective() shouldBe false
+            }
+
+            it("decode uses defaults when charset and kind omitted") {
+                val opts = DecodeOptions()
+                opts.decode("a%20b") shouldBe Utils.decode("a%20b")
+                opts.decodeKey("foo%20bar") shouldBe "foo bar"
+                opts.decodeValue("foo%20bar") shouldBe "foo bar"
+            }
+
+            it("rejects unsupported charset") {
+                val error =
+                    shouldThrow<IllegalArgumentException> {
+                        DecodeOptions(charset = Charset.forName("US-ASCII"))
+                    }
+                error.message.shouldContain("Invalid charset")
             }
         }
     })

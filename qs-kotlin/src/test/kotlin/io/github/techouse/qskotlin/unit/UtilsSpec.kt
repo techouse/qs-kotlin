@@ -3,6 +3,7 @@ package io.github.techouse.qskotlin.unit
 import io.github.techouse.qskotlin.enums.Format
 import io.github.techouse.qskotlin.fixtures.DummyEnum
 import io.github.techouse.qskotlin.internal.Utils
+import io.github.techouse.qskotlin.models.DecodeOptions
 import io.github.techouse.qskotlin.models.Undefined
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.maps.shouldContainKey
@@ -194,11 +195,34 @@ class UtilsSpec :
                 Utils.decode("foo%28bar%29", StandardCharsets.ISO_8859_1) shouldBe "foo(bar)"
             }
 
+            test("invalid percent sequence falls back to literal") {
+                Utils.decode("%E0") shouldBe "\uFFFD"
+            }
+
             test("decodes URL-encoded strings") {
                 Utils.decode("a+b") shouldBe "a b"
                 Utils.decode("name%2Eobj") shouldBe "name.obj"
                 Utils.decode("name%2Eobj%2Efoo", StandardCharsets.ISO_8859_1) shouldBe
                     "name.obj.foo"
+            }
+        }
+
+        context("Utils.compact") {
+            test("removes undefined entries and compacts nested lists") {
+                val inner = mutableListOf<Any?>(Undefined(), "value")
+                val root = mutableMapOf<String, Any?>("a" to Undefined(), "b" to inner)
+
+                val compacted = Utils.compact(root, allowSparseLists = false)
+                compacted shouldBe mutableMapOf<String, Any?>("b" to mutableListOf<Any?>("value"))
+            }
+
+            test("respects allowSparseLists and avoids cycles") {
+                val list = mutableListOf<Any?>(Undefined(), "v")
+                val root = mutableMapOf<String, Any?>("self" to list)
+                list += root // introduce cycle
+
+                val compacted = Utils.compact(root, allowSparseLists = true)
+                compacted["self"].shouldBeInstanceOf<MutableList<*>>()
             }
         }
 
@@ -584,6 +608,26 @@ class UtilsSpec :
                 map.shouldContainKey("foo")
                 map["foo"].shouldBeInstanceOf<Set<Map<String, String>>>()
             }
+
+            test("merge trims undefined placeholders when parseLists disabled") {
+                val result =
+                    Utils.merge(
+                        listOf(Undefined(), "keep"),
+                        emptyList<String>(),
+                        DecodeOptions(parseLists = false),
+                    )
+                result shouldBe mapOf<String, Any?>("1" to "keep")
+            }
+
+            test("merge scalar with iterable promotes to list without undefined") {
+                val result = Utils.merge("left", listOf("right", Undefined()))
+                result shouldBe listOf("left", "right")
+            }
+
+            test("merge iterable target with map source indexes existing elements") {
+                val result = Utils.merge(listOf("a", Undefined()), mapOf("b" to "c"))
+                result shouldBe mapOf<String, Any?>("0" to "a", "b" to "c")
+            }
         }
 
         context("Utils.combine") {
@@ -648,6 +692,10 @@ class UtilsSpec :
             test("decodes surrogate pair represented as two decimal entities (emoji)") {
                 // U+1F4A9 (💩) as surrogate halves: 55357 (0xD83D), 56489 (0xDCA9)
                 Utils.interpretNumericEntities("&#55357;&#56489;") shouldBe "💩"
+            }
+
+            test("decodes single entity above BMP as surrogate pair") {
+                Utils.interpretNumericEntities("&#128169;") shouldBe "💩"
             }
 
             test("entities can appear at string boundaries") {
