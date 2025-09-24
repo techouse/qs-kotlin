@@ -20,7 +20,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
-import java.util.Locale
+import java.util.*
 
 class EncodeSpec :
     DescribeSpec({
@@ -112,7 +112,7 @@ class EncodeSpec :
                             EncodeOptions(
                                 encode = false,
                                 filter =
-                                    FunctionFilter { prefix: String, map: Any? ->
+                                    FunctionFilter { _: String, map: Any? ->
                                         // This should trigger the code path that accesses
                                         // properties of non-Map, non-Iterable objects
                                         val result = mutableMapOf<String, Any?>()
@@ -1184,7 +1184,7 @@ class EncodeSpec :
 
                         value is LocalDateTime -> {
                             prefix shouldBe "e[f]"
-                            value.atZone(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+                            value.atZone(ZoneOffset.UTC).toInstant().toEpochMilli()
                         }
 
                         else -> value
@@ -2014,7 +2014,7 @@ class EncodeSpec :
 
             it("FunctionFilter branch inside recursion (prefix non-empty)") {
                 var count = 0
-                val filter = FunctionFilter { prefix, value ->
+                val filter = FunctionFilter { _, value ->
                     count += 1
                     // When prefix not empty return value unchanged; at root return original map
                     value

@@ -8,7 +8,6 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import java.util.regex.Pattern
-import kotlin.text.RegexOption
 
 class DelimiterSpec :
     DescribeSpec({
