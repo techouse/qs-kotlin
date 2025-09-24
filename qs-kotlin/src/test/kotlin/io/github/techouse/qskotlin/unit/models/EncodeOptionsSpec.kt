@@ -196,6 +196,12 @@ class EncodeOptionsSpec :
                     "D:2024-12-31"
             }
 
+            it("exposes deprecated indices property for compatibility") {
+                val options = EncodeOptions(indices = true)
+                @Suppress("DEPRECATION")
+                options.indices shouldBe true
+            }
+
             it("builder accepts kotlin lambdas for encoder and date serializer") {
                 val options =
                     EncodeOptions.builder()

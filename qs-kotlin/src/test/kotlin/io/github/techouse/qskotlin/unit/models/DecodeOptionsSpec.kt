@@ -195,6 +195,12 @@ class DecodeOptionsSpec :
                 opts.decode("%2E", StandardCharsets.UTF_8, DecodeKind.VALUE) shouldBe "."
             }
 
+            it("decodeKey/decodeValue return null when input null") {
+                val opts = DecodeOptions()
+                opts.decodeKey(null) shouldBe null
+                opts.decodeValue(null) shouldBe null
+            }
+
             it("Decoder is used for KEY and for VALUE") {
                 val calls = mutableListOf<Pair<String?, DecodeKind>>()
                 val opts =

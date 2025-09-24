@@ -130,6 +130,10 @@ class UtilsSpec :
                 Utils.encode(Undefined()) shouldBe ""
             }
 
+            test("falls back to defaults when charset or format null") {
+                Utils.encode("plain", null, null) shouldBe "plain"
+            }
+
             test("handles special characters") {
                 Utils.encode("~._-") shouldBe "~._-"
                 Utils.encode("!@#\$%^&*()") shouldBe "%21%40%23%24%25%5E%26%2A%28%29"
@@ -392,6 +396,42 @@ class UtilsSpec :
         }
 
         context("Utils.merge") {
+            test("merges custom iterable target with iterable source producing list with wrapper") {
+                val target = BoxIterable(listOf("foo"))
+                val result = Utils.merge(target, listOf("bar"))
+
+                result.shouldBeInstanceOf<List<*>>()
+                result.size shouldBe 2
+                result[0] shouldBe target
+                result[1] shouldBe "bar"
+            }
+
+            test("merges custom iterable target with scalar source into list") {
+                val target = BoxIterable(listOf("foo"))
+                val result = Utils.merge(target, "bar")
+
+                result.shouldBeInstanceOf<List<*>>()
+                result.size shouldBe 2
+                result[0] shouldBe target
+                result[1] shouldBe "bar"
+            }
+
+            test("merges iterables of maps by index and merges entries") {
+                val target = listOf(mapOf("a" to 1))
+                val source = listOf(mapOf("b" to 2))
+
+                val result = Utils.merge(target, source)
+                result shouldBe listOf(mapOf("a" to 1, "b" to 2))
+            }
+
+            test("merges custom iterable of maps preserving merge semantics") {
+                val target = BoxIterable(listOf(mapOf("a" to 1)))
+                val source = listOf(mapOf("b" to 2))
+
+                val result = Utils.merge(target, source)
+                result shouldBe listOf(mapOf("a" to 1, "b" to 2))
+            }
+
             test("merges Map with List") {
                 Utils.merge(mapOf(0 to "a"), listOf(Undefined(), "b")) shouldBe
                     mapOf(0 to "a", "1" to "b")
@@ -742,12 +782,18 @@ class UtilsSpec :
             test("treats URI as primitive, honors skipNulls for empty string") {
                 Utils.isNonNullishPrimitive(URI("https://example.com")) shouldBe true
                 Utils.isNonNullishPrimitive("", skipNulls = true) shouldBe false
+                Utils.isNonNullishPrimitive(URI(""), skipNulls = true) shouldBe false
             }
         }
 
         context("Utils.isEmpty") {
             test("empty collections and maps") {
                 Utils.isEmpty(emptyMap<String, Any?>()) shouldBe true
+                Utils.isEmpty(emptyList<String>()) shouldBe true
             }
         }
     })
+
+private class BoxIterable<T>(private val items: List<T>) : Iterable<T> {
+    override fun iterator(): Iterator<T> = items.iterator()
+}
