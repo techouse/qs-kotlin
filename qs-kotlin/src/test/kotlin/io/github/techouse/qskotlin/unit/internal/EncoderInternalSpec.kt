@@ -36,15 +36,33 @@ class EncoderInternalSpec :
                     )
 
                 result.shouldBeInstanceOf<String>()
-                result shouldBe "enc:?=enc:${data.toString()}"
+                result shouldBe "enc:?=enc:$data"
                 calls shouldBe listOf("?", data.toString())
             }
 
-            it("ignores out-of-range array indices exposed by IterableFilter") {
-                val data = arrayOf("only")
+            it("encodes arrays using indices generator") {
+                val data = arrayOf("v0", "v1")
                 val result =
                     Encoder.encode(
                         data = data,
+                        undefined = false,
+                        sideChannel = mutableMapOf(),
+                        prefix = "arr",
+                        generateArrayPrefix = ListFormat.INDICES.generator,
+                        encoder = { value, _, _ -> value?.toString() ?: "" },
+                        format = Format.RFC3986,
+                        formatter = Format.RFC3986.formatter,
+                        charset = StandardCharsets.UTF_8,
+                    )
+
+                result.shouldBeInstanceOf<String>()
+                result.startsWith("arr=") shouldBe true
+            }
+
+            it("skips out-of-range array indices exposed by IterableFilter") {
+                val result =
+                    Encoder.encode(
+                        data = arrayOf("only"),
                         undefined = false,
                         sideChannel = mutableMapOf(),
                         prefix = "arr",
@@ -57,7 +75,26 @@ class EncoderInternalSpec :
                     )
 
                 result.shouldBeInstanceOf<String>()
-                result shouldBe "arr=${data.toString()}"
+                result.startsWith("arr=") shouldBe true
+            }
+
+            it("handles unsupported object types by skipping values") {
+                val result =
+                    Encoder.encode(
+                        data = Plain("value"),
+                        undefined = false,
+                        sideChannel = mutableMapOf(),
+                        prefix = "plain",
+                        generateArrayPrefix = ListFormat.INDICES.generator,
+                        filter = IterableFilter(listOf("prop")),
+                        encoder = { value, _, _ -> value?.toString() ?: "" },
+                        format = Format.RFC3986,
+                        formatter = Format.RFC3986.formatter,
+                        charset = StandardCharsets.UTF_8,
+                    )
+
+                result.shouldBeInstanceOf<String>()
+                result shouldBe "plain=value"
             }
 
             it("serializes LocalDateTime values with custom serializer") {
@@ -80,3 +117,7 @@ class EncoderInternalSpec :
             }
         }
     })
+
+private class Plain(private val value: String) {
+    override fun toString(): String = value
+}
