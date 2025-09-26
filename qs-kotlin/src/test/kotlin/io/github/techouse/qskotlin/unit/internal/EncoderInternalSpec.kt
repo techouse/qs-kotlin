@@ -115,6 +115,27 @@ class EncoderInternalSpec :
                 result.shouldBeInstanceOf<String>()
                 result shouldBe "ts=X2024-05-01"
             }
+
+            it("pre-encodes comma lists when encodeValuesOnly is true") {
+                val seenValues = mutableListOf<String>()
+                val result =
+                    Encoder.encode(
+                        data = listOf("alpha"),
+                        undefined = false,
+                        sideChannel = mutableMapOf(),
+                        prefix = "tags",
+                        generateArrayPrefix = ListFormat.COMMA.generator,
+                        encodeValuesOnly = true,
+                        encoder = { value, _, _ ->
+                            val text = value?.toString() ?: ""
+                            seenValues += text
+                            "enc:$text"
+                        },
+                    )
+
+                seenValues shouldBe listOf("alpha")
+                result shouldBe listOf("tags[]=enc:alpha")
+            }
         }
     })
 
