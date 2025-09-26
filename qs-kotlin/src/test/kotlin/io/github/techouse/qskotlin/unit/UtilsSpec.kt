@@ -668,6 +668,23 @@ class UtilsSpec :
                 val result = Utils.merge(listOf("a", Undefined()), mapOf("b" to "c"))
                 result shouldBe mapOf<String, Any?>("0" to "a", "b" to "c")
             }
+
+            test("merge handles map sources that are also iterable") {
+                val hybrid = IterableMap(mutableMapOf("x" to "1", "y" to Undefined()))
+
+                val folded = Utils.merge("anchor", hybrid)
+
+                folded.shouldBeInstanceOf<MutableList<*>>()
+                folded shouldBe mutableListOf("anchor", "1")
+            }
+
+            test("merge flattens iterable maps into iterable targets") {
+                val target = IterableMap(mutableMapOf("0" to "keep", "1" to Undefined()))
+                val merged = Utils.merge(target, mapOf("extra" to "value"))
+
+                merged.shouldBeInstanceOf<MutableMap<*, *>>()
+                merged shouldBe mutableMapOf("0" to "keep", "extra" to "value")
+            }
         }
 
         context("Utils.combine") {
@@ -796,4 +813,9 @@ class UtilsSpec :
 
 private class BoxIterable<T>(private val items: List<T>) : Iterable<T> {
     override fun iterator(): Iterator<T> = items.iterator()
+}
+
+private class IterableMap(private val delegate: MutableMap<String, Any?>) :
+    MutableMap<String, Any?> by delegate, Iterable<Any?> {
+    override fun iterator(): MutableIterator<Any?> = delegate.values.iterator()
 }
