@@ -1,3 +1,7 @@
+## 1.3.3
+
+* [CHORE] update Android Gradle Plugin to 8.13.0
+
 ## 1.3.2
 
 * [CHORE] update Kotlin to 2.2.20
