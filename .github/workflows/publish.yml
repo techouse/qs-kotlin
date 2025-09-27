@@ -75,8 +75,8 @@ jobs:
         id: get_version_and_name
         run: |
           set -e
-          VERSION=$(awk -F'"' '/^[[:space:]]*version[[:space:]]*=/ { print $2; exit }' build.gradle.kts)
-          GROUP=$(awk -F'"' '/^[[:space:]]*group[[:space:]]*=/ { print $2; exit }' build.gradle.kts)
+          VERSION=$(awk -F'=' '/^[[:space:]]*version[[:space:]]*=/ { v=$2; sub(/^[[:space:]]+/, "", v); sub(/[[:space:]]+$/, "", v); gsub(/^"|"$/, "", v); print v; exit }' gradle.properties)
+          GROUP=$(awk -F'=' '/^[[:space:]]*group[[:space:]]*=/ { g=$2; sub(/^[[:space:]]+/, "", g); sub(/[[:space:]]+$/, "", g); gsub(/^"|"$/, "", g); print g; exit }' gradle.properties)
           NAME=$(awk -F'"' '/^[[:space:]]*rootProject\.name[[:space:]]*=/ { print $2; exit }' settings.gradle.kts)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "GROUP=$GROUP" >> $GITHUB_ENV
