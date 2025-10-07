@@ -107,6 +107,14 @@ class DecodeOptionsSpec :
                 newOptions.parseLists shouldBe true
                 newOptions.strictNullHandling shouldBe false
             }
+
+            it("rejects negative depth at construction time") {
+                shouldThrow<IllegalArgumentException> { DecodeOptions(depth = -1) }
+            }
+
+            it("exposes defaults() convenience instance") {
+                DecodeOptions.defaults() shouldBe DecodeOptions()
+            }
         }
 
         val charsets = listOf(StandardCharsets.UTF_8, StandardCharsets.ISO_8859_1)
