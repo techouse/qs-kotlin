@@ -50,6 +50,9 @@ class DelimiterSpec :
                 }
                 fromEmptyOptions.shouldBeInstanceOf<RegexDelimiter>().flags shouldBe 0
 
+                Delimiter.regex(pattern = "[;&]", options = setOf(RegexOption.LITERAL))
+                    .shouldBeInstanceOf<RegexDelimiter>()
+
                 fromFlags.split("a=b;c=d").filter { it.isNotEmpty() } shouldBe listOf("a=b", "c=d")
             }
 
