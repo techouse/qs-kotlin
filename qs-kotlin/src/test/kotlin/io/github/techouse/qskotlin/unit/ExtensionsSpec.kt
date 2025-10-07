@@ -24,5 +24,9 @@ class ExtensionsSpec :
                         testCase.encoded
                 }
             }
+
+            test("uses default EncodeOptions overload when omitted") {
+                mapOf("a" to "b").toQueryString() shouldBe "a=b"
+            }
         }
     })
