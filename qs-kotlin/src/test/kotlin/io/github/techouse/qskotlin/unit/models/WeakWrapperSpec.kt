@@ -62,6 +62,19 @@ class WeakWrapperSpec :
                 w1 shouldNotBe Any()
             }
 
+            it("equals short-circuits when other referent already cleared") {
+                val referent = Any()
+                val w1 = WeakWrapper(referent)
+                val w2 = WeakWrapper(referent)
+                val field =
+                    WeakWrapper::class.java.getDeclaredField("weakRef").apply {
+                        isAccessible = true
+                    }
+                field.set(w2, WeakReference<Any?>(null))
+
+                (w1 == w2) shouldBe false
+            }
+
             it("Inequality: different referents") {
                 val w1 = WeakWrapper(Any())
                 val w2 = WeakWrapper(Any())
