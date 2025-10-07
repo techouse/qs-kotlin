@@ -43,5 +43,27 @@ class DecoderInternalSpec :
                 result.containsKey("name") shouldBe true
                 result["name"] shouldBe "A"
             }
+
+            it("uses default options overload when omitted") {
+                Decoder.parseQueryStringValues("foo=bar") shouldBe mutableMapOf("foo" to "bar")
+            }
+        }
+
+        describe("Decoder.parseKeys") {
+            it("handles nested list chains while respecting parent indices") {
+                val options = DecodeOptions(parseLists = true)
+                val value = listOf(listOf("x", "y"))
+
+                @Suppress("UNCHECKED_CAST")
+                val parsed =
+                    Decoder.parseKeys(
+                        givenKey = "0[]",
+                        value = value,
+                        options = options,
+                        valuesParsed = true,
+                    ) as Map<String, Any?>
+
+                parsed["0"] shouldBe listOf(listOf("x", "y"))
+            }
         }
     })
