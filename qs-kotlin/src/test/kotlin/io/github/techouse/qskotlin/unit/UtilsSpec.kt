@@ -209,6 +209,12 @@ class UtilsSpec :
                 Utils.decode("name%2Eobj%2Efoo", StandardCharsets.ISO_8859_1) shouldBe
                     "name.obj.foo"
             }
+
+            test("returns input unchanged when URLDecoder cannot parse UTF-8 sequence") {
+                Utils.decode("%E0%") shouldBe "%E0%"
+            }
+
+            test("handles null input safely") { Utils.decode(null) shouldBe null }
         }
 
         context("Utils.compact") {
@@ -227,6 +233,13 @@ class UtilsSpec :
 
                 val compacted = Utils.compact(root, allowSparseLists = true)
                 compacted["self"].shouldBeInstanceOf<MutableList<*>>()
+            }
+
+            test("default allowSparseLists removes undefined entries") {
+                val list = mutableListOf<Any?>(Undefined(), "ok")
+                val root: MutableMap<String, Any?> = mutableMapOf("items" to list)
+
+                Utils.compact(root)["items"] shouldBe mutableListOf("ok")
             }
         }
 
