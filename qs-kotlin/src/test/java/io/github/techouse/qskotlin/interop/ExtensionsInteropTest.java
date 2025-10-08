@@ -38,4 +38,9 @@ final class ExtensionsInteropTest {
       assertEquals(tc.getEncoded(), qs, "encode mismatch for: " + input);
     }
   }
+
+  @Test
+  void map_toQueryString_uses_default_overload() {
+    assertEquals("a=b", QS.toQueryString(Map.of("a", "b")));
+  }
 }

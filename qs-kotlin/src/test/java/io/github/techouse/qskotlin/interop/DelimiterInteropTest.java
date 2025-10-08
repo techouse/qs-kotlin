@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
+import kotlin.text.RegexOption;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -153,5 +154,12 @@ public class DelimiterInteropTest {
     String ts = ciUnicode.toString();
     assertTrue(ts.contains("abc"));
     assertTrue(ts.contains(String.valueOf(ciUnicode.getFlags())));
+  }
+
+  @Test
+  @DisplayName("regex(pattern, Set<RegexOption>) factory works for Java callers")
+  void regexFactoryWithKotlinOptions() {
+    RegexDelimiter fromOptions = Delimiter.regex("[,&]", java.util.Set.of(RegexOption.IGNORE_CASE));
+    assertTrue((fromOptions.getFlags() & Pattern.CASE_INSENSITIVE) != 0);
   }
 }
