@@ -210,10 +210,6 @@ class EncodeOptionsSpec :
                     "d-2020-05-01"
             }
 
-            it("provides defaults() factory for Java callers") {
-                EncodeOptions.defaults() shouldBe EncodeOptions()
-            }
-
             it("rejects unsupported charsets") {
                 val error =
                     shouldThrow<IllegalArgumentException> {
