@@ -3,6 +3,7 @@ package io.github.techouse.qskotlin.unit
 import io.github.techouse.qskotlin.encode
 import io.github.techouse.qskotlin.enums.Format
 import io.github.techouse.qskotlin.enums.ListFormat
+import io.github.techouse.qskotlin.enums.Sentinel
 import io.github.techouse.qskotlin.fixtures.DummyEnum
 import io.github.techouse.qskotlin.fixtures.data.EmptyTestCases
 import io.github.techouse.qskotlin.internal.Utils
@@ -10,6 +11,7 @@ import io.github.techouse.qskotlin.models.*
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -2070,6 +2072,89 @@ class EncodeSpec :
                     )
                 out shouldMatch Regex("""^arr=\Q[Ljava.lang.String;\E@.+""")
             }
+        }
+
+        it("encode: Iterable input is converted to index-key map") {
+            val list = listOf("x", "y")
+
+            val result = encode(list)
+
+            // Expect keys "0" and "1" with corresponding values
+            result.split('&').toSet() shouldBe setOf("0=x", "1=y")
+        }
+
+        it("adds UTF-8 charset sentinel when enabled and joins with delimiter if content present") {
+            val out =
+                encode(
+                    mapOf("a" to 1),
+                    EncodeOptions(charsetSentinel = true, charset = StandardCharsets.UTF_8),
+                )
+
+            out shouldBe Sentinel.CHARSET.toString() + "&a=1"
+        }
+
+        it("adds ISO-8859-1 charset sentinel and omits delimiter when no other pairs") {
+            val out =
+                encode(
+                    mapOf("a" to null),
+                    EncodeOptions(
+                        skipNulls = true, // ensures joined is empty
+                        charsetSentinel = true,
+                        charset = StandardCharsets.ISO_8859_1,
+                    ),
+                )
+
+            out shouldBe Sentinel.ISO.toString()
+        }
+
+        it("prepends query prefix when addQueryPrefix is true") {
+            encode(mapOf("k" to "v"), EncodeOptions(addQueryPrefix = true)) shouldBe "?k=v"
+        }
+
+        it("uses a custom delimiter when provided") {
+            val parts =
+                encode(
+                        linkedMapOf("a" to 1, "b" to 2),
+                        EncodeOptions(delimiter = StringDelimiter(";")),
+                    )
+                    .split(';')
+
+            parts.shouldContainExactly("a=1", "b=2")
+        }
+
+        it("applies custom Sorter to key order") {
+            val out =
+                encode(
+                    linkedMapOf("a" to 1, "b" to 2, "c" to 3),
+                    EncodeOptions(sort = { a, b -> b.toString().compareTo(a.toString()) }),
+                )
+
+            out shouldBe "c=3&b=2&a=1"
+        }
+
+        it("uses IterableFilter to select and order keys") {
+            val out =
+                encode(
+                    linkedMapOf("a" to 1, "b" to 2, "c" to 3),
+                    EncodeOptions(filter = IterableFilter(listOf("b", "a"))),
+                )
+
+            out shouldBe "b=2&a=1"
+        }
+
+        it("commaRoundTrip adds [] for single-item COMMA lists") {
+            val out =
+                encode(
+                    mapOf("tags" to listOf("x")),
+                    EncodeOptions(listFormat = ListFormat.COMMA, commaRoundTrip = true),
+                )
+
+            out shouldBe "tags%5B%5D=x" // tags[]=x
+        }
+
+        it("does not encode dot in top-level keys when encodeDotInKeys is true") {
+            val out = encode(mapOf("a.b" to "v"), EncodeOptions(encodeDotInKeys = true))
+            out shouldBe "a.b=v" // replicates qs.js behavior
         }
     })
 

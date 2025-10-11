@@ -14,6 +14,7 @@ import io.github.techouse.qskotlin.models.RegexDelimiter
 import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import java.nio.charset.Charset
@@ -1462,5 +1463,21 @@ class DecodeSpec :
                     )
                 segs2 shouldBe listOf("a[b][c]")
             }
+        }
+
+        it("decode: Map input converts non-string keys to strings") {
+            val input: Map<Any, Any> = linkedMapOf(1 to "a", true to "b")
+
+            val out = decode(input)
+
+            out.keys.shouldContainAll("1", "true")
+            out["1"] shouldBe "a"
+            out["true"] shouldBe "b"
+        }
+
+        it("returns empty map for null, empty string, and empty map inputs") {
+            decode(null) shouldBe emptyMap()
+            decode("") shouldBe emptyMap()
+            decode(emptyMap<String, Any?>()) shouldBe emptyMap()
         }
     })
