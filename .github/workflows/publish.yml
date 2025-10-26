@@ -90,7 +90,7 @@ jobs:
           echo -en "\n[https://central.sonatype.com/artifact/$GROUP/$NAME/$VERSION](https://central.sonatype.com/artifact/$GROUP/$NAME/$VERSION)" >> $CHANGELOG_PATH
           echo "CHANGELOG_PATH=$CHANGELOG_PATH" >> $GITHUB_ENV
       - name: Download artifacts from publish job
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: maven-artifacts
           path: ./artifacts
