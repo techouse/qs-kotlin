@@ -83,12 +83,14 @@ val prepareDokkaReadme by
         }
     }
 
-tasks.dokkaHtml {
-    dependsOn(prepareDokkaReadme)
-    dokkaSourceSets.configureEach {
+dokka {
+    moduleName.set("qs-kotlin")
+    dokkaSourceSets.named("main") {
         includes.from(layout.buildDirectory.file("dokka-includes/Module.md"))
     }
 }
+
+tasks.named("dokkaGeneratePublicationHtml") { dependsOn(prepareDokkaReadme) }
 
 publishing {
     publications {
