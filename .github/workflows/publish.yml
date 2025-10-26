@@ -56,7 +56,7 @@ jobs:
             -print -exec cp {} artifacts/ \;
           echo "Collected artifacts:" && ls -la artifacts || true
       - name: Upload artifacts to workflow
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: maven-artifacts
           path: artifacts/*
