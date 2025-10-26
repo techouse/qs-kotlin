@@ -19,7 +19,7 @@ subprojects {
     }
 }
 
-tasks.register("docs") { dependsOn("dokkaHtmlMultiModule") }
+tasks.register("docs") { dependsOn("dokkaGenerate") }
 
 nexusPublishing {
     repositories {
