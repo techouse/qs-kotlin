@@ -27,7 +27,7 @@ jobs:
       - name: Set up Gradle caching
         uses: gradle/actions/setup-gradle@v5
       - name: Build Dokka HTML (qs-kotlin)
-        run: ./gradlew :qs-kotlin:dokkaHtml --stacktrace
+        run: ./gradlew :qs-kotlin:dokkaGenerateHtml --stacktrace
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
