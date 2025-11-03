@@ -25,6 +25,7 @@ internal object Encoder {
      * @param prefix An optional prefix for the encoded string.
      * @param generateArrayPrefix A generator for array prefixes.
      * @param commaRoundTrip If true, uses comma for array encoding.
+     * @param commaCompactNulls If true, compacts nulls in comma-separated lists.
      * @param allowEmptyLists If true, allows empty lists in the output.
      * @param strictNullHandling If true, handles nulls strictly.
      * @param skipNulls If true, skips null values in the output.
@@ -47,6 +48,7 @@ internal object Encoder {
         prefix: String? = null,
         generateArrayPrefix: ListFormatGenerator? = null,
         commaRoundTrip: Boolean? = null,
+        commaCompactNulls: Boolean = false,
         allowEmptyLists: Boolean = false,
         strictNullHandling: Boolean = false,
         skipNulls: Boolean = false,
@@ -65,8 +67,9 @@ internal object Encoder {
         val prefix: String = prefix ?: if (addQueryPrefix) "?" else ""
         val generateArrayPrefix: ListFormatGenerator =
             generateArrayPrefix ?: ListFormat.INDICES.generator
-        val commaRoundTrip: Boolean =
-            commaRoundTrip ?: (generateArrayPrefix == ListFormat.COMMA.generator)
+        val isCommaGenerator = generateArrayPrefix == ListFormat.COMMA.generator
+        val commaRoundTrip: Boolean = commaRoundTrip ?: isCommaGenerator
+        val compactNulls = commaCompactNulls && isCommaGenerator
 
         var obj: Any? = data
 
@@ -140,18 +143,30 @@ internal object Encoder {
             return values
         }
 
+        var effectiveCommaLength: Int? = null
+
         val objKeys: List<Any?> =
             when {
-                generateArrayPrefix == ListFormat.COMMA.generator && obj is Iterable<*> -> {
-                    // we need to join elements in
-                    if (encodeValuesOnly && encoder != null) {
-                        obj = obj.map { el -> el?.let { encoder(it.toString(), null, null) } ?: "" }
-                    }
+                isCommaGenerator && obj is Iterable<*> -> {
+                    // materialize once for reuse
+                    val items = obj.toList()
+                    val filtered = if (compactNulls) items.filterNotNull() else items
 
-                    if (obj.iterator().hasNext()) {
-                        val objKeysValue = obj.joinToString(",") { el -> el?.toString() ?: "" }
+                    effectiveCommaLength = filtered.size
 
-                        listOf(mapOf("value" to objKeysValue.ifEmpty { null }))
+                    val joinSource =
+                        if (encodeValuesOnly && encoder != null) {
+                            filtered.map { el ->
+                                el?.let { encoder(it.toString(), null, null) } ?: ""
+                            }
+                        } else {
+                            filtered.map { el -> el?.toString() ?: "" }
+                        }
+
+                    if (joinSource.isNotEmpty()) {
+                        val joined = joinSource.joinToString(",")
+
+                        listOf(mapOf("value" to joined.ifEmpty { null }))
                     } else {
                         listOf(mapOf("value" to Undefined.Companion()))
                     }
@@ -180,7 +195,16 @@ internal object Encoder {
         val encodedPrefix: String = if (encodeDotInKeys) prefix.replace(".", "%2E") else prefix
 
         val adjustedPrefix: String =
-            if ((commaRoundTrip && obj is Iterable<*> && obj.count() == 1)) "$encodedPrefix[]"
+            if (
+                commaRoundTrip &&
+                    obj is Iterable<*> &&
+                    (if (isCommaGenerator && effectiveCommaLength != null) {
+                        effectiveCommaLength == 1
+                    } else {
+                        obj.count() == 1
+                    })
+            )
+                "$encodedPrefix[]"
             else encodedPrefix
 
         if (allowEmptyLists && obj is Iterable<*> && !obj.iterator().hasNext()) {
@@ -253,6 +277,7 @@ internal object Encoder {
                     prefix = keyPrefix,
                     generateArrayPrefix = generateArrayPrefix,
                     commaRoundTrip = commaRoundTrip,
+                    commaCompactNulls = commaCompactNulls,
                     allowEmptyLists = allowEmptyLists,
                     strictNullHandling = strictNullHandling,
                     skipNulls = skipNulls,
