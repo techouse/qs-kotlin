@@ -31,6 +31,7 @@ class EncodeOptionsSpec :
                         skipNulls = true,
                         strictNullHandling = true,
                         commaRoundTrip = true,
+                        commaCompactNulls = true,
                     )
 
                 val newOptions = options.copy()
@@ -49,6 +50,7 @@ class EncodeOptionsSpec :
                 newOptions.skipNulls shouldBe true
                 newOptions.strictNullHandling shouldBe true
                 newOptions.commaRoundTrip shouldBe true
+                newOptions.commaCompactNulls shouldBe true
                 newOptions shouldBe options
             }
 
@@ -69,6 +71,7 @@ class EncodeOptionsSpec :
                         skipNulls = true,
                         strictNullHandling = true,
                         commaRoundTrip = true,
+                        commaCompactNulls = true,
                     )
 
                 val newOptions =
@@ -87,6 +90,7 @@ class EncodeOptionsSpec :
                         skipNulls = false,
                         strictNullHandling = false,
                         commaRoundTrip = false,
+                        commaCompactNulls = false,
                         filter = FunctionFilter { _: String, _: Any? -> emptyMap<String, Any?>() },
                     )
 
@@ -104,6 +108,7 @@ class EncodeOptionsSpec :
                 newOptions.skipNulls shouldBe false
                 newOptions.strictNullHandling shouldBe false
                 newOptions.commaRoundTrip shouldBe false
+                newOptions.commaCompactNulls shouldBe false
             }
 
             it("builder produces java-friendly configuration") {

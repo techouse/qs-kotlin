@@ -948,6 +948,61 @@ class QsParserSpec :
                     "a=%2C&b=&c=c%2Cd%25"
             }
 
+            it("should drop null entries when commaCompactNulls is enabled") {
+                val value = mapOf("a" to mapOf("b" to listOf("one", null, "two", null, "three")))
+
+                encode(value, EncodeOptions(encode = false, listFormat = ListFormat.COMMA)) shouldBe
+                    "a[b]=one,,two,,three"
+
+                encode(
+                    value,
+                    EncodeOptions(
+                        encode = false,
+                        listFormat = ListFormat.COMMA,
+                        commaCompactNulls = true,
+                    ),
+                ) shouldBe "a[b]=one,two,three"
+            }
+
+            it("should omit key when commaCompactNulls strips all values") {
+                val value = mapOf("a" to listOf(null, null))
+
+                encode(value, EncodeOptions(encode = false, listFormat = ListFormat.COMMA)) shouldBe
+                    "a=," // baseline behaviour keeps empty slots
+
+                encode(
+                    value,
+                    EncodeOptions(
+                        encode = false,
+                        listFormat = ListFormat.COMMA,
+                        commaCompactNulls = true,
+                    ),
+                ) shouldBe ""
+            }
+
+            it("should preserve round-trip marker after compacting nulls") {
+                val value = mapOf("a" to listOf(null, "foo"))
+
+                encode(
+                    value,
+                    EncodeOptions(
+                        encode = false,
+                        listFormat = ListFormat.COMMA,
+                        commaRoundTrip = true,
+                    ),
+                ) shouldBe "a=,foo"
+
+                encode(
+                    value,
+                    EncodeOptions(
+                        encode = false,
+                        listFormat = ListFormat.COMMA,
+                        commaRoundTrip = true,
+                        commaCompactNulls = true,
+                    ),
+                ) shouldBe "a[]=foo"
+            }
+
             it("should stringify nested array values with dots notation") {
                 val value = mapOf("a" to mapOf("b" to listOf("c", "d")))
                 val options = EncodeOptions(allowDots = true, encodeValuesOnly = true)
