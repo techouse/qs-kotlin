@@ -795,6 +795,12 @@ QS.encode(
 // => "a=b,c"
 ```
 
+**Note:** When `ListFormat.COMMA` is selected, you can also set `EncodeOptions.commaRoundTrip` to
+`true` or `false` to append `[]` on single-element lists so they round-trip through decoding. Set
+`EncodeOptions.commaCompactNulls` to `true` alongside the comma format when you'd like to drop
+`null` entries instead of preserving empty slots (for example, `listOf("one", null, "two")`
+becomes `one,two`).
+
 ### Nested maps
 
 Kotlin:
