@@ -132,6 +132,12 @@ data class EncodeOptions(
      */
     val commaRoundTrip: Boolean? = null,
 
+    /**
+     * When listFormat is set to ListFormat.COMMA, drop `null` items before joining instead of
+     * preserving empty slots.
+     */
+    val commaCompactNulls: Boolean = false,
+
     /** Set a Sorter to affect the order of parameter keys. */
     val sort: Sorter? = null,
 ) {
@@ -220,6 +226,7 @@ data class EncodeOptions(
         private var skipNulls: Boolean = false
         private var strictNullHandling: Boolean = false
         private var commaRoundTrip: Boolean? = null
+        private var commaCompactNulls: Boolean = false
         private var sort: Sorter? = null
 
         /** Provide a Kotlin [ValueEncoder]. Ignored when [encode] is `false`. */
@@ -300,6 +307,9 @@ data class EncodeOptions(
         /** With COMMA listFormat, append `[]` on single-item lists to allow round trip. */
         fun commaRoundTrip(value: Boolean?) = apply { this.commaRoundTrip = value }
 
+        /** With COMMA listFormat, drop `null` entries before joining for more compact payloads. */
+        fun commaCompactNulls(value: Boolean) = apply { this.commaCompactNulls = value }
+
         /** Java-friendly key sorter; adapted to [Sorter]. */
         fun sort(comparator: java.util.Comparator<Any?>) = apply {
             this.sort = { a, b -> comparator.compare(a, b) }
@@ -327,6 +337,7 @@ data class EncodeOptions(
                 skipNulls = skipNulls,
                 strictNullHandling = strictNullHandling,
                 commaRoundTrip = commaRoundTrip,
+                commaCompactNulls = commaCompactNulls,
                 sort = sort,
             )
     }

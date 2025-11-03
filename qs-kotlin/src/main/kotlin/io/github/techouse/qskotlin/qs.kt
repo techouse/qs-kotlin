@@ -154,6 +154,9 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
                 commaRoundTrip =
                     options.getListFormat.generator == ListFormat.COMMA.generator &&
                         options.commaRoundTrip == true,
+                commaCompactNulls =
+                    options.getListFormat.generator == ListFormat.COMMA.generator &&
+                        options.commaCompactNulls,
                 allowEmptyLists = options.allowEmptyLists,
                 strictNullHandling = options.strictNullHandling,
                 skipNulls = options.skipNulls,
