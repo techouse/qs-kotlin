@@ -94,7 +94,7 @@ class WeakWrapperSpec :
             it("equals returns false once referent collected") {
                 var obj: Any? = Any()
                 val w1 = WeakWrapper(obj!!)
-                val w2 = WeakWrapper(obj!!)
+                val w2 = WeakWrapper(obj)
                 obj = null
                 val collected = waitForCollection(w1)
                 assumeOrSkip(collected) { "GC did not collect in time; skipping" }
