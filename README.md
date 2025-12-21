@@ -8,7 +8,7 @@ A query string encoding and decoding library for Android and Kotlin/JVM.
 
 Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
 
-[![Kotlin 2.2.21](https://img.shields.io/badge/Kotlin-2.2.21-7F52FF?logo=kotlin&logoColor=white)](https://github.com/JetBrains/kotlin/releases/tag/v2.2.21)
+[![Kotlin 2.3.0](https://img.shields.io/badge/Kotlin-2.3.0-7F52FF?logo=kotlin&logoColor=white)](https://github.com/JetBrains/kotlin/releases/tag/v2.3.0)
 [![JVM 17](https://img.shields.io/badge/JVM-17-007396?logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/17/)
 [![Maven Central Version](https://img.shields.io/maven-central/v/io.github.techouse/qs-kotlin)](https://central.sonatype.com/artifact/io.github.techouse/qs-kotlin)
 [![Android AAR](https://img.shields.io/badge/Android-AAR-3DDC84?logo=android&logoColor=white)](https://central.sonatype.com/artifact/io.github.techouse/qs-kotlin-android)
