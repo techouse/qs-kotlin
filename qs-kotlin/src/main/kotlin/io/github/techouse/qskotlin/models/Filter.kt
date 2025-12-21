@@ -1,6 +1,5 @@
 package io.github.techouse.qskotlin.models
 
-import java.util.Collection
 import java.util.function.BiFunction
 
 /**
