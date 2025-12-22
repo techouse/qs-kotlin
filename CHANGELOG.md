@@ -1,3 +1,7 @@
+## 1.4.1
+
+* [CHORE] update Kotlin to 2.3.0
+
 ## 1.4.0
 
 * [FEAT] add `EncodeOptions.commaCompactNulls` to drop `null` values when using comma list format
