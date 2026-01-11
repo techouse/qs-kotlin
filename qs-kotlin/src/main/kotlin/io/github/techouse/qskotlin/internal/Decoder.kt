@@ -152,7 +152,7 @@ internal object Decoder {
             val existing = obj.containsKey(key)
             when {
                 existing && options.duplicates == Duplicates.COMBINE -> {
-                    obj[key] = Utils.combine<Any?>(obj[key], value)
+                    obj[key] = Utils.combine(obj[key], value, options.listLimit)
                 }
 
                 !existing || options.duplicates == Duplicates.LAST -> {
@@ -198,8 +198,9 @@ internal object Decoder {
                     when {
                         options.allowEmptyLists &&
                             (leaf == "" || (options.strictNullHandling && leaf == null)) ->
-                            mutableListOf()
-                        else -> Utils.combine<Any?>(emptyList<Any?>(), leaf)
+                            mutableListOf<Any?>()
+                        Utils.isOverflow(leaf) -> leaf
+                        else -> Utils.combine(emptyList<Any?>(), leaf, options.listLimit)
                     }
             } else {
                 // Always build *string-keyed* maps here

@@ -548,6 +548,63 @@ internal object Utils {
     }
 
     /**
+     * An internal Map implementation used to track objects that have exceeded the array limit. It
+     * maintains the maximum numeric index to allow O(1) appending of new elements.
+     */
+    internal class OverflowMap : LinkedHashMap<String, Any?>() {
+        var maxIndex: Int = -1
+    }
+
+    /**
+     * Checks if the given object is an overflow map.
+     *
+     * @param value The object to check.
+     * @return True if the object is an overflow map, false otherwise.
+     */
+    fun isOverflow(value: Any?): Boolean = value is OverflowMap
+
+    /**
+     * Combines two objects into a list or a map if the list limit is exceeded.
+     *
+     * @param a The first object to combine.
+     * @param b The second object to combine.
+     * @param limit The maximum number of elements allowed in a list.
+     * @return A list or a map containing the combined elements.
+     */
+    fun combine(a: Any?, b: Any?, limit: Int): Any? {
+        // If 'a' is already an overflow object, add to it
+        if (a is OverflowMap) {
+            val newIndex = a.maxIndex + 1
+            a[newIndex.toString()] = b
+            a.maxIndex = newIndex
+            return a
+        }
+
+        val result = mutableListOf<Any?>()
+
+        @Suppress("UNCHECKED_CAST")
+        when (a) {
+            is Iterable<*> -> result.addAll(a as Iterable<Any?>)
+            else -> result.add(a)
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        when (b) {
+            is Iterable<*> -> result.addAll(b as Iterable<Any?>)
+            else -> result.add(b)
+        }
+
+        if (result.size > limit) {
+            val map = OverflowMap()
+            result.forEachIndexed { index, item -> map[index.toString()] = item }
+            map.maxIndex = result.size - 1
+            return map
+        }
+
+        return result
+    }
+
+    /**
      * Combines two objects into a list. If either object is an Iterable, its elements are added to
      * the list. If either object is a primitive, it is added as a single element.
      *

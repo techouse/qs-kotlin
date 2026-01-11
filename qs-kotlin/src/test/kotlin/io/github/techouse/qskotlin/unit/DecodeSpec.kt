@@ -285,13 +285,13 @@ class DecodeSpec :
                 decode("a[1]=b&a=c", DecodeOptions(listLimit = 20)) shouldBe
                     mapOf("a" to listOf("b", "c"))
                 decode("a[]=b&a=c", DecodeOptions(listLimit = 0)) shouldBe
-                    mapOf("a" to listOf("b", "c"))
+                    mapOf("a" to mapOf("0" to "b", "c" to true))
                 decode("a[]=b&a=c") shouldBe mapOf("a" to listOf("b", "c"))
 
                 decode("a=b&a[1]=c", DecodeOptions(listLimit = 20)) shouldBe
                     mapOf("a" to listOf("b", "c"))
                 decode("a=b&a[]=c", DecodeOptions(listLimit = 0)) shouldBe
-                    mapOf("a" to listOf("b", "c"))
+                    mapOf("a" to listOf("b", mapOf("0" to "c")))
                 decode("a=b&a[]=c") shouldBe mapOf("a" to listOf("b", "c"))
             }
 
@@ -439,7 +439,7 @@ class DecodeSpec :
                 decode(
                     "a[]=b&a[]&a[]=c&a[]=",
                     DecodeOptions(strictNullHandling = true, listLimit = 0),
-                ) shouldBe mapOf("a" to listOf("b", null, "c", ""))
+                ) shouldBe mapOf("a" to mapOf("0" to "b", "1" to null, "2" to "c", "3" to ""))
 
                 decode(
                     "a[0]=b&a[1]=&a[2]=c&a[19]",
@@ -449,7 +449,7 @@ class DecodeSpec :
                 decode(
                     "a[]=b&a[]=&a[]=c&a[]",
                     DecodeOptions(strictNullHandling = true, listLimit = 0),
-                ) shouldBe mapOf("a" to listOf("b", "", "c", null))
+                ) shouldBe mapOf("a" to mapOf("0" to "b", "1" to "", "2" to "c", "3" to null))
 
                 decode("a[]=&a[]=b&a[]=c") shouldBe mapOf("a" to listOf("", "b", "c"))
             }
@@ -1055,7 +1055,7 @@ class DecodeSpec :
 
             it("handles list limit of zero correctly") {
                 decode("a[]=1&a[]=2", DecodeOptions(listLimit = 0)) shouldBe
-                    mapOf("a" to listOf("1", "2"))
+                    mapOf("a" to mapOf("0" to "1", "1" to "2"))
             }
 
             it("handles negative list limit correctly") {
@@ -1479,5 +1479,41 @@ class DecodeSpec :
             decode(null) shouldBe emptyMap()
             decode("") shouldBe emptyMap()
             decode(emptyMap<String, Any?>()) shouldBe emptyMap()
+        }
+
+        describe("Vulnerability / DOS Protection") {
+            it("DOS test - should limit array length and convert to object") {
+                val arr = ArrayList<String>()
+                for (i in 0 until 105) {
+                    arr.add("x")
+                }
+                val attack = "a[]=" + arr.joinToString("&a[]=")
+                val options = DecodeOptions(listLimit = 100)
+                val result = decode(attack, options)
+                val a = result["a"]
+
+                // In vulnerable version, a will be a List
+                // In fixed version, a should be a Map (object) because limit is 100 and we have 105
+                // items
+                (a is List<*>) shouldBe false
+                (a is Map<*, *>) shouldBe true
+                (a as Map<*, *>).size shouldBe 105
+            }
+
+            it("arrayLimit boundary conditions - exactly at limit") {
+                val result = decode("a[]=1&a[]=2&a[]=3", DecodeOptions(listLimit = 3))
+                val a = result["a"]
+                (a is List<*>) shouldBe true
+                a shouldBe listOf("1", "2", "3")
+            }
+
+            it("arrayLimit boundary conditions - one over limit") {
+                val result = decode("a[]=1&a[]=2&a[]=3&a[]=4", DecodeOptions(listLimit = 3))
+                val a = result["a"]
+                (a is List<*>) shouldBe false
+                (a is Map<*, *>) shouldBe true
+                val expected = mapOf("0" to "1", "1" to "2", "2" to "3", "3" to "4")
+                a shouldBe expected
+            }
         }
     })
