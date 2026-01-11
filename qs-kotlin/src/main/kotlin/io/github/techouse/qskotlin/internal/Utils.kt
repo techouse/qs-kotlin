@@ -415,7 +415,7 @@ internal object Utils {
                         continue
                     }
 
-                    c < 0xD800 || c >= 0xE000 -> { // 3 bytes
+                    c !in 0xD800..<0xE000 -> { // 3 bytes
                         buffer.append(HexTable[0xE0 or (c shr 12)])
                         buffer.append(HexTable[0x80 or ((c shr 6) and 0x3F)])
                         buffer.append(HexTable[0x80 or (c and 0x3F)])
@@ -584,13 +584,13 @@ internal object Utils {
 
         @Suppress("UNCHECKED_CAST")
         when (a) {
-            is Iterable<*> -> result.addAll(a as Iterable<Any?>)
+            is Iterable<*> -> result.addAll(a)
             else -> result.add(a)
         }
 
         @Suppress("UNCHECKED_CAST")
         when (b) {
-            is Iterable<*> -> result.addAll(b as Iterable<Any?>)
+            is Iterable<*> -> result.addAll(b)
             else -> result.add(b)
         }
 
