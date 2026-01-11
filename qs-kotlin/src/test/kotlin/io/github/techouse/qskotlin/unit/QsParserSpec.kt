@@ -146,11 +146,11 @@ class QsParserSpec :
 
                 decode("a[1]=b&a=c", options20) shouldBe mapOf("a" to listOf("b", "c"))
 
-                decode("a[]=b&a=c", options0) shouldBe mapOf("a" to listOf("b", "c"))
+                decode("a[]=b&a=c", options0) shouldBe mapOf("a" to mapOf("0" to "b", "c" to true))
 
                 decode("a=b&a[1]=c", options20) shouldBe mapOf("a" to listOf("b", "c"))
 
-                decode("a=b&a[]=c", options0) shouldBe mapOf("a" to listOf("b", "c"))
+                decode("a=b&a[]=c", options0) shouldBe mapOf("a" to listOf("b", mapOf("0" to "c")))
             }
 
             it("should parse a nested array") {
@@ -341,16 +341,16 @@ class QsParserSpec :
                     mapOf("a" to listOf("b", null, "c", ""))
 
                 decode("a[]=b&a[]&a[]=c&a[]=", optionsStrictNullHandling0) shouldBe
-                    mapOf("a" to listOf("b", null, "c", ""))
+                    mapOf("a" to mapOf("0" to "b", "1" to null, "2" to "c", "3" to ""))
 
                 decode("a[0]=b&a[1]=&a[2]=c&a[19]", optionsStrictNullHandling20) shouldBe
                     mapOf("a" to listOf("b", "", "c", null))
 
                 decode("a[]=b&a[]=&a[]=c&a[]", optionsStrictNullHandling0) shouldBe
-                    mapOf("a" to listOf("b", "", "c", null))
+                    mapOf("a" to mapOf("0" to "b", "1" to "", "2" to "c", "3" to null))
 
                 decode("a[]=&a[]=b&a[]=c", optionsStrictNullHandling0) shouldBe
-                    mapOf("a" to listOf("", "b", "c"))
+                    mapOf("a" to mapOf("0" to "", "1" to "b", "2" to "c"))
             }
 
             it("should compact sparse arrays") {
