@@ -1,3 +1,7 @@
+## 1.4.2
+
+* [FIX] implement `DecodeOptions.ListLimit` handling in `Utils.combine` function to prevent DoS via memory exhaustion
+
 ## 1.4.1
 
 * [CHORE] update Kotlin to 2.3.0
