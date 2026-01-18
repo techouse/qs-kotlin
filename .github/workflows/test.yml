@@ -92,7 +92,7 @@ jobs:
       - name: Setup Gradle (with caching)
         uses: gradle/actions/setup-gradle@v5
       - name: Assemble AAR + run unit tests
-        run: ./gradlew :qs-kotlin-android:assembleRelease :qs-kotlin-android:testReleaseUnitTest --stacktrace
+        run: ./gradlew :qs-kotlin-android:assembleRelease :qs-kotlin-android:testDebugUnitTest --stacktrace
   ensure_compatibility:
     name: Ensure compatibility with qs
     needs: style
