@@ -3,6 +3,7 @@ package io.github.techouse.qskotlin.unit.internal
 import io.github.techouse.qskotlin.enums.Format
 import io.github.techouse.qskotlin.enums.ListFormat
 import io.github.techouse.qskotlin.internal.Encoder
+import io.github.techouse.qskotlin.models.FunctionFilter
 import io.github.techouse.qskotlin.models.IterableFilter
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
@@ -205,6 +206,26 @@ class EncoderInternalSpec :
                             undefined = false,
                             sideChannel = mutableMapOf(),
                             prefix = "self",
+                        )
+                    }
+                    .message shouldBe "Cyclic object value"
+            }
+
+            it("detects cycles introduced by filter") {
+                val root = mutableMapOf<String, Any?>()
+                root["a"] = mutableMapOf("b" to "c")
+
+                val filter = FunctionFilter { prefix, value ->
+                    if (prefix.contains("a")) root else value
+                }
+
+                shouldThrow<IndexOutOfBoundsException> {
+                        Encoder.encode(
+                            data = root,
+                            undefined = false,
+                            sideChannel = mutableMapOf(),
+                            prefix = "root",
+                            filter = filter,
                         )
                     }
                     .message shouldBe "Cyclic object value"

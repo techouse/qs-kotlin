@@ -16,6 +16,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldMatch
+import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.time.Instant
@@ -1210,6 +1211,14 @@ class EncodeSpec :
                 ) shouldBe "a=b&c"
             }
 
+            it("encode=false stringifies byte arrays and buffers") {
+                encode(mapOf("a" to "hi".toByteArray()), EncodeOptions(encode = false)) shouldBe
+                    "a=hi"
+
+                val buf = ByteBuffer.wrap("hi".toByteArray())
+                encode(mapOf("a" to buf), EncodeOptions(encode = false)) shouldBe "a=hi"
+            }
+
             it("can sort the keys") {
                 val sort: Sorter = { a, b -> a.toString().compareTo(b.toString()) }
 
@@ -1793,6 +1802,15 @@ class EncodeSpec :
                     val opts = EncodeOptions(encode = false, listFormat = ListFormat.COMMA)
 
                     encode(mapOf("a" to listOf(a, b)), opts) shouldBe "a=${a},${b}"
+                }
+
+                it("COMMA list stringifies byte arrays and buffers (encode=false)") {
+                    val buf = ByteBuffer.wrap("hi".toByteArray())
+                    val bytes = "yo".toByteArray()
+
+                    val opts = EncodeOptions(encode = false, listFormat = ListFormat.COMMA)
+
+                    encode(mapOf("a" to listOf(buf, bytes)), opts) shouldBe "a=hi,yo"
                 }
 
                 it("COMMA list encodes comma when encode=true") {
