@@ -21,16 +21,28 @@ internal object Decoder {
     private fun parseListValue(value: Any?, options: DecodeOptions, currentListLength: Int): Any? {
         if (value is String && value.isNotEmpty() && options.comma && value.contains(',')) {
             val splitVal = value.split(',')
-            if (options.throwOnLimitExceeded && splitVal.size > options.listLimit) {
-                throw IndexOutOfBoundsException(
-                    "List limit exceeded. " +
-                        "Only ${options.listLimit} element${if (options.listLimit == 1) "" else "s"} allowed in a list."
-                )
+            if (options.listLimit >= 0) {
+                val remaining = options.listLimit - currentListLength
+                if (
+                    options.throwOnLimitExceeded &&
+                        (currentListLength + splitVal.size) > options.listLimit
+                ) {
+                    throw IndexOutOfBoundsException(
+                        "List limit exceeded. " +
+                            "Only ${options.listLimit} element${if (options.listLimit == 1) "" else "s"} allowed in a list."
+                    )
+                }
+                if (remaining <= 0) return emptyList<String>()
+                return if (splitVal.size <= remaining) splitVal else splitVal.subList(0, remaining)
             }
             return splitVal
         }
 
-        if (options.throwOnLimitExceeded && currentListLength >= options.listLimit) {
+        if (
+            options.listLimit >= 0 &&
+                options.throwOnLimitExceeded &&
+                currentListLength >= options.listLimit
+        ) {
             throw IndexOutOfBoundsException(
                 "List limit exceeded. " +
                     "Only ${options.listLimit} element${if (options.listLimit == 1) "" else "s"} allowed in a list."
@@ -105,6 +117,7 @@ internal object Decoder {
             if (i == skipIndex) continue
 
             val part = parts[i]
+            if (part.isEmpty()) continue
             val bracketEqualsPos = part.indexOf("]=")
             val pos = if (bracketEqualsPos == -1) part.indexOf('=') else bracketEqualsPos + 1
 
@@ -131,6 +144,7 @@ internal object Decoder {
                         options.decodeValue(v as String?, charset)
                     }
             }
+            if (key.isEmpty()) continue
 
             if (
                 value != null &&
