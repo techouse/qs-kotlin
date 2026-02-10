@@ -1,3 +1,17 @@
+## 1.5.0-wip
+
+* [FIX] skip empty query segments and empty keys during decode to match `qs`
+* [FIX] enforce comma list limits with truncation or throwing, including duplicate key accumulation
+* [FIX] correct UTF-16 surrogate encoding and prevent segment-boundary splits in `Utils.encode`
+* [FIX] decode `ByteArray`/`ByteBuffer` values via charset even when `encode=false`
+* [FIX] replace undefined holes during list merges and normalize when `parseLists=false`
+* [FIX] detect cycles introduced by filters during encoding
+* [FIX] append scalars to overflow maps during merge to preserve list-limit semantics
+* [FIX] preserve overflow semantics in merge/combine (overflow sources, iterable append, negative listLimit)
+* [FIX] COMMA list encoding honors ByteArray/ByteBuffer decoding when `encode=false`
+* [CHORE] refactor encode/merge internals to stack-based traversal for deep-nesting safety
+* [CHORE] expand tests for empty segments, comma limits, surrogates, byte buffers, and merge holes
+
 ## 1.4.4
 
 * [CHORE] update Kotlin to 2.3.10
