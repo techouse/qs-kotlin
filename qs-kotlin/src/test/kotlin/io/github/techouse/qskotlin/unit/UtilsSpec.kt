@@ -153,9 +153,30 @@ class UtilsSpec :
                 Utils.encode("😀") shouldBe "%F0%9F%98%80"
             }
 
+            test("encodes lone surrogates as three-byte sequences") {
+                Utils.encode("\uD83D") shouldBe "%ED%A0%BD"
+                Utils.encode("\uDC00") shouldBe "%ED%B0%80"
+            }
+
+            test("does not split surrogate pairs across segment boundaries") {
+                val input = "a".repeat(1023) + "😀"
+                val expected = "a".repeat(1023) + "%F0%9F%98%80"
+                Utils.encode(input) shouldBe expected
+            }
+
             test("encodes ByteArray and ByteBuffer") {
                 Utils.encode("ä".toByteArray(StandardCharsets.UTF_8)) shouldBe "%C3%A4"
                 Utils.encode(ByteBuffer.wrap("hi".toByteArray())) shouldBe "hi"
+            }
+
+            test("encodes direct and read-only ByteBuffers") {
+                val direct = ByteBuffer.allocateDirect(2)
+                direct.put("hi".toByteArray())
+                direct.flip()
+                Utils.encode(direct) shouldBe "hi"
+
+                val readOnly = ByteBuffer.wrap("hi".toByteArray()).asReadOnlyBuffer()
+                Utils.encode(readOnly) shouldBe "hi"
             }
         }
 
@@ -468,6 +489,69 @@ class UtilsSpec :
                 ) shouldBe mapOf("foo" to listOf(mapOf("baz" to listOf("15", "16"))))
             }
 
+            test("replaces undefined holes when merging list-of-maps") {
+                val result =
+                    Utils.merge(
+                        listOf(Undefined(), mapOf("a" to "b")),
+                        listOf(mapOf("x" to "y"), Undefined()),
+                    )
+                result shouldBe listOf(mapOf("x" to "y"), mapOf("a" to "b"))
+            }
+
+            test("normalizes list merge with undefined holes when parseLists disabled") {
+                val result =
+                    Utils.merge(
+                        listOf(Undefined(), mapOf("a" to "b")),
+                        listOf(Undefined(), Undefined()),
+                        DecodeOptions(parseLists = false),
+                    )
+                result shouldBe mapOf("1" to mapOf("a" to "b"))
+            }
+
+            test("merge appends scalar to overflow map") {
+                val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
+                overflow.shouldBeInstanceOf<Utils.OverflowMap>()
+
+                val result = Utils.merge(overflow, "d")
+                result.shouldBeInstanceOf<Utils.OverflowMap>()
+                @Suppress("UNCHECKED_CAST") val map = result as Map<String, Any?>
+                map["3"] shouldBe "d"
+            }
+
+            test("merge appends iterable to overflow map") {
+                val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
+                overflow.shouldBeInstanceOf<Utils.OverflowMap>()
+
+                val result = Utils.merge(overflow, listOf("d", Undefined(), "e"))
+                val map = result.shouldBeInstanceOf<Utils.OverflowMap>()
+                map["3"] shouldBe "d"
+                map["4"] shouldBe "e"
+                map.maxIndex shouldBe 4
+            }
+
+            test("merge scalar with overflow map shifts indices") {
+                val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
+                overflow.shouldBeInstanceOf<Utils.OverflowMap>()
+
+                val result = Utils.merge("root", overflow)
+                val map = result.shouldBeInstanceOf<Utils.OverflowMap>()
+                map["0"] shouldBe "root"
+                map["1"] shouldBe "a"
+                map["2"] shouldBe "b"
+                map["3"] shouldBe "c"
+                map.maxIndex shouldBe 3
+            }
+
+            test("merge map into overflow map preserves maxIndex") {
+                val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
+                overflow.shouldBeInstanceOf<Utils.OverflowMap>()
+
+                val result = Utils.merge(overflow, mapOf("extra" to "x"))
+                val map = result.shouldBeInstanceOf<Utils.OverflowMap>()
+                map["extra"] shouldBe "x"
+                map.maxIndex shouldBe 2
+            }
+
             test("merges two objects with the same key and different values into a list") {
                 Utils.merge(
                     mapOf("foo" to listOf(mapOf("a" to "b"))),
@@ -701,6 +785,23 @@ class UtilsSpec :
         }
 
         context("Utils.combine") {
+            test("combine appends iterable into overflow map") {
+                val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
+                overflow.shouldBeInstanceOf<Utils.OverflowMap>()
+
+                val result = Utils.combine(overflow, listOf("d", "e"), limit = 2)
+                val map = result.shouldBeInstanceOf<Utils.OverflowMap>()
+                map["3"] shouldBe "d"
+                map["4"] shouldBe "e"
+                map.maxIndex shouldBe 4
+            }
+
+            test("combine does not overflow when listLimit is negative") {
+                val result = Utils.combine("a", "b", limit = -1)
+                result.shouldBeInstanceOf<List<*>>()
+                result shouldBe listOf("a", "b")
+            }
+
             test("both lists") {
                 val a = listOf(1)
                 val b = listOf(2)

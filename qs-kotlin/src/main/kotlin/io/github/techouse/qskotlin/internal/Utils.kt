@@ -8,6 +8,7 @@ import java.net.URI
 import java.net.URLDecoder
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
+import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.LocalDateTime
@@ -17,10 +18,33 @@ import kotlin.collections.ArrayDeque
 
 /** A collection of utility methods used by the library. */
 internal object Utils {
+    private enum class MergePhase {
+        START,
+        LIST_ITER,
+        MAP_ITER,
+    }
+
+    private data class MergeFrame(
+        var target: Any?,
+        var source: Any?,
+        val options: DecodeOptions,
+        val onResult: (Any?) -> Unit,
+        var phase: MergePhase = MergePhase.START,
+        var indexedTarget: MutableMap<Int, Any?>? = null,
+        var sourceList: List<Any?>? = null,
+        var listIndex: Int = 0,
+        var targetIsSet: Boolean = false,
+        var mergeTarget: MutableMap<Any?, Any?>? = null,
+        var mapIterator: Iterator<Map.Entry<Any?, Any?>>? = null,
+        var overflowMax: Int? = null,
+    )
+
     /**
-     * Merges two objects, where the source object overrides the target object. If the source is a
-     * Map, it will merge its entries into the target. If the source is an Iterable, it will append
-     * its items to the target. If the source is a primitive, it will replace the target.
+     * Merges two objects, where the source object overrides or extends the target object.
+     * - If the source is a Map, it will merge its entries into the target.
+     * - If the source is an Iterable, it will append its items to the target.
+     * - If the source is a primitive, it will combine with the target following qs semantics
+     *   (including OverflowMap append behavior).
      *
      * @param target The target object to merge into.
      * @param source The source object to merge from.
@@ -28,181 +52,366 @@ internal object Utils {
      * @return The merged object.
      */
     fun merge(target: Any?, source: Any?, options: DecodeOptions = DecodeOptions()): Any? {
-        if (source == null) {
-            return target
+        var result: Any? = null
+        val stack = ArrayDeque<MergeFrame>()
+
+        stack.add(
+            MergeFrame(
+                target = target,
+                source = source,
+                options = options,
+                onResult = { value -> result = value },
+            )
+        )
+
+        fun toIndexedMap(iterable: Iterable<*>): MutableMap<Int, Any?> {
+            val map = java.util.TreeMap<Int, Any?>()
+            var i = 0
+            for (v in iterable) {
+                map[i++] = v
+            }
+            return map
         }
 
-        if (source !is Map<*, *>) {
-            return when (target) {
-                is Iterable<*> ->
-                    when {
-                        target.any { it is Undefined } -> {
-                            val mutableTarget: MutableMap<String, Any?> =
-                                target
-                                    .withIndex()
-                                    .associate { it.index.toString() to it.value }
-                                    .toMutableMap()
+        fun updateOverflowMax(current: Int, key: Any?): Int {
+            val parsed =
+                when (key) {
+                    is Int -> key
+                    is Long -> if (key in Int.MIN_VALUE..Int.MAX_VALUE) key.toInt() else null
+                    is String -> key.toIntOrNull()
+                    else -> null
+                }
+            return if (parsed == null || parsed < 0) current else maxOf(current, parsed)
+        }
 
-                            when (source) {
-                                is Iterable<*> ->
-                                    source.forEachIndexed { i, item ->
-                                        if (item !is Undefined) {
-                                            mutableTarget[i.toString()] = item
-                                        }
-                                    }
+        while (stack.isNotEmpty()) {
+            val frame = stack.last()
 
-                                else -> mutableTarget[mutableTarget.size.toString()] = source
-                            }
+            when (frame.phase) {
+                MergePhase.START -> {
+                    val currentTarget = frame.target
+                    val currentSource = frame.source
 
-                            when {
-                                !options.parseLists &&
-                                    mutableTarget.values.any { it is Undefined } ->
-                                    mutableTarget.filterValues { it !is Undefined }
+                    if (currentSource == null) {
+                        stack.removeLast()
+                        frame.onResult(currentTarget)
+                        continue
+                    }
 
-                                target is Set<*> -> mutableTarget.values.toSet()
+                    if (currentSource !is Map<*, *>) {
+                        when (currentTarget) {
+                            is Iterable<*> -> {
+                                if (currentTarget.any { it is Undefined }) {
+                                    val mutableTarget: MutableMap<String, Any?> =
+                                        currentTarget
+                                            .withIndex()
+                                            .associate { it.index.toString() to it.value }
+                                            .toMutableMap()
 
-                                else -> mutableTarget.values.toList()
-                            }
-                        }
-
-                        else ->
-                            when (source) {
-                                is Iterable<*> ->
-                                    when {
-                                        target.all { it is Map<*, *> || it is Undefined } &&
-                                            source.all { it is Map<*, *> || it is Undefined } -> {
-                                            val mutableTarget: MutableMap<Int, Any?> =
-                                                target
-                                                    .withIndex()
-                                                    .associate { it.index to it.value }
-                                                    .toSortedMap()
-
-                                            source.forEachIndexed { i, item ->
-                                                mutableTarget[i] =
-                                                    when {
-                                                        mutableTarget.containsKey(i) ->
-                                                            merge(mutableTarget[i], item, options)
-                                                        else -> item
-                                                    }
+                                    when (currentSource) {
+                                        is Iterable<*> ->
+                                            currentSource.forEachIndexed { i, item ->
+                                                if (item !is Undefined) {
+                                                    mutableTarget[i.toString()] = item
+                                                }
                                             }
-
-                                            when (target) {
-                                                is Set<*> -> mutableTarget.values.toSet()
-                                                else -> mutableTarget.values.toList()
-                                            }
-                                        }
 
                                         else ->
-                                            when (target) {
-                                                is Set<*> ->
-                                                    target + source.filterNot { it is Undefined }
-                                                is List<*> ->
-                                                    target + source.filterNot { it is Undefined }
-                                                else ->
-                                                    listOf(target) +
-                                                        source.filterNot { it is Undefined }
-                                            }
+                                            mutableTarget[mutableTarget.size.toString()] =
+                                                currentSource
                                     }
 
-                                else ->
-                                    when (target) {
-                                        is Set<*> -> target + source
-                                        is List<*> -> target + source
-                                        else -> listOf(target, source)
+                                    val merged =
+                                        when {
+                                            !options.parseLists &&
+                                                mutableTarget.values.any { it is Undefined } ->
+                                                mutableTarget.filterValues { it !is Undefined }
+                                            currentTarget is Set<*> -> mutableTarget.values.toSet()
+                                            else -> mutableTarget.values.toList()
+                                        }
+
+                                    stack.removeLast()
+                                    frame.onResult(merged)
+                                    continue
+                                }
+
+                                if (currentSource is Iterable<*>) {
+                                    val targetMaps =
+                                        currentTarget.all { it is Map<*, *> || it is Undefined }
+                                    val sourceMaps =
+                                        currentSource.all { it is Map<*, *> || it is Undefined }
+
+                                    if (targetMaps && sourceMaps) {
+                                        frame.indexedTarget = toIndexedMap(currentTarget)
+                                        frame.sourceList = currentSource.toList()
+                                        frame.targetIsSet = currentTarget is Set<*>
+                                        frame.listIndex = 0
+                                        frame.phase = MergePhase.LIST_ITER
+                                        continue
                                     }
+
+                                    val filtered = currentSource.filterNot { it is Undefined }
+                                    val merged =
+                                        when (currentTarget) {
+                                            is Set<*> -> currentTarget + filtered
+                                            is List<*> -> currentTarget + filtered
+                                            else -> listOf(currentTarget) + filtered
+                                        }
+                                    stack.removeLast()
+                                    frame.onResult(merged)
+                                    continue
+                                }
+
+                                val merged =
+                                    when (currentTarget) {
+                                        is Set<*> -> currentTarget + currentSource
+                                        is List<*> -> currentTarget + currentSource
+                                        else -> listOf(currentTarget, currentSource)
+                                    }
+                                stack.removeLast()
+                                frame.onResult(merged)
+                                continue
                             }
+
+                            is Map<*, *> -> {
+                                if (currentTarget is OverflowMap && currentSource !is Iterable<*>) {
+                                    val newIndex = currentTarget.maxIndex + 1
+                                    currentTarget[newIndex.toString()] = currentSource
+                                    currentTarget.maxIndex = newIndex
+                                    stack.removeLast()
+                                    frame.onResult(currentTarget)
+                                    continue
+                                }
+                                if (currentTarget is OverflowMap && currentSource is Iterable<*>) {
+                                    var newIndex = currentTarget.maxIndex
+                                    for (item in currentSource) {
+                                        if (item is Undefined) continue
+                                        newIndex += 1
+                                        currentTarget[newIndex.toString()] = item
+                                    }
+                                    currentTarget.maxIndex = newIndex
+                                    stack.removeLast()
+                                    frame.onResult(currentTarget)
+                                    continue
+                                }
+                                val mutableTarget = currentTarget.toMutableMap()
+
+                                when (currentSource) {
+                                    is Iterable<*> -> {
+                                        currentSource.forEachIndexed { i, item ->
+                                            if (item !is Undefined) {
+                                                mutableTarget[i.toString()] = item
+                                            }
+                                        }
+                                    }
+                                    is Undefined -> {
+                                        // ignore
+                                    }
+                                    else -> {
+                                        val k = currentSource.toString()
+                                        if (k.isNotEmpty()) {
+                                            mutableTarget[k] = true
+                                        }
+                                    }
+                                }
+
+                                stack.removeLast()
+                                frame.onResult(mutableTarget)
+                                continue
+                            }
+
+                            else -> {
+                                val merged =
+                                    when (currentSource) {
+                                        is Iterable<*> ->
+                                            listOf(currentTarget) +
+                                                currentSource.filterNot { it is Undefined }
+                                        else -> listOf(currentTarget, currentSource)
+                                    }
+                                stack.removeLast()
+                                frame.onResult(merged)
+                                continue
+                            }
+                        }
                     }
 
-                is Map<*, *> -> {
-                    val mutableTarget = target.toMutableMap()
+                    // Source is a Map
+                    if (currentTarget == null || currentTarget !is Map<*, *>) {
+                        if (currentTarget is Iterable<*>) {
+                            val mutableTarget: MutableMap<String, Any?> =
+                                currentTarget
+                                    .withIndex()
+                                    .associate { it.index.toString() to it.value }
+                                    .filterValues { it !is Undefined }
+                                    .toMutableMap()
 
-                    when (source) {
-                        is Iterable<*> -> {
-                            source.forEachIndexed { i, item ->
-                                if (item !is Undefined) {
-                                    mutableTarget[i.toString()] = item
+                            @Suppress("UNCHECKED_CAST")
+                            (currentSource as Map<Any?, Any?>).forEach { (key, value) ->
+                                mutableTarget[key.toString()] = value
+                            }
+                            stack.removeLast()
+                            frame.onResult(mutableTarget)
+                            continue
+                        }
+
+                        if (currentSource is OverflowMap) {
+                            val sourceMax = currentSource.maxIndex
+                            val resultMap = OverflowMap()
+                            if (currentTarget != null) {
+                                resultMap["0"] = currentTarget
+                            }
+                            for ((key, value) in currentSource) {
+                                val keyStr = key
+                                val oldIndex = keyStr.toIntOrNull()
+                                if (oldIndex == null) {
+                                    resultMap[keyStr] = value
+                                } else {
+                                    resultMap[(oldIndex + 1).toString()] = value
                                 }
                             }
+                            resultMap.maxIndex = sourceMax + 1
+                            stack.removeLast()
+                            frame.onResult(resultMap)
+                            continue
                         }
-                        is Undefined -> {
-                            // ignore
+
+                        val mutableTarget = listOfNotNull(currentTarget).toMutableList<Any?>()
+                        when (currentSource) {
+                            is Iterable<*> ->
+                                mutableTarget.addAll(
+                                    (currentSource as Iterable<*>)
+                                        .filterNot { it is Undefined }
+                                        .toList()
+                                )
+                            else -> mutableTarget.add(currentSource)
                         }
-                        else -> {
-                            val k = source.toString()
-                            if (k.isNotEmpty()) {
-                                mutableTarget[k] = true
-                            }
-                        }
+                        stack.removeLast()
+                        frame.onResult(mutableTarget)
+                        continue
                     }
-
-                    mutableTarget
-                }
-
-                else ->
-                    when (source) {
-                        is Iterable<*> -> listOf(target) + source.filterNot { it is Undefined }
-                        else -> listOf(target, source)
-                    }
-            }
-        }
-
-        if (target == null || target !is Map<*, *>) {
-            return when (target) {
-                is Iterable<*> -> {
-                    val mutableTarget: MutableMap<String, Any?> =
-                        target
-                            .withIndex()
-                            .associate { it.index.toString() to it.value }
-                            .filterValues { it !is Undefined }
-                            .toMutableMap()
 
                     @Suppress("UNCHECKED_CAST")
-                    (source as Map<Any, Any?>).forEach { (key, value) ->
-                        mutableTarget[key.toString()] = value
-                    }
-                    mutableTarget
+                    val mergeTarget: MutableMap<Any?, Any?> =
+                        when {
+                            currentTarget is Iterable<*> && currentSource !is Iterable<*> ->
+                                currentTarget
+                                    .withIndex()
+                                    .associate { it.index.toString() to it.value }
+                                    .filterValues { it !is Undefined }
+                                    .toMutableMap() as MutableMap<Any?, Any?>
+                            currentTarget is OverflowMap ->
+                                OverflowMap().apply {
+                                    putAll(currentTarget)
+                                    maxIndex = currentTarget.maxIndex
+                                } as MutableMap<Any?, Any?>
+                            else -> (currentTarget as Map<Any?, Any?>).toMutableMap()
+                        }
+
+                    frame.mergeTarget = mergeTarget
+                    @Suppress("UNCHECKED_CAST")
+                    frame.mapIterator = (currentSource as Map<Any?, Any?>).entries.iterator()
+                    frame.overflowMax = (mergeTarget as? OverflowMap)?.maxIndex
+                    frame.phase = MergePhase.MAP_ITER
+                    continue
                 }
 
-                else -> {
-                    val mutableTarget = listOfNotNull(target).toMutableList<Any?>()
+                MergePhase.MAP_ITER -> {
+                    if (frame.mapIterator?.hasNext() == true) {
+                        val entry = frame.mapIterator!!.next()
+                        val key = entry.key
 
-                    when (source) {
-                        is Iterable<*> ->
-                            mutableTarget.addAll(
-                                (source as Iterable<*>).filterNot { it is Undefined }.toList()
+                        if (frame.overflowMax != null) {
+                            frame.overflowMax = updateOverflowMax(frame.overflowMax!!, key)
+                        }
+
+                        val mergeTarget = frame.mergeTarget!!
+                        if (mergeTarget.containsKey(key)) {
+                            val childTarget = mergeTarget[key]
+                            stack.add(
+                                MergeFrame(
+                                    target = childTarget,
+                                    source = entry.value,
+                                    options = frame.options,
+                                    onResult = { value -> mergeTarget[key] = value },
+                                )
                             )
+                            continue
+                        }
 
-                        else -> mutableTarget.add(source)
+                        mergeTarget[key] = entry.value
+                        continue
                     }
 
-                    mutableTarget
+                    if (frame.overflowMax != null && frame.mergeTarget is OverflowMap) {
+                        (frame.mergeTarget as OverflowMap).maxIndex = frame.overflowMax!!
+                    }
+
+                    stack.removeLast()
+                    frame.onResult(frame.mergeTarget!!)
+                    continue
+                }
+
+                MergePhase.LIST_ITER -> {
+                    if (frame.listIndex >= frame.sourceList!!.size) {
+                        if (
+                            frame.options.parseLists == false &&
+                                frame.indexedTarget!!.values.any { it is Undefined }
+                        ) {
+                            val normalized = mutableMapOf<String, Any?>()
+                            for ((index, value) in frame.indexedTarget!!) {
+                                if (value !is Undefined) {
+                                    normalized[index.toString()] = value
+                                }
+                            }
+                            stack.removeLast()
+                            frame.onResult(normalized)
+                            continue
+                        }
+
+                        val merged =
+                            if (frame.targetIsSet) {
+                                frame.indexedTarget!!.values.toSet()
+                            } else {
+                                frame.indexedTarget!!.values.toList()
+                            }
+                        stack.removeLast()
+                        frame.onResult(merged)
+                        continue
+                    }
+
+                    val idx = frame.listIndex++
+                    val item = frame.sourceList!![idx]
+                    val indexedTarget = frame.indexedTarget!!
+
+                    if (indexedTarget.containsKey(idx)) {
+                        val childTarget = indexedTarget[idx]
+                        if (childTarget is Undefined) {
+                            if (item !is Undefined) {
+                                indexedTarget[idx] = item
+                            }
+                            continue
+                        }
+                        if (item is Undefined) {
+                            continue
+                        }
+                        stack.add(
+                            MergeFrame(
+                                target = childTarget,
+                                source = item,
+                                options = frame.options,
+                                onResult = { value -> indexedTarget[idx] = value },
+                            )
+                        )
+                        continue
+                    }
+
+                    indexedTarget[idx] = item
+                    continue
                 }
             }
         }
 
-        @Suppress("UNCHECKED_CAST")
-        val mergeTarget: MutableMap<Any, Any?> =
-            when {
-                target is Iterable<*> && source !is Iterable<*> ->
-                    target
-                        .withIndex()
-                        .associate { it.index.toString() to it.value }
-                        .filterValues { it !is Undefined }
-                        .toMutableMap()
-                else -> (target as Map<Any, Any?>).toMutableMap()
-            }
-
-        @Suppress("UNCHECKED_CAST")
-        (source as Map<Any, Any?>).forEach { (key, value) ->
-            mergeTarget[key] =
-                if (mergeTarget.containsKey(key)) {
-                    merge(mergeTarget[key], value, options)
-                } else {
-                    value
-                }
-        }
-
-        return mergeTarget
+        return result
     }
 
     /**
@@ -322,6 +531,35 @@ internal object Utils {
     /** The maximum length of a segment to encode in a single pass. */
     private const val SEGMENT_LIMIT = 1024
 
+    /** Decode raw bytes to a String using the supplied charset, replacing malformed input. */
+    private fun decodeBytes(bytes: ByteArray, charset: Charset): String =
+        if (charset == StandardCharsets.UTF_8) {
+            val decoder =
+                charset
+                    .newDecoder()
+                    .onMalformedInput(CodingErrorAction.REPLACE)
+                    .onUnmappableCharacter(CodingErrorAction.REPLACE)
+            decoder.decode(ByteBuffer.wrap(bytes)).toString()
+        } else {
+            String(bytes, charset)
+        }
+
+    /** Extract bytes from a ByteBuffer without mutating its position. */
+    private fun byteBufferToArray(buffer: ByteBuffer): ByteArray {
+        val dup = buffer.duplicate()
+        val out = ByteArray(dup.remaining())
+        dup.get(out)
+        return out
+    }
+
+    /** Coerce ByteArray/ByteBuffer to String using the supplied charset; null otherwise. */
+    internal fun bytesToString(value: Any?, charset: Charset): String? =
+        when (value) {
+            is ByteArray -> decodeBytes(value, charset)
+            is ByteBuffer -> decodeBytes(byteBufferToArray(value), charset)
+            else -> null
+        }
+
     /**
      * Encodes a value into a URL-encoded string.
      *
@@ -345,8 +583,8 @@ internal object Utils {
 
         val str =
             when (value) {
-                is ByteBuffer -> String(value.array(), charset)
-                is ByteArray -> String(value, charset)
+                is ByteBuffer -> bytesToString(value, charset)
+                is ByteArray -> bytesToString(value, charset)
                 else -> value?.toString()
             }
 
@@ -367,12 +605,15 @@ internal object Utils {
 
         var j = 0
         while (j < str.length) {
-            val segment =
-                if (str.length >= SEGMENT_LIMIT) {
-                    str.substring(j, minOf(j + SEGMENT_LIMIT, str.length))
-                } else {
-                    str
+            var end = minOf(j + SEGMENT_LIMIT, str.length)
+            if (end < str.length) {
+                val last = str[end - 1]
+                val next = str[end]
+                if (Character.isHighSurrogate(last) && Character.isLowSurrogate(next)) {
+                    end -= 1 // keep surrogate pair together
                 }
+            }
+            val segment = str.substring(j, end)
 
             var i = 0
             while (i < segment.length) {
@@ -415,7 +656,21 @@ internal object Utils {
                         continue
                     }
 
-                    c !in 0xD800..<0xE000 -> { // 3 bytes
+                    c in 0xD800..0xDBFF -> { // high surrogate
+                        if (i + 1 < segment.length) {
+                            val nextC = segment[i + 1].code
+                            if (nextC in 0xDC00..0xDFFF) {
+                                val codePoint =
+                                    0x10000 + (((c - 0xD800) shl 10) or (nextC - 0xDC00))
+                                buffer.append(HexTable[0xF0 or (codePoint shr 18)])
+                                buffer.append(HexTable[0x80 or ((codePoint shr 12) and 0x3F)])
+                                buffer.append(HexTable[0x80 or ((codePoint shr 6) and 0x3F)])
+                                buffer.append(HexTable[0x80 or (codePoint and 0x3F)])
+                                i += 2
+                                continue
+                            }
+                        }
+                        // Lone high surrogate: encode code unit as 3-byte sequence.
                         buffer.append(HexTable[0xE0 or (c shr 12)])
                         buffer.append(HexTable[0x80 or ((c shr 6) and 0x3F)])
                         buffer.append(HexTable[0x80 or (c and 0x3F)])
@@ -423,20 +678,25 @@ internal object Utils {
                         continue
                     }
 
-                    else -> { // 4 bytes (surrogate pair)
-                        val nextC = if (i + 1 < segment.length) segment[i + 1].code else 0
-                        val codePoint = 0x10000 + (((c and 0x3FF) shl 10) or (nextC and 0x3FF))
-                        buffer.append(HexTable[0xF0 or (codePoint shr 18)])
-                        buffer.append(HexTable[0x80 or ((codePoint shr 12) and 0x3F)])
-                        buffer.append(HexTable[0x80 or ((codePoint shr 6) and 0x3F)])
-                        buffer.append(HexTable[0x80 or (codePoint and 0x3F)])
-                        i += 2 // Skip the next character as it's part of the surrogate pair
+                    c in 0xDC00..0xDFFF -> { // lone low surrogate
+                        buffer.append(HexTable[0xE0 or (c shr 12)])
+                        buffer.append(HexTable[0x80 or ((c shr 6) and 0x3F)])
+                        buffer.append(HexTable[0x80 or (c and 0x3F)])
+                        i++
+                        continue
+                    }
+
+                    else -> { // 3 bytes
+                        buffer.append(HexTable[0xE0 or (c shr 12)])
+                        buffer.append(HexTable[0x80 or ((c shr 6) and 0x3F)])
+                        buffer.append(HexTable[0x80 or (c and 0x3F)])
+                        i++
                         continue
                     }
                 }
             }
 
-            j += SEGMENT_LIMIT
+            j = end
         }
 
         return buffer.toString()
@@ -574,8 +834,16 @@ internal object Utils {
     fun combine(a: Any?, b: Any?, limit: Int): Any? {
         // If 'a' is already an overflow object, add to it
         if (a is OverflowMap) {
-            val newIndex = a.maxIndex + 1
-            a[newIndex.toString()] = b
+            var newIndex = a.maxIndex
+            if (b is Iterable<*>) {
+                for (item in b) {
+                    newIndex += 1
+                    a[newIndex.toString()] = item
+                }
+            } else {
+                newIndex += 1
+                a[newIndex.toString()] = b
+            }
             a.maxIndex = newIndex
             return a
         }
@@ -594,7 +862,7 @@ internal object Utils {
             else -> result.add(b)
         }
 
-        if (result.size > limit) {
+        if (limit >= 0 && result.size > limit) {
             val map = OverflowMap()
             result.forEachIndexed { index, item -> map[index.toString()] = item }
             map.maxIndex = result.size - 1
