@@ -537,6 +537,18 @@ class UtilsSpec :
                 map.maxIndex shouldBe 4
             }
 
+            test("merge appending only Undefined iterable to overflow map keeps maxIndex") {
+                val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
+                overflow.shouldBeInstanceOf<Utils.OverflowMap>()
+
+                val result = Utils.merge(overflow, listOf(Undefined(), Undefined()))
+                val map = result.shouldBeInstanceOf<Utils.OverflowMap>()
+                map["0"] shouldBe "a"
+                map["1"] shouldBe "b"
+                map["2"] shouldBe "c"
+                map.maxIndex shouldBe 2
+            }
+
             test("merge scalar with overflow map shifts indices") {
                 val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
                 overflow.shouldBeInstanceOf<Utils.OverflowMap>()
@@ -648,6 +660,11 @@ class UtilsSpec :
 
             test("merges true into null") { Utils.merge(null, true) shouldBe listOf(null, true) }
 
+            test("returns target unchanged when source is null") {
+                val target = mapOf("a" to 1)
+                Utils.merge(target, null) shouldBe target
+            }
+
             test("merges null into a list") {
                 val result = Utils.merge(null, listOf(42))
                 result shouldBe listOf(null, 42)
@@ -664,6 +681,14 @@ class UtilsSpec :
                 val result = Utils.merge(setOf("foo"), "bar")
                 result shouldBe setOf("foo", "bar")
                 result.shouldBeInstanceOf<Set<String>>()
+            }
+
+            test("ignores Undefined source when target is map") {
+                Utils.merge(mapOf("a" to "b"), Undefined()) shouldBe mapOf("a" to "b")
+            }
+
+            test("does not add empty-string key when merging scalar into map") {
+                Utils.merge(mapOf("a" to "b"), "") shouldBe mapOf("a" to "b")
             }
 
             test("merges two objects with the same key") {
