@@ -81,13 +81,12 @@ internal object Decoder {
         }
 
         val allParts: List<String> = options.delimiter.split(cleanStr)
-        val nonEmptyParts = allParts.filter { it.isNotEmpty() }
         val parts =
             if (limit != null) {
                 val takeCount: Int = if (options.throwOnLimitExceeded) limit + 1 else limit
-                nonEmptyParts.take(takeCount)
+                allParts.asSequence().filter { it.isNotEmpty() }.take(takeCount).toList()
             } else {
-                nonEmptyParts
+                allParts.asSequence().filter { it.isNotEmpty() }.toList()
             }
 
         if (options.throwOnLimitExceeded && limit != null && parts.size > limit) {
