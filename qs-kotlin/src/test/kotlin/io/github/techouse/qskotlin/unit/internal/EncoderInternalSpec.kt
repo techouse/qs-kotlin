@@ -3,6 +3,7 @@ package io.github.techouse.qskotlin.unit.internal
 import io.github.techouse.qskotlin.enums.Format
 import io.github.techouse.qskotlin.enums.ListFormat
 import io.github.techouse.qskotlin.internal.Encoder
+import io.github.techouse.qskotlin.models.FunctionFilter
 import io.github.techouse.qskotlin.models.IterableFilter
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
@@ -152,6 +153,45 @@ class EncoderInternalSpec :
                 result shouldBe "items[]"
             }
 
+            it(
+                "returns empty suffix for empty non-collection iterable when allowEmptyLists enabled"
+            ) {
+                val result =
+                    Encoder.encode(
+                        data =
+                            object : Iterable<String> {
+                                override fun iterator(): Iterator<String> =
+                                    emptyList<String>().iterator()
+                            },
+                        undefined = false,
+                        sideChannel = mutableMapOf(),
+                        prefix = "items",
+                        allowEmptyLists = true,
+                    )
+
+                result shouldBe "items[]"
+            }
+
+            it("uses iterableList size for commaRoundTrip with non-collection iterables") {
+                val result =
+                    Encoder.encode(
+                        data =
+                            object : Iterable<String> {
+                                override fun iterator(): Iterator<String> =
+                                    listOf("solo").iterator()
+                            },
+                        undefined = false,
+                        sideChannel = mutableMapOf(),
+                        prefix = "items",
+                        generateArrayPrefix = ListFormat.INDICES.generator,
+                        commaRoundTrip = true,
+                        encoder = { value, _, _ -> value?.toString() ?: "" },
+                        formatter = { v -> v },
+                    )
+
+                result shouldBe listOf("items[][0]=solo")
+            }
+
             it("stringifies temporal comma lists when no serializer supplied") {
                 val instant = Instant.parse("2020-01-01T00:00:00Z")
                 val date = LocalDateTime.parse("2020-01-01T00:00:00")
@@ -205,6 +245,26 @@ class EncoderInternalSpec :
                             undefined = false,
                             sideChannel = mutableMapOf(),
                             prefix = "self",
+                        )
+                    }
+                    .message shouldBe "Cyclic object value"
+            }
+
+            it("detects cycles introduced by filter") {
+                val root = mutableMapOf<String, Any?>()
+                root["a"] = mutableMapOf("b" to "c")
+
+                val filter = FunctionFilter { prefix, value ->
+                    if (prefix.contains("a")) root else value
+                }
+
+                shouldThrow<IndexOutOfBoundsException> {
+                        Encoder.encode(
+                            data = root,
+                            undefined = false,
+                            sideChannel = mutableMapOf(),
+                            prefix = "root",
+                            filter = filter,
                         )
                     }
                     .message shouldBe "Cyclic object value"

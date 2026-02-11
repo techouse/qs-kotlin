@@ -16,6 +16,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldMatch
+import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.time.Instant
@@ -1198,6 +1199,44 @@ class EncodeSpec :
                 calls shouldBe 5
             }
 
+            it("applies dateSerializer when filter = FunctionFilter") {
+                val dt = LocalDateTime.of(2020, 1, 2, 3, 4, 5)
+                val filter = FunctionFilter { _, value -> value }
+                val serializeDate: DateSerializer = { d ->
+                    d.toEpochSecond(ZoneOffset.UTC).toString()
+                }
+                val out =
+                    encode(
+                        mapOf("a" to dt),
+                        EncodeOptions(
+                            filter = filter,
+                            dateSerializer = serializeDate,
+                            encode = false,
+                        ),
+                    )
+                out shouldBe "a=${serializeDate(dt)}"
+            }
+
+            it("applies dateSerializer to COMMA lists when filter = FunctionFilter") {
+                val dt = LocalDateTime.of(2020, 1, 2, 3, 4, 5)
+                val filter = FunctionFilter { _, value -> value }
+                val serializeDate: DateSerializer = { d ->
+                    d.toEpochSecond(ZoneOffset.UTC).toString()
+                }
+                val serialized = serializeDate(dt)
+                val out =
+                    encode(
+                        mapOf("d" to listOf(dt, dt)),
+                        EncodeOptions(
+                            filter = filter,
+                            dateSerializer = serializeDate,
+                            listFormat = ListFormat.COMMA,
+                            encode = false,
+                        ),
+                    )
+                out shouldBe "d=${serialized},${serialized}"
+            }
+
             it("can disable uri encoding") {
                 encode(mapOf("a" to "b"), EncodeOptions(encode = false)) shouldBe "a=b"
 
@@ -1208,6 +1247,14 @@ class EncodeSpec :
                     mapOf("a" to "b", "c" to null),
                     EncodeOptions(encode = false, strictNullHandling = true),
                 ) shouldBe "a=b&c"
+            }
+
+            it("encode=false stringifies byte arrays and buffers") {
+                encode(mapOf("a" to "hi".toByteArray()), EncodeOptions(encode = false)) shouldBe
+                    "a=hi"
+
+                val buf = ByteBuffer.wrap("hi".toByteArray())
+                encode(mapOf("a" to buf), EncodeOptions(encode = false)) shouldBe "a=hi"
             }
 
             it("can sort the keys") {
@@ -1793,6 +1840,15 @@ class EncodeSpec :
                     val opts = EncodeOptions(encode = false, listFormat = ListFormat.COMMA)
 
                     encode(mapOf("a" to listOf(a, b)), opts) shouldBe "a=${a},${b}"
+                }
+
+                it("COMMA list stringifies byte arrays and buffers (encode=false)") {
+                    val buf = ByteBuffer.wrap("hi".toByteArray())
+                    val bytes = "yo".toByteArray()
+
+                    val opts = EncodeOptions(encode = false, listFormat = ListFormat.COMMA)
+
+                    encode(mapOf("a" to listOf(buf, bytes)), opts) shouldBe "a=hi,yo"
                 }
 
                 it("COMMA list encodes comma when encode=true") {

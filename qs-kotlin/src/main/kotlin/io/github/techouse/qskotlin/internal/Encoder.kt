@@ -5,23 +5,62 @@ import io.github.techouse.qskotlin.enums.Formatter
 import io.github.techouse.qskotlin.enums.ListFormat
 import io.github.techouse.qskotlin.enums.ListFormatGenerator
 import io.github.techouse.qskotlin.models.*
+import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.LocalDateTime
-import java.util.WeakHashMap
+import java.util.Collections
+import java.util.IdentityHashMap
 
 /** A helper object for encoding data into a query string format. */
 internal object Encoder {
-    // Top-level unique token
-    private val SENTINEL = Any()
+    // Traversal phases for the encoder's explicit stack.
+    private enum class Phase {
+        START,
+        ITERATE,
+        WAIT_CHILD,
+    }
+
+    // Mutable traversal frame; kept local to avoid leaking internal state.
+    private class Frame(
+        var obj: Any?,
+        val undefined: Boolean,
+        val prefix: String,
+        val generateArrayPrefix: ListFormatGenerator,
+        val commaRoundTrip: Boolean,
+        val commaCompactNulls: Boolean,
+        val allowEmptyLists: Boolean,
+        val strictNullHandling: Boolean,
+        val skipNulls: Boolean,
+        val encodeDotInKeys: Boolean,
+        val encoder: ValueEncoder?,
+        val serializeDate: DateSerializer?,
+        val sort: Sorter?,
+        val filter: Filter?,
+        val allowDots: Boolean,
+        val format: Format,
+        val formatter: Formatter,
+        val encodeValuesOnly: Boolean,
+        val charset: Charset,
+        val addQueryPrefix: Boolean,
+        var phase: Phase = Phase.START,
+        var values: MutableList<Any?> = mutableListOf(),
+        var objKeys: List<Any?> = emptyList(),
+        var index: Int = 0,
+        var adjustedPrefix: String = "",
+        var effectiveCommaLength: Int? = null,
+        var iterableList: List<Any?>? = null,
+        var tracked: Boolean = false,
+        var trackedObject: Any? = null,
+    )
 
     /**
      * Encodes the given data into a query string format.
      *
      * @param data The data to encode; can be any type.
      * @param undefined If true, will not encode undefined values.
-     * @param sideChannel A mutable map for tracking cyclic references.
+     * @param sideChannel Reserved for compatibility; unused (cycle tracking is internal).
      * @param prefix An optional prefix for the encoded string.
      * @param generateArrayPrefix A generator for array prefixes.
      * @param commaRoundTrip If true, uses comma for array encoding.
@@ -44,7 +83,7 @@ internal object Encoder {
     fun encode(
         data: Any?,
         undefined: Boolean,
-        sideChannel: MutableMap<Any?, Any?>,
+        @Suppress("UNUSED_PARAMETER") sideChannel: MutableMap<Any?, Any?>,
         prefix: String? = null,
         generateArrayPrefix: ListFormatGenerator? = null,
         commaRoundTrip: Boolean? = null,
@@ -64,249 +103,371 @@ internal object Encoder {
         charset: Charset = StandardCharsets.UTF_8,
         addQueryPrefix: Boolean = false,
     ): Any {
-        val prefix: String = prefix ?: if (addQueryPrefix) "?" else ""
-        val generateArrayPrefix: ListFormatGenerator =
-            generateArrayPrefix ?: ListFormat.INDICES.generator
-        val isCommaGenerator = generateArrayPrefix == ListFormat.COMMA.generator
-        val commaRoundTrip: Boolean = commaRoundTrip ?: isCommaGenerator
-        val compactNulls = commaCompactNulls && isCommaGenerator
+        val prefixValue: String = prefix ?: if (addQueryPrefix) "?" else ""
+        val generator: ListFormatGenerator = generateArrayPrefix ?: ListFormat.INDICES.generator
+        val isCommaGenerator = generator == ListFormat.COMMA.generator
+        val effectiveCommaRoundTrip: Boolean = commaRoundTrip ?: isCommaGenerator
 
-        var obj: Any? = data
+        // Use identity-based tracking for the current traversal path to detect cycles.
+        val seen = Collections.newSetFromMap(IdentityHashMap<Any?, Boolean>())
 
-        val objWrapper = data?.let { WeakWrapper(it) }
-        var tmpSc: MutableMap<Any?, Any?>? = sideChannel
-        var step = 0
-        var findFlag = false
-
-        // Walk ancestors
-        while (!findFlag) {
-            @Suppress("UNCHECKED_CAST")
-            tmpSc = tmpSc?.get(SENTINEL) as? MutableMap<Any?, Any?> ?: break
-            step++
-            val pos: Int? = objWrapper?.let { tmpSc[it] as? Int }
-            if (pos != null) {
-                if (pos == step) {
-                    throw IndexOutOfBoundsException("Cyclic object value")
-                } else {
-                    findFlag = true
-                }
-            }
-            if (tmpSc[SENTINEL] == null) {
-                step = 0
-            }
-        }
-
-        if (filter is FunctionFilter) {
-            obj = filter.function(prefix, obj)
-        } else if (obj is LocalDateTime) {
-            obj =
-                when (serializeDate) {
-                    null -> obj.toString() // Default ISO format
-                    else -> serializeDate(obj)
-                }
-        } else if (generateArrayPrefix == ListFormat.COMMA.generator && obj is Iterable<*>) {
-            obj =
-                obj.map { value ->
-                    when (value) {
-                        is Instant -> value.toString()
-                        is LocalDateTime -> serializeDate?.invoke(value) ?: value.toString()
-                        else -> value
-                    }
-                }
-        }
-
-        if (!undefined && obj == null) {
-            if (strictNullHandling)
-                return when {
-                    (encoder != null && !encodeValuesOnly) -> encoder(prefix, charset, format)
-                    else -> prefix
-                }
-
-            obj = ""
-        }
-
-        if (Utils.isNonNullishPrimitive(obj, skipNulls) || obj is ByteArray)
-            return when {
-                (encoder != null) -> {
-                    val keyValue: String =
-                        if (encodeValuesOnly) prefix else encoder(prefix, null, null)
-
-                    "${formatter(keyValue)}=${formatter(encoder(obj, null, null))}"
-                }
-
-                else -> "${formatter(prefix)}=${formatter(obj.toString())}"
-            }
-
-        val values = mutableListOf<Any?>()
-
-        if (undefined) {
-            return values
-        }
-
-        var effectiveCommaLength: Int? = null
-
-        val objKeys: List<Any?> =
-            when {
-                isCommaGenerator && obj is Iterable<*> -> {
-                    // materialize once for reuse
-                    val items = obj.toList()
-                    val filtered = if (compactNulls) items.filterNotNull() else items
-
-                    effectiveCommaLength = filtered.size
-
-                    val joinSource =
-                        if (encodeValuesOnly && encoder != null) {
-                            filtered.map { el ->
-                                el?.let { encoder(it.toString(), null, null) } ?: ""
-                            }
-                        } else {
-                            filtered.map { el -> el?.toString() ?: "" }
-                        }
-
-                    if (joinSource.isNotEmpty()) {
-                        val joined = joinSource.joinToString(",")
-
-                        listOf(mapOf("value" to joined.ifEmpty { null }))
-                    } else {
-                        listOf(mapOf("value" to Undefined.Companion()))
-                    }
-                }
-
-                filter is IterableFilter -> filter.iterable.toList()
-
-                else -> {
-                    val keys: Iterable<Any?> =
-                        when (obj) {
-                            is Map<*, *> -> obj.keys
-                            is List<*> -> obj.indices
-                            is Array<*> -> obj.indices
-                            is Iterable<*> -> obj.mapIndexed { index, _ -> index }
-                            else -> emptyList()
-                        }
-
-                    if (sort != null) {
-                        keys.toMutableList().apply { sortWith(sort) }
-                    } else {
-                        keys.toList()
-                    }
-                }
-            }
-
-        val encodedPrefix: String = if (encodeDotInKeys) prefix.replace(".", "%2E") else prefix
-
-        val adjustedPrefix: String =
-            if (
-                commaRoundTrip &&
-                    obj is Iterable<*> &&
-                    (if (isCommaGenerator && effectiveCommaLength != null) {
-                        effectiveCommaLength == 1
-                    } else {
-                        obj.count() == 1
-                    })
+        val stack = ArrayDeque<Frame>()
+        stack.add(
+            Frame(
+                obj = data,
+                undefined = undefined,
+                prefix = prefixValue,
+                generateArrayPrefix = generator,
+                commaRoundTrip = effectiveCommaRoundTrip,
+                commaCompactNulls = commaCompactNulls,
+                allowEmptyLists = allowEmptyLists,
+                strictNullHandling = strictNullHandling,
+                skipNulls = skipNulls,
+                encodeDotInKeys = encodeDotInKeys,
+                encoder = encoder,
+                serializeDate = serializeDate,
+                sort = sort,
+                filter = filter,
+                allowDots = allowDots,
+                format = format,
+                formatter = formatter,
+                encodeValuesOnly = encodeValuesOnly,
+                charset = charset,
+                addQueryPrefix = addQueryPrefix,
             )
-                "$encodedPrefix[]"
-            else encodedPrefix
+        )
 
-        if (allowEmptyLists && obj is Iterable<*> && !obj.iterator().hasNext()) {
-            return "$adjustedPrefix[]"
-        }
+        var lastResult: Any? = null
 
-        for (i: Int in 0 until objKeys.size) {
-            val key = objKeys[i]
-            val (value: Any?, valueUndefined: Boolean) =
-                when {
-                    key is Map<*, *> && key.containsKey("value") && key["value"] !is Undefined -> {
-                        Pair(key["value"], false)
+        while (stack.isNotEmpty()) {
+            val frame = stack.last()
+
+            when (frame.phase) {
+                Phase.START -> {
+                    var obj: Any? = frame.obj
+
+                    when (val f = frame.filter) {
+                        is FunctionFilter -> {
+                            obj = f.function(frame.prefix, obj)
+                        }
+                        else -> Unit
                     }
 
-                    else ->
-                        when (obj) {
-                            is Map<*, *> -> {
-                                Pair(obj[key], !obj.containsKey(key))
+                    if (obj is LocalDateTime) {
+                        obj = frame.serializeDate?.invoke(obj) ?: obj.toString()
+                    } else if (isCommaGenerator && obj is Iterable<*>) {
+                        obj =
+                            obj.map { value ->
+                                when (value) {
+                                    is Instant -> value.toString()
+                                    is LocalDateTime ->
+                                        frame.serializeDate?.invoke(value) ?: value.toString()
+                                    else -> value
+                                }
+                            }
+                    }
+
+                    if (!frame.undefined && obj == null) {
+                        if (frame.strictNullHandling) {
+                            val keyOnly =
+                                if (frame.encoder != null && !frame.encodeValuesOnly) {
+                                    frame.encoder.invoke(frame.prefix, frame.charset, frame.format)
+                                } else {
+                                    frame.prefix
+                                }
+                            if (frame.tracked) {
+                                frame.trackedObject?.let { seen.remove(it) }
+                            }
+                            stack.removeLast()
+                            lastResult = keyOnly
+                            continue
+                        }
+                        obj = ""
+                    }
+
+                    val trackObject = obj is Map<*, *> || obj is Array<*> || obj is Iterable<*>
+
+                    if (trackObject) {
+                        val objRef = obj
+                        if (seen.contains(objRef)) {
+                            throw IndexOutOfBoundsException("Cyclic object value")
+                        }
+                        seen.add(objRef)
+                        frame.tracked = true
+                        frame.trackedObject = objRef
+                    }
+
+                    if (
+                        Utils.isNonNullishPrimitive(obj, frame.skipNulls) ||
+                            obj is ByteArray ||
+                            obj is ByteBuffer
+                    ) {
+                        val fragment =
+                            if (frame.encoder != null) {
+                                val keyValue =
+                                    if (frame.encodeValuesOnly) frame.prefix
+                                    else
+                                        frame.encoder.invoke(
+                                            frame.prefix,
+                                            frame.charset,
+                                            frame.format,
+                                        )
+                                val encodedValue =
+                                    frame.encoder.invoke(obj, frame.charset, frame.format)
+                                "${frame.formatter(keyValue)}=${frame.formatter(encodedValue)}"
+                            } else {
+                                val rawValue =
+                                    Utils.bytesToString(obj, frame.charset) ?: obj.toString()
+                                "${frame.formatter(frame.prefix)}=${frame.formatter(rawValue)}"
                             }
 
-                            is Iterable<*> -> {
-                                val index = key as? Int
-                                if (index != null && index >= 0 && index < obj.count()) {
-                                    Pair(obj.elementAt(index), false)
+                        if (frame.tracked) {
+                            frame.trackedObject?.let { seen.remove(it) }
+                        }
+                        stack.removeLast()
+                        lastResult = fragment
+                        continue
+                    }
+
+                    frame.obj = obj
+                    if (frame.undefined) {
+                        if (frame.tracked) {
+                            frame.trackedObject?.let { seen.remove(it) }
+                        }
+                        stack.removeLast()
+                        lastResult = mutableListOf<Any?>()
+                        continue
+                    }
+
+                    if (obj is Iterable<*> && obj !is List<*>) {
+                        frame.iterableList = obj.toList()
+                    }
+
+                    val objKeys: List<Any?> =
+                        when {
+                            isCommaGenerator && obj is Iterable<*> -> {
+                                val items =
+                                    when {
+                                        obj is List<*> -> obj
+                                        frame.iterableList != null -> frame.iterableList!!
+                                        else -> obj.toList()
+                                    }
+
+                                val filtered =
+                                    if (frame.commaCompactNulls) items.filterNotNull() else items
+
+                                frame.effectiveCommaLength = filtered.size
+
+                                val joinSource =
+                                    if (frame.encodeValuesOnly && frame.encoder != null) {
+                                        filtered.map { el ->
+                                            el?.let {
+                                                frame.encoder.invoke(it.toString(), null, null)
+                                            } ?: ""
+                                        }
+                                    } else {
+                                        filtered.map { el ->
+                                            when (el) {
+                                                is ByteArray,
+                                                is ByteBuffer ->
+                                                    Utils.bytesToString(el, frame.charset) ?: ""
+                                                else -> el?.toString() ?: ""
+                                            }
+                                        }
+                                    }
+
+                                if (joinSource.isNotEmpty()) {
+                                    val joined = joinSource.joinToString(",")
+                                    listOf(mapOf("value" to joined.ifEmpty { null }))
                                 } else {
-                                    Pair(null, true)
+                                    listOf(mapOf("value" to Undefined.Companion()))
                                 }
                             }
 
-                            is Array<*> -> {
-                                val index = key as? Int
-                                if (index != null && index >= 0 && index < obj.size) {
-                                    Pair(obj[index], false)
-                                } else {
-                                    Pair(null, true)
-                                }
+                            frame.filter is IterableFilter -> {
+                                frame.filter.iterable.toList()
                             }
 
                             else -> {
-                                Pair(null, true) // Handle unsupported object types gracefully
+                                val keys: Iterable<Any?> =
+                                    when (obj) {
+                                        is Map<*, *> -> obj.keys
+                                        is List<*> -> obj.indices
+                                        is Array<*> -> obj.indices
+                                        is Iterable<*> -> {
+                                            val list = frame.iterableList ?: obj.toList()
+                                            list.indices
+                                        }
+                                        else -> emptyList()
+                                    }
+
+                                if (frame.sort != null) {
+                                    keys.toMutableList().apply { sortWith(frame.sort) }
+                                } else {
+                                    keys.toList()
+                                }
                             }
                         }
+
+                    val encodedPrefix: String =
+                        if (frame.encodeDotInKeys) frame.prefix.replace(".", "%2E")
+                        else frame.prefix
+
+                    val adjustedPrefix: String =
+                        if (
+                            frame.commaRoundTrip &&
+                                obj is Iterable<*> &&
+                                (if (isCommaGenerator && frame.effectiveCommaLength != null) {
+                                    frame.effectiveCommaLength == 1
+                                } else {
+                                    val count =
+                                        when (obj) {
+                                            is Collection<*> -> obj.size
+                                            else -> frame.iterableList?.size ?: obj.count()
+                                        }
+                                    count == 1
+                                })
+                        )
+                            "$encodedPrefix[]"
+                        else encodedPrefix
+
+                    val iterableEmpty =
+                        if (obj is Iterable<*>) {
+                            when (obj) {
+                                is Collection<*> -> obj.isEmpty()
+                                else -> frame.iterableList?.isEmpty() ?: !obj.iterator().hasNext()
+                            }
+                        } else {
+                            false
+                        }
+
+                    if (frame.allowEmptyLists && obj is Iterable<*> && iterableEmpty) {
+                        if (frame.tracked) {
+                            frame.trackedObject?.let { seen.remove(it) }
+                        }
+                        stack.removeLast()
+                        lastResult = "$adjustedPrefix[]"
+                        continue
+                    }
+
+                    frame.objKeys = objKeys
+                    frame.adjustedPrefix = adjustedPrefix
+                    frame.phase = Phase.ITERATE
+                    continue
                 }
 
-            if (skipNulls && value == null) {
-                continue
-            }
+                Phase.ITERATE -> {
+                    if (frame.index >= frame.objKeys.size) {
+                        if (frame.tracked) {
+                            frame.trackedObject?.let { seen.remove(it) }
+                        }
+                        stack.removeLast()
+                        lastResult = frame.values
+                        continue
+                    }
 
-            val encodedKey: String =
-                if (allowDots && encodeDotInKeys) key.toString().replace(".", "%2E")
-                else key.toString()
+                    val key = frame.objKeys[frame.index++]
+                    val obj = frame.obj
 
-            val keyPrefix: String =
-                if (obj is Iterable<*>) generateArrayPrefix(adjustedPrefix, encodedKey)
-                else "$adjustedPrefix${if (allowDots) ".$encodedKey" else "[$encodedKey]"}"
-
-            // Record the current container in this frame so children can detect cycles.
-            if (obj is Map<*, *> || obj is Iterable<*>) {
-                objWrapper?.let { sideChannel[it] = step }
-            }
-
-            // Create child side-channel and link to the parent
-            val valueSideChannel = WeakHashMap<Any?, Any?>()
-            valueSideChannel[SENTINEL] = sideChannel
-
-            val encoded: Any =
-                encode(
-                    data = value,
-                    undefined = valueUndefined,
-                    prefix = keyPrefix,
-                    generateArrayPrefix = generateArrayPrefix,
-                    commaRoundTrip = commaRoundTrip,
-                    commaCompactNulls = commaCompactNulls,
-                    allowEmptyLists = allowEmptyLists,
-                    strictNullHandling = strictNullHandling,
-                    skipNulls = skipNulls,
-                    encodeDotInKeys = encodeDotInKeys,
-                    encoder =
+                    val (value: Any?, valueUndefined: Boolean) =
                         when {
-                            generateArrayPrefix == ListFormat.COMMA.generator &&
-                                encodeValuesOnly &&
-                                obj is Iterable<*> -> null
-                            else -> encoder
-                        },
-                    serializeDate = serializeDate,
-                    filter = filter,
-                    sort = sort,
-                    allowDots = allowDots,
-                    format = format,
-                    formatter = formatter,
-                    encodeValuesOnly = encodeValuesOnly,
-                    charset = charset,
-                    addQueryPrefix = addQueryPrefix,
-                    sideChannel = valueSideChannel,
-                )
+                            key is Map<*, *> &&
+                                key.containsKey("value") &&
+                                key["value"] !is Undefined -> {
+                                Pair(key["value"], false)
+                            }
+                            else ->
+                                when (obj) {
+                                    is Map<*, *> -> Pair(obj[key], !obj.containsKey(key))
+                                    is Iterable<*> -> {
+                                        val index = key as? Int
+                                        val list =
+                                            when (obj) {
+                                                is List<*> -> obj
+                                                else -> frame.iterableList ?: obj.toList()
+                                            }
+                                        if (index != null && index >= 0 && index < list.size) {
+                                            Pair(list[index], false)
+                                        } else {
+                                            Pair(null, true)
+                                        }
+                                    }
+                                    is Array<*> -> {
+                                        val index = key as? Int
+                                        if (index != null && index >= 0 && index < obj.size) {
+                                            Pair(obj[index], false)
+                                        } else {
+                                            Pair(null, true)
+                                        }
+                                    }
+                                    else -> Pair(null, true)
+                                }
+                        }
 
-            when (encoded) {
-                is Iterable<*> -> values.addAll(encoded)
-                else -> values.add(encoded)
+                    if (frame.skipNulls && value == null) {
+                        continue
+                    }
+
+                    val encodedKey: String =
+                        if (frame.allowDots && frame.encodeDotInKeys)
+                            key.toString().replace(".", "%2E")
+                        else key.toString()
+
+                    val keyPrefix: String =
+                        if (obj is Iterable<*>)
+                            frame.generateArrayPrefix(frame.adjustedPrefix, encodedKey)
+                        else
+                            "${frame.adjustedPrefix}${if (frame.allowDots) ".$encodedKey" else "[$encodedKey]"}"
+
+                    val childEncoder =
+                        if (
+                            frame.generateArrayPrefix == ListFormat.COMMA.generator &&
+                                frame.encodeValuesOnly &&
+                                obj is Iterable<*>
+                        )
+                            null
+                        else frame.encoder
+
+                    frame.phase = Phase.WAIT_CHILD
+                    stack.add(
+                        Frame(
+                            obj = value,
+                            undefined = valueUndefined,
+                            prefix = keyPrefix,
+                            generateArrayPrefix = frame.generateArrayPrefix,
+                            commaRoundTrip = frame.commaRoundTrip,
+                            commaCompactNulls = frame.commaCompactNulls,
+                            allowEmptyLists = frame.allowEmptyLists,
+                            strictNullHandling = frame.strictNullHandling,
+                            skipNulls = frame.skipNulls,
+                            encodeDotInKeys = frame.encodeDotInKeys,
+                            encoder = childEncoder,
+                            serializeDate = frame.serializeDate,
+                            sort = frame.sort,
+                            filter = frame.filter,
+                            allowDots = frame.allowDots,
+                            format = frame.format,
+                            formatter = frame.formatter,
+                            encodeValuesOnly = frame.encodeValuesOnly,
+                            charset = frame.charset,
+                            addQueryPrefix = frame.addQueryPrefix,
+                        )
+                    )
+                    continue
+                }
+
+                Phase.WAIT_CHILD -> {
+                    val encoded = lastResult
+                    when (encoded) {
+                        is Iterable<*> -> frame.values.addAll(encoded)
+                        else -> frame.values.add(encoded)
+                    }
+                    frame.phase = Phase.ITERATE
+                    continue
+                }
             }
         }
 
-        return values
+        return lastResult ?: emptyList<Any?>()
     }
 }

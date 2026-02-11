@@ -145,6 +145,7 @@ class EncodeOptionsSpec :
                         .skipNulls(true)
                         .strictNullHandling(true)
                         .commaRoundTrip(true)
+                        .commaCompactNulls(true)
                         .sort { a, b -> (a.toString()).compareTo(b.toString()) }
                         .build()
 
@@ -164,6 +165,7 @@ class EncodeOptionsSpec :
                 options.skipNulls shouldBe true
                 options.strictNullHandling shouldBe true
                 options.commaRoundTrip shouldBe true
+                options.commaCompactNulls shouldBe true
                 options.getAllowDots shouldBe true
                 options.getListFormat shouldBe ListFormat.BRACKETS
                 options.sort!!("b", "a") shouldBe "b".compareTo("a")

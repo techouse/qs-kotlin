@@ -146,11 +146,11 @@ class QsParserSpec :
 
                 decode("a[1]=b&a=c", options20) shouldBe mapOf("a" to listOf("b", "c"))
 
-                decode("a[]=b&a=c", options0) shouldBe mapOf("a" to mapOf("0" to "b", "c" to true))
+                decode("a[]=b&a=c", options0) shouldBe mapOf("a" to mapOf("0" to "b", "1" to "c"))
 
                 decode("a=b&a[1]=c", options20) shouldBe mapOf("a" to listOf("b", "c"))
 
-                decode("a=b&a[]=c", options0) shouldBe mapOf("a" to listOf("b", mapOf("0" to "c")))
+                decode("a=b&a[]=c", options0) shouldBe mapOf("a" to mapOf("0" to "b", "1" to "c"))
             }
 
             it("should parse a nested array") {

@@ -105,6 +105,13 @@ class DecodeSpec :
                     )
             }
 
+            it("ignores empty segments and empty keys") {
+                decode("a=b&&c=d") shouldBe mapOf("a" to "b", "c" to "d")
+                decode("a=b&") shouldBe mapOf("a" to "b")
+                decode("=a") shouldBe emptyMap()
+                decode("a=b&=c&d=e") shouldBe mapOf("a" to "b", "d" to "e")
+            }
+
             it("comma: false") {
                 decode("a[]=b&a[]=c") shouldBe mapOf("a" to listOf("b", "c"))
                 decode("a[0]=b&a[1]=c") shouldBe mapOf("a" to listOf("b", "c"))
@@ -130,6 +137,36 @@ class DecodeSpec :
                         )
                     }
                     .message shouldBe "List limit exceeded. Only 3 elements allowed in a list."
+            }
+
+            it("comma: true truncates when list limit exceeded without throwing") {
+                decode(
+                    "a=b,c",
+                    DecodeOptions(comma = true, throwOnLimitExceeded = false, listLimit = 1),
+                ) shouldBe mapOf("a" to listOf("b"))
+            }
+
+            it("comma: true ignores negative list limit") {
+                decode(
+                    "a=b,c",
+                    DecodeOptions(comma = true, throwOnLimitExceeded = false, listLimit = -1),
+                ) shouldBe mapOf("a" to listOf("b", "c"))
+            }
+
+            it("comma: true counts existing list length across duplicates") {
+                shouldThrow<IndexOutOfBoundsException> {
+                    decode(
+                        "a=b,c&a=d",
+                        DecodeOptions(comma = true, throwOnLimitExceeded = true, listLimit = 2),
+                    )
+                }
+            }
+
+            it("comma: true keeps existing list when duplicate arrives at list limit") {
+                decode(
+                    "a=b,c&a=d,e",
+                    DecodeOptions(comma = true, throwOnLimitExceeded = false, listLimit = 2),
+                ) shouldBe mapOf("a" to listOf("b", "c"))
             }
 
             it("allows enabling dot notation") {
@@ -285,13 +322,13 @@ class DecodeSpec :
                 decode("a[1]=b&a=c", DecodeOptions(listLimit = 20)) shouldBe
                     mapOf("a" to listOf("b", "c"))
                 decode("a[]=b&a=c", DecodeOptions(listLimit = 0)) shouldBe
-                    mapOf("a" to mapOf("0" to "b", "c" to true))
+                    mapOf("a" to mapOf("0" to "b", "1" to "c"))
                 decode("a[]=b&a=c") shouldBe mapOf("a" to listOf("b", "c"))
 
                 decode("a=b&a[1]=c", DecodeOptions(listLimit = 20)) shouldBe
                     mapOf("a" to listOf("b", "c"))
                 decode("a=b&a[]=c", DecodeOptions(listLimit = 0)) shouldBe
-                    mapOf("a" to listOf("b", mapOf("0" to "c")))
+                    mapOf("a" to mapOf("0" to "b", "1" to "c"))
                 decode("a=b&a[]=c") shouldBe mapOf("a" to listOf("b", "c"))
             }
 
@@ -907,6 +944,13 @@ class DecodeSpec :
                     mapOf("foo" to listOf("bar", "baz"))
             }
 
+            it("duplicates: combine with listLimit < 0 preserves list") {
+                decode(
+                    "foo=bar&foo=baz",
+                    DecodeOptions(duplicates = Duplicates.COMBINE, listLimit = -1),
+                ) shouldBe mapOf("foo" to listOf("bar", "baz"))
+            }
+
             it("duplicates: first") {
                 decode("foo=bar&foo=baz", DecodeOptions(duplicates = Duplicates.FIRST)) shouldBe
                     mapOf("foo" to "bar")
@@ -997,6 +1041,17 @@ class DecodeSpec :
                 }
             }
 
+            it("uses singular wording when parameterLimit is 1 and exceeded") {
+                val error =
+                    shouldThrow<IndexOutOfBoundsException> {
+                        decode(
+                            "a=1&b=2",
+                            DecodeOptions(parameterLimit = 1, throwOnLimitExceeded = true),
+                        )
+                    }
+                error.message shouldBe "Parameter limit exceeded. Only 1 parameter allowed."
+            }
+
             it("silently truncates when throwOnLimitExceeded is not given") {
                 decode("a=1&b=2&c=3&d=4&e=5", DecodeOptions(parameterLimit = 3)) shouldBe
                     mapOf("a" to "1", "b" to "2", "c" to "3")
@@ -1009,12 +1064,37 @@ class DecodeSpec :
                 ) shouldBe mapOf("a" to "1", "b" to "2", "c" to "3")
             }
 
+            it("ignores empty segments when applying parameter limit") {
+                decode("&&a=b", DecodeOptions(parameterLimit = 1)) shouldBe mapOf("a" to "b")
+            }
+
+            it("does not count empty segments toward parameter limit when throwOnLimitExceeded") {
+                shouldNotThrow<Exception> {
+                    decode(
+                        "&&a=b",
+                        DecodeOptions(parameterLimit = 1, throwOnLimitExceeded = true),
+                    ) shouldBe mapOf("a" to "b")
+                }
+            }
+
             it("allows unlimited parameters when parameterLimit set to Infinity") {
                 decode(
                     "a=1&b=2&c=3&d=4&e=5&f=6",
                     DecodeOptions(parameterLimit = Int.MAX_VALUE),
                 ) shouldBe
                     mapOf("a" to "1", "b" to "2", "c" to "3", "d" to "4", "e" to "5", "f" to "6")
+            }
+
+            it("filters empty segments with unlimited parameterLimit") {
+                decode("&&a=1&&b=2&&", DecodeOptions(parameterLimit = Int.MAX_VALUE)) shouldBe
+                    mapOf("a" to "1", "b" to "2")
+            }
+
+            it("supports throwOnLimitExceeded when parameterLimit is unlimited") {
+                decode(
+                    "&&a=1&&b=2&&",
+                    DecodeOptions(parameterLimit = Int.MAX_VALUE, throwOnLimitExceeded = true),
+                ) shouldBe mapOf("a" to "1", "b" to "2")
             }
         }
 
@@ -1059,12 +1139,10 @@ class DecodeSpec :
             }
 
             it("handles negative list limit correctly") {
-                shouldThrow<IndexOutOfBoundsException> {
-                    decode(
-                        "a[]=1&a[]=2",
-                        DecodeOptions(listLimit = -1, throwOnLimitExceeded = true),
-                    )
-                }
+                decode(
+                    "a[]=1&a[]=2",
+                    DecodeOptions(listLimit = -1, throwOnLimitExceeded = true),
+                ) shouldBe mapOf("a" to listOf("1", "2"))
             }
 
             it("applies list limit to nested lists") {
