@@ -153,6 +153,45 @@ class EncoderInternalSpec :
                 result shouldBe "items[]"
             }
 
+            it(
+                "returns empty suffix for empty non-collection iterable when allowEmptyLists enabled"
+            ) {
+                val result =
+                    Encoder.encode(
+                        data =
+                            object : Iterable<String> {
+                                override fun iterator(): Iterator<String> =
+                                    emptyList<String>().iterator()
+                            },
+                        undefined = false,
+                        sideChannel = mutableMapOf(),
+                        prefix = "items",
+                        allowEmptyLists = true,
+                    )
+
+                result shouldBe "items[]"
+            }
+
+            it("uses iterableList size for commaRoundTrip with non-collection iterables") {
+                val result =
+                    Encoder.encode(
+                        data =
+                            object : Iterable<String> {
+                                override fun iterator(): Iterator<String> =
+                                    listOf("solo").iterator()
+                            },
+                        undefined = false,
+                        sideChannel = mutableMapOf(),
+                        prefix = "items",
+                        generateArrayPrefix = ListFormat.INDICES.generator,
+                        commaRoundTrip = true,
+                        encoder = { value, _, _ -> value?.toString() ?: "" },
+                        formatter = { v -> v },
+                    )
+
+                result shouldBe listOf("items[][0]=solo")
+            }
+
             it("stringifies temporal comma lists when no serializer supplied") {
                 val instant = Instant.parse("2020-01-01T00:00:00Z")
                 val date = LocalDateTime.parse("2020-01-01T00:00:00")
