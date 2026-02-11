@@ -808,6 +808,17 @@ class UtilsSpec :
                 map.maxIndex shouldBe 4
             }
 
+            test("combine skips Undefined when appending iterable into overflow map") {
+                val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
+                overflow.shouldBeInstanceOf<Utils.OverflowMap>()
+
+                val result = Utils.combine(overflow, listOf("d", Undefined(), "e"), limit = 2)
+                val map = result.shouldBeInstanceOf<Utils.OverflowMap>()
+                map["3"] shouldBe "d"
+                map["4"] shouldBe "e"
+                map.maxIndex shouldBe 4
+            }
+
             test("combine does not overflow when listLimit is negative") {
                 val result = Utils.combine("a", "b", limit = -1)
                 result.shouldBeInstanceOf<List<*>>()

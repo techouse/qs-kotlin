@@ -840,6 +840,7 @@ internal object Utils {
             var newIndex = a.maxIndex
             if (b is Iterable<*>) {
                 for (item in b) {
+                    if (item is Undefined) continue
                     newIndex += 1
                     a[newIndex.toString()] = item
                 }
