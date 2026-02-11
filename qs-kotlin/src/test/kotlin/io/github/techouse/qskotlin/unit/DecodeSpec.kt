@@ -1046,6 +1046,19 @@ class DecodeSpec :
                 ) shouldBe mapOf("a" to "1", "b" to "2", "c" to "3")
             }
 
+            it("ignores empty segments when applying parameter limit") {
+                decode("&&a=b", DecodeOptions(parameterLimit = 1)) shouldBe mapOf("a" to "b")
+            }
+
+            it("does not count empty segments toward parameter limit when throwOnLimitExceeded") {
+                shouldNotThrow<Exception> {
+                    decode(
+                        "&&a=b",
+                        DecodeOptions(parameterLimit = 1, throwOnLimitExceeded = true),
+                    ) shouldBe mapOf("a" to "b")
+                }
+            }
+
             it("allows unlimited parameters when parameterLimit set to Infinity") {
                 decode(
                     "a=1&b=2&c=3&d=4&e=5&f=6",

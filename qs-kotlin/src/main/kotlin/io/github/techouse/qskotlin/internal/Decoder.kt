@@ -80,13 +80,14 @@ internal object Decoder {
             throw IllegalArgumentException("Parameter limit must be a positive integer.")
         }
 
+        val allParts: List<String> = options.delimiter.split(cleanStr)
+        val nonEmptyParts = allParts.filter { it.isNotEmpty() }
         val parts =
             if (limit != null) {
-                val allParts: List<String> = options.delimiter.split(cleanStr)
                 val takeCount: Int = if (options.throwOnLimitExceeded) limit + 1 else limit
-                allParts.take(takeCount)
+                nonEmptyParts.take(takeCount)
             } else {
-                options.delimiter.split(cleanStr)
+                nonEmptyParts
             }
 
         if (options.throwOnLimitExceeded && limit != null && parts.size > limit) {
