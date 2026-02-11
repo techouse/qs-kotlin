@@ -64,6 +64,7 @@ internal object Utils {
             )
         )
 
+        // Convert an iterable into a stable index->value map for merge operations.
         fun toIndexedMap(iterable: Iterable<*>): MutableMap<Int, Any?> {
             val map = java.util.TreeMap<Int, Any?>()
             var i = 0
@@ -609,7 +610,8 @@ internal object Utils {
             if (end < str.length) {
                 val last = str[end - 1]
                 val next = str[end]
-                if (Character.isHighSurrogate(last) && Character.isLowSurrogate(next)) {
+                // Avoid splitting a surrogate pair across segment boundaries.
+                if (last in '\uD800'..'\uDBFF' && next in '\uDC00'..'\uDFFF') {
                     end -= 1 // keep surrogate pair together
                 }
             }
