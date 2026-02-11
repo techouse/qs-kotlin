@@ -554,6 +554,21 @@ class UtilsSpec :
                 map.maxIndex shouldBe 2
             }
 
+            test("merge null with mixed-key overflow map preserves numeric and string keys") {
+                val overflow =
+                    Utils.OverflowMap().apply {
+                        this["0"] = "a"
+                        this["meta"] = "m"
+                        maxIndex = 0
+                    }
+
+                val result = Utils.merge(null, overflow)
+                val map = result.shouldBeInstanceOf<Utils.OverflowMap>()
+                map["0"] shouldBe "a"
+                map["meta"] shouldBe "m"
+                map.maxIndex shouldBe 0
+            }
+
             test("merge map into overflow map preserves maxIndex") {
                 val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
                 overflow.shouldBeInstanceOf<Utils.OverflowMap>()
@@ -562,6 +577,22 @@ class UtilsSpec :
                 val map = result.shouldBeInstanceOf<Utils.OverflowMap>()
                 map["extra"] shouldBe "x"
                 map.maxIndex shouldBe 2
+            }
+
+            test("merge scalar with mixed-key overflow map shifts numeric keys only") {
+                val overflow =
+                    Utils.OverflowMap().apply {
+                        this["0"] = "a"
+                        this["meta"] = "m"
+                        maxIndex = 0
+                    }
+
+                val result = Utils.merge("root", overflow)
+                val map = result.shouldBeInstanceOf<Utils.OverflowMap>()
+                map["0"] shouldBe "root"
+                map["1"] shouldBe "a"
+                map["meta"] shouldBe "m"
+                map.maxIndex shouldBe 1
             }
 
             test("merges two objects with the same key and different values into a list") {
