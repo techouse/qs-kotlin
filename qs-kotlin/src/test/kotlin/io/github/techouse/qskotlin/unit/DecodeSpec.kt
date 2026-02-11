@@ -1066,6 +1066,11 @@ class DecodeSpec :
                 ) shouldBe
                     mapOf("a" to "1", "b" to "2", "c" to "3", "d" to "4", "e" to "5", "f" to "6")
             }
+
+            it("filters empty segments with unlimited parameterLimit") {
+                decode("&&a=1&&b=2&&", DecodeOptions(parameterLimit = Int.MAX_VALUE)) shouldBe
+                    mapOf("a" to "1", "b" to "2")
+            }
         }
 
         describe("list limit tests") {
