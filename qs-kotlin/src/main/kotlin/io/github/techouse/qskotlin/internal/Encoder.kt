@@ -21,7 +21,7 @@ internal object Encoder {
         WAIT_CHILD,
     }
 
-    private data class Frame(
+    private class Frame(
         var obj: Any?,
         val undefined: Boolean,
         val prefix: String,
