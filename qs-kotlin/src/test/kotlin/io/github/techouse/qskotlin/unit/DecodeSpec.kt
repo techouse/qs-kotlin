@@ -1034,6 +1034,17 @@ class DecodeSpec :
                 }
             }
 
+            it("uses singular wording when parameterLimit is 1 and exceeded") {
+                val error =
+                    shouldThrow<IndexOutOfBoundsException> {
+                        decode(
+                            "a=1&b=2",
+                            DecodeOptions(parameterLimit = 1, throwOnLimitExceeded = true),
+                        )
+                    }
+                error.message shouldBe "Parameter limit exceeded. Only 1 parameter allowed."
+            }
+
             it("silently truncates when throwOnLimitExceeded is not given") {
                 decode("a=1&b=2&c=3&d=4&e=5", DecodeOptions(parameterLimit = 3)) shouldBe
                     mapOf("a" to "1", "b" to "2", "c" to "3")
@@ -1070,6 +1081,13 @@ class DecodeSpec :
             it("filters empty segments with unlimited parameterLimit") {
                 decode("&&a=1&&b=2&&", DecodeOptions(parameterLimit = Int.MAX_VALUE)) shouldBe
                     mapOf("a" to "1", "b" to "2")
+            }
+
+            it("supports throwOnLimitExceeded when parameterLimit is unlimited") {
+                decode(
+                    "&&a=1&&b=2&&",
+                    DecodeOptions(parameterLimit = Int.MAX_VALUE, throwOnLimitExceeded = true),
+                ) shouldBe mapOf("a" to "1", "b" to "2")
             }
         }
 
