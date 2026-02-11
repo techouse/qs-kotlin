@@ -1199,6 +1199,44 @@ class EncodeSpec :
                 calls shouldBe 5
             }
 
+            it("applies dateSerializer when filter = FunctionFilter") {
+                val dt = LocalDateTime.of(2020, 1, 2, 3, 4, 5)
+                val filter = FunctionFilter { _, value -> value }
+                val serializeDate: DateSerializer = { d ->
+                    d.toEpochSecond(ZoneOffset.UTC).toString()
+                }
+                val out =
+                    encode(
+                        mapOf("a" to dt),
+                        EncodeOptions(
+                            filter = filter,
+                            dateSerializer = serializeDate,
+                            encode = false,
+                        ),
+                    )
+                out shouldBe "a=${serializeDate(dt)}"
+            }
+
+            it("applies dateSerializer to COMMA lists when filter = FunctionFilter") {
+                val dt = LocalDateTime.of(2020, 1, 2, 3, 4, 5)
+                val filter = FunctionFilter { _, value -> value }
+                val serializeDate: DateSerializer = { d ->
+                    d.toEpochSecond(ZoneOffset.UTC).toString()
+                }
+                val serialized = serializeDate(dt)
+                val out =
+                    encode(
+                        mapOf("d" to listOf(dt, dt)),
+                        EncodeOptions(
+                            filter = filter,
+                            dateSerializer = serializeDate,
+                            listFormat = ListFormat.COMMA,
+                            encode = false,
+                        ),
+                    )
+                out shouldBe "d=${serialized},${serialized}"
+            }
+
             it("can disable uri encoding") {
                 encode(mapOf("a" to "b"), EncodeOptions(encode = false)) shouldBe "a=b"
 

@@ -148,22 +148,21 @@ internal object Encoder {
                         is FunctionFilter -> {
                             obj = f.function(frame.prefix, obj)
                         }
-                        else -> {
-                            if (obj is LocalDateTime) {
-                                obj = frame.serializeDate?.invoke(obj) ?: obj.toString()
-                            } else if (isCommaGenerator && obj is Iterable<*>) {
-                                obj =
-                                    obj.map { value ->
-                                        when (value) {
-                                            is Instant -> value.toString()
-                                            is LocalDateTime ->
-                                                frame.serializeDate?.invoke(value)
-                                                    ?: value.toString()
-                                            else -> value
-                                        }
-                                    }
+                        else -> Unit
+                    }
+
+                    if (obj is LocalDateTime) {
+                        obj = frame.serializeDate?.invoke(obj) ?: obj.toString()
+                    } else if (isCommaGenerator && obj is Iterable<*>) {
+                        obj =
+                            obj.map { value ->
+                                when (value) {
+                                    is Instant -> value.toString()
+                                    is LocalDateTime ->
+                                        frame.serializeDate?.invoke(value) ?: value.toString()
+                                    else -> value
+                                }
                             }
-                        }
                     }
 
                     if (!frame.undefined && obj == null) {
