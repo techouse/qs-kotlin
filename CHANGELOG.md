@@ -1,16 +1,20 @@
 ## 1.5.0-wip
 
-* [FIX] skip empty query segments and empty keys during decode to match `qs`
+* [FIX] ignore empty query segments before applying `parameterLimit` so delimiters do not consume the limit budget
+* [FIX] skip empty keys during decode to match `qs`
 * [FIX] enforce comma list limits with truncation or throwing, including duplicate key accumulation
 * [FIX] correct UTF-16 surrogate encoding and prevent segment-boundary splits in `Utils.encode`
 * [FIX] decode `ByteArray`/`ByteBuffer` values via charset even when `encode=false`
+* [FIX] ensure `FunctionFilter` results still pass through date serialization and COMMA temporal normalization
 * [FIX] replace undefined holes during list merges and normalize when `parseLists=false`
 * [FIX] detect cycles introduced by filters during encoding
 * [FIX] append scalars to overflow maps during merge to preserve list-limit semantics
-* [FIX] preserve overflow semantics in merge/combine (overflow sources, iterable append, negative listLimit)
+* [FIX] preserve overflow indices/maxIndex when merging `OverflowMap` into `null` targets
+* [FIX] skip `Undefined` values when appending iterables into `OverflowMap` via `combine`
+* [FIX] preserve overflow semantics in merge/combine (overflow sources, negative `listLimit`)
 * [FIX] COMMA list encoding honors ByteArray/ByteBuffer decoding when `encode=false`
 * [CHORE] refactor encode/merge internals to stack-based traversal for deep-nesting safety
-* [CHORE] expand tests for empty segments, comma limits, surrogates, byte buffers, and merge holes
+* [CHORE] expand tests for empty segments, comma limits, surrogates, byte buffers, filter date normalization, and overflow edge cases
 
 ## 1.4.4
 
