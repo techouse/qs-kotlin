@@ -169,6 +169,14 @@ class UtilsSpec :
                 Utils.encode(ByteBuffer.wrap("hi".toByteArray())) shouldBe "hi"
             }
 
+            test("encodes latin1 bytes through non-UTF decoder path") {
+                Utils.encode(
+                    byteArrayOf(0xE4.toByte()),
+                    charset = StandardCharsets.ISO_8859_1,
+                    format = Format.RFC3986,
+                ) shouldBe "%E4"
+            }
+
             test("encodes direct and read-only ByteBuffers") {
                 val direct = ByteBuffer.allocateDirect(2)
                 direct.put("hi".toByteArray())
@@ -598,6 +606,7 @@ class UtilsSpec :
             test("merge overflow map updates maxIndex for supported key types only") {
                 val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
                 overflow.shouldBeInstanceOf<Utils.OverflowMap>()
+                val marker = Any()
 
                 val merged =
                     Utils.merge(
@@ -609,6 +618,7 @@ class UtilsSpec :
                             Long.MAX_VALUE to "too-big",
                             "9" to "string-int",
                             "meta" to "meta",
+                            marker to "marker",
                         ),
                     )
 
@@ -616,6 +626,17 @@ class UtilsSpec :
                 map["9"] shouldBe "string-int"
                 map["meta"] shouldBe "meta"
                 map.maxIndex shouldBe 9
+            }
+
+            test("merge list-of-maps normalizes undefined tail when parseLists is false") {
+                val result =
+                    Utils.merge(
+                        listOf(mapOf("a" to "1")),
+                        listOf(mapOf("b" to "2"), Undefined()),
+                        DecodeOptions(parseLists = false),
+                    )
+
+                result shouldBe mapOf("0" to mapOf("a" to "1", "b" to "2"))
             }
 
             test("merges two objects with the same key and different values into a list") {
