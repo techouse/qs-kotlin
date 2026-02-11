@@ -1,4 +1,4 @@
-## 1.5.0-wip
+## 1.5.0
 
 * [FIX] ignore empty query segments before applying `parameterLimit` so delimiters do not consume the limit budget
 * [FIX] skip empty keys during decode to match `qs`
