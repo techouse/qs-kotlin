@@ -542,6 +542,18 @@ class UtilsSpec :
                 map.maxIndex shouldBe 3
             }
 
+            test("merge null with overflow map preserves indices") {
+                val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
+                overflow.shouldBeInstanceOf<Utils.OverflowMap>()
+
+                val result = Utils.merge(null, overflow)
+                val map = result.shouldBeInstanceOf<Utils.OverflowMap>()
+                map["0"] shouldBe "a"
+                map["1"] shouldBe "b"
+                map["2"] shouldBe "c"
+                map.maxIndex shouldBe 2
+            }
+
             test("merge map into overflow map preserves maxIndex") {
                 val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
                 overflow.shouldBeInstanceOf<Utils.OverflowMap>()

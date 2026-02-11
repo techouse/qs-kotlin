@@ -258,6 +258,7 @@ internal object Utils {
                         if (currentSource is OverflowMap) {
                             val sourceMax = currentSource.maxIndex
                             val resultMap = OverflowMap()
+                            val shift = if (currentTarget != null) 1 else 0
                             if (currentTarget != null) {
                                 resultMap["0"] = currentTarget
                             }
@@ -267,10 +268,10 @@ internal object Utils {
                                 if (oldIndex == null) {
                                     resultMap[keyStr] = value
                                 } else {
-                                    resultMap[(oldIndex + 1).toString()] = value
+                                    resultMap[(oldIndex + shift).toString()] = value
                                 }
                             }
-                            resultMap.maxIndex = sourceMax + 1
+                            resultMap.maxIndex = sourceMax + shift
                             stack.removeLast()
                             frame.onResult(resultMap)
                             continue
