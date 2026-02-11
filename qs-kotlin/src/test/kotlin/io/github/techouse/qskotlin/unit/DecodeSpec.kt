@@ -162,6 +162,13 @@ class DecodeSpec :
                 }
             }
 
+            it("comma: true keeps existing list when duplicate arrives at list limit") {
+                decode(
+                    "a=b,c&a=d,e",
+                    DecodeOptions(comma = true, throwOnLimitExceeded = false, listLimit = 2),
+                ) shouldBe mapOf("a" to listOf("b", "c"))
+            }
+
             it("allows enabling dot notation") {
                 decode("a.b=c") shouldBe mapOf("a.b" to "c")
                 decode("a.b=c", DecodeOptions(allowDots = true)) shouldBe
