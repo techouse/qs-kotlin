@@ -15,12 +15,14 @@ import java.util.IdentityHashMap
 
 /** A helper object for encoding data into a query string format. */
 internal object Encoder {
+    // Traversal phases for the encoder's explicit stack.
     private enum class Phase {
         START,
         ITERATE,
         WAIT_CHILD,
     }
 
+    // Mutable traversal frame; kept local to avoid leaking internal state.
     private class Frame(
         var obj: Any?,
         val undefined: Boolean,
