@@ -595,6 +595,29 @@ class UtilsSpec :
                 map.maxIndex shouldBe 1
             }
 
+            test("merge overflow map updates maxIndex for supported key types only") {
+                val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
+                overflow.shouldBeInstanceOf<Utils.OverflowMap>()
+
+                val merged =
+                    Utils.merge(
+                        overflow,
+                        linkedMapOf<Any?, Any?>(
+                            -1 to "neg",
+                            5 to "int",
+                            7L to "long",
+                            Long.MAX_VALUE to "too-big",
+                            "9" to "string-int",
+                            "meta" to "meta",
+                        ),
+                    )
+
+                val map = merged.shouldBeInstanceOf<Utils.OverflowMap>()
+                map["9"] shouldBe "string-int"
+                map["meta"] shouldBe "meta"
+                map.maxIndex shouldBe 9
+            }
+
             test("merges two objects with the same key and different values into a list") {
                 Utils.merge(
                     mapOf("foo" to listOf(mapOf("a" to "b"))),
