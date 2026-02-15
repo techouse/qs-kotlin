@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.3.10"
-agp = "9.0.0"
+agp = "9.0.1"
 dokka = "2.1.0"
 nexusPublish = "2.0.0"
 kotest = "6.1.3"
