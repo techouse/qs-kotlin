@@ -1,3 +1,7 @@
+## 1.5.1
+
+* [CHORE] update Android Gradle Plugin to 9.0.1
+
 ## 1.5.0
 
 * [FIX] ignore empty query segments before applying `parameterLimit` so delimiters do not consume the limit budget
