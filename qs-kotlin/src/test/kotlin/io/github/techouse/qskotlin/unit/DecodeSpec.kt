@@ -1593,5 +1593,49 @@ class DecodeSpec :
                 val expected = mapOf("0" to "1", "1" to "2", "2" to "3", "3" to "4")
                 a shouldBe expected
             }
+
+            describe("GHSA-w7fw-mjwx-w883 regression (comma + listLimit)") {
+                it("comma-separated values within listLimit stay as a list") {
+                    decode("a=1,2,3", DecodeOptions(comma = true, listLimit = 5)) shouldBe
+                        mapOf("a" to listOf("1", "2", "3"))
+                }
+
+                it("comma-separated values over listLimit throw when throwOnLimitExceeded=true") {
+                    shouldThrow<IndexOutOfBoundsException> {
+                            decode(
+                                "a=1,2,3,4",
+                                DecodeOptions(
+                                    comma = true,
+                                    listLimit = 3,
+                                    throwOnLimitExceeded = true,
+                                ),
+                            )
+                        }
+                        .message shouldBe "List limit exceeded. Only 3 elements allowed in a list."
+                }
+
+                it(
+                    "comma-separated values over listLimit are truncated when throwOnLimitExceeded=false"
+                ) {
+                    decode(
+                        "a=1,2,3,4",
+                        DecodeOptions(comma = true, listLimit = 3, throwOnLimitExceeded = false),
+                    ) shouldBe mapOf("a" to listOf("1", "2", "3"))
+                }
+
+                it("advisory-shaped payload throws when comma split exceeds listLimit") {
+                    shouldThrow<IndexOutOfBoundsException> {
+                            decode(
+                                "a=" + ",".repeat(25),
+                                DecodeOptions(
+                                    comma = true,
+                                    listLimit = 5,
+                                    throwOnLimitExceeded = true,
+                                ),
+                            )
+                        }
+                        .message shouldBe "List limit exceeded. Only 5 elements allowed in a list."
+                }
+            }
         }
     })
