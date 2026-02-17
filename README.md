@@ -601,6 +601,11 @@ QS.decode(
 // => {a=[b, c]}
 ```
 
+When `comma = true`, this port enforces `listLimit` for comma-split values. If
+`throwOnLimitExceeded = true`, decode throws; otherwise values are truncated to the
+configured `listLimit`. This intentionally differs from `qs@6.14.2`, which converts
+over-limit comma results to an object-like overflow structure.
+
 ### Primitive/scalar values
 
 All values decode as strings by default:
