@@ -4,12 +4,15 @@ import io.github.techouse.qskotlin.decode
 import io.github.techouse.qskotlin.encode
 import kotlinx.serialization.json.*
 import java.io.InputStream
-import java.util.*
 
-fun main() {
+fun main(args: Array<String>) {
+    if (args.firstOrNull() in setOf("perf", "--perf")) {
+        runPerfSnapshot()
+        return
+    }
+
     val json = Json { ignoreUnknownKeys = true }
     val cases = json.parseToJsonElement(resourceText("/comparison/test_cases.json")).jsonArray
-    val printer = Json { prettyPrint = false }
 
     val percentEncodeBrackets = true // set to false if your encode() already escapes [ ]
 
