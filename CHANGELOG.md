@@ -1,3 +1,7 @@
+## 1.5.3
+
+* [CHORE] optimize decode by skipping dot-in-keys normalization when "%2E" is not present in key segments
+
 ## 1.5.2
 
 * [FIX] optimize encoder deep-nesting performance by introducing lazy key-path materialization (`KeyPathNode`) and lightweight child-path assembly for known list generators
