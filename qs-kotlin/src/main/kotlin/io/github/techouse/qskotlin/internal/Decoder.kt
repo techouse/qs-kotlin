@@ -227,8 +227,8 @@ internal object Decoder {
                     } else root
 
                 val decodedRoot =
-                    if (options.getDecodeDotInKeys)
-                        cleanRoot.replace("%2E", ".").replace("%2e", ".")
+                    if (options.getDecodeDotInKeys && cleanRoot.contains("%2E", ignoreCase = true))
+                        cleanRoot.replace("%2E", ".", ignoreCase = true)
                     else cleanRoot
 
                 val isPureNumeric = decodedRoot.isNotEmpty() && decodedRoot.all { it.isDigit() }
