@@ -26,6 +26,7 @@ Purpose: Enable AI agents to confidently modify and extend qs-kotlin while prese
    - `node comparison/js/qs.js > node.out`
    - `diff -u node.out kotlin.out` (script shortcut: `comparison/compare_outputs.sh`).
 4. Android wrapper sanity: `./gradlew :qs-kotlin-android:assembleRelease :qs-kotlin-android:testReleaseUnitTest`.
+5. Perf snapshot (when touching hot paths): `./gradlew :comparison:run --args perf` to compare local before/after encode/decode timings and allocations.
 
 ## When Changing Behavior
 - Update/extend focused specs replicating the upstream `qs` case causing the change.
