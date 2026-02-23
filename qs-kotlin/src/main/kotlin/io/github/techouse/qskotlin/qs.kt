@@ -52,11 +52,80 @@ fun decode(input: Any?, options: DecodeOptions? = null): Map<String, Any?> {
         finalOptions = options.copy(parseLists = false)
     }
 
+    val decodeFromString = input is String
     var obj = mutableMapOf<String, Any?>()
 
     if (tempObj?.isNotEmpty() == true) {
+        val structuredRoots =
+            if (decodeFromString) {
+                fun leadingStructuredRoot(key: String): String {
+                    val segments =
+                        Decoder.splitKeyIntoSegments(
+                            originalKey = key,
+                            allowDots = finalOptions.getAllowDots,
+                            maxDepth = finalOptions.depth,
+                            strictDepth = finalOptions.strictDepth,
+                        )
+                    val first = segments.firstOrNull() ?: return key
+                    if (!first.startsWith('[')) return first
+
+                    val last = first.lastIndexOf(']')
+                    val cleanRoot = if (last > 0) first.substring(1, last) else first.substring(1)
+                    // `[]` parses as a top-level list, which merges through index "0".
+                    return cleanRoot.ifEmpty { "0" }
+                }
+
+                buildSet {
+                    for (key in tempObj.keys) {
+                        val bracketIndex = key.indexOf('[').takeIf { it >= 0 } ?: Int.MAX_VALUE
+                        val hasPercent = key.indexOf('%') >= 0
+                        val dotIndex =
+                            if (finalOptions.getAllowDots) {
+                                key.indexOf('.').takeIf { it >= 0 } ?: Int.MAX_VALUE
+                            } else {
+                                Int.MAX_VALUE
+                            }
+                        val encodedDotIndex =
+                            if (finalOptions.getAllowDots && hasPercent) {
+                                minOf(
+                                    key.indexOf("%2E").takeIf { it >= 0 } ?: Int.MAX_VALUE,
+                                    key.indexOf("%2e").takeIf { it >= 0 } ?: Int.MAX_VALUE,
+                                )
+                            } else {
+                                Int.MAX_VALUE
+                            }
+
+                        val splitAt = minOf(bracketIndex, dotIndex, encodedDotIndex)
+                        if (splitAt != Int.MAX_VALUE) {
+                            if (splitAt == 0) {
+                                add(leadingStructuredRoot(key))
+                            } else {
+                                add(key.substring(0, splitAt))
+                            }
+                        }
+                    }
+                }
+            } else {
+                emptySet()
+            }
+
         for ((key, value) in tempObj) {
-            val parsed = Decoder.parseKeys(key, value, finalOptions, input is String)
+            if (decodeFromString) {
+                val hasOpeningBracket = key.indexOf('[') >= 0
+                val hasPercent = key.indexOf('%') >= 0
+                val hasStructuredKeySyntax =
+                    hasOpeningBracket ||
+                        (finalOptions.getAllowDots &&
+                            (key.contains('.') ||
+                                (hasPercent && (key.contains("%2E") || key.contains("%2e")))))
+
+                if (!hasStructuredKeySyntax && key !in structuredRoots) {
+                    obj[key] = value
+                    continue
+                }
+            }
+
+            val parsed = Decoder.parseKeys(key, value, finalOptions, decodeFromString)
 
             if (obj.isEmpty() && parsed is MutableMap<*, *>) {
                 @Suppress("UNCHECKED_CAST")

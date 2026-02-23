@@ -9,6 +9,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import java.time.Instant
 import java.time.LocalDateTime
@@ -138,6 +139,88 @@ class EncoderInternalSpec :
 
                 seenValues shouldBe listOf("alpha")
                 result shouldBe listOf("tags[]=enc:alpha")
+            }
+
+            it("uses iterable snapshot for non-list COMMA iterables") {
+                val data =
+                    object : Iterable<String> {
+                        override fun iterator(): Iterator<String> = listOf("a", "b").iterator()
+                    }
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        sideChannel = mutableMapOf(),
+                        prefix = "tags",
+                        generateArrayPrefix = ListFormat.COMMA.generator,
+                        encoder = { value, _, _ -> value?.toString() ?: "" },
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("tags=a,b")
+            }
+
+            it("handles nullable COMMA items when encodeValuesOnly pre-encodes list values") {
+                val seenValues = mutableListOf<String>()
+                val data =
+                    object : Iterable<String?> {
+                        override fun iterator(): Iterator<String?> = listOf("a", null).iterator()
+                    }
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        sideChannel = mutableMapOf(),
+                        prefix = "tags",
+                        generateArrayPrefix = ListFormat.COMMA.generator,
+                        encodeValuesOnly = true,
+                        encoder = { value, _, _ ->
+                            value?.toString()?.also { seenValues += it }?.let { "enc:$it" } ?: ""
+                        },
+                        formatter = { value -> value },
+                    )
+
+                seenValues shouldBe listOf("a")
+                result shouldBe listOf("tags=enc:a,")
+            }
+
+            it("coerces binary values inside COMMA joins without custom encoder") {
+                val result =
+                    Encoder.encode(
+                        data =
+                            listOf(
+                                "A".toByteArray(StandardCharsets.UTF_8),
+                                ByteBuffer.wrap("B".toByteArray(StandardCharsets.UTF_8)),
+                                null,
+                                "C",
+                            ),
+                        undefined = false,
+                        sideChannel = mutableMapOf(),
+                        prefix = "bytes",
+                        generateArrayPrefix = ListFormat.COMMA.generator,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("bytes=A,B,,C")
+            }
+
+            it("supports custom list prefix generators for iterable children") {
+                val customGenerator = { prefix: String, key: String? -> "$prefix<$key>" }
+
+                val result =
+                    Encoder.encode(
+                        data = listOf("x"),
+                        undefined = false,
+                        sideChannel = mutableMapOf(),
+                        prefix = "arr",
+                        generateArrayPrefix = customGenerator,
+                        encoder = { value, _, _ -> value?.toString() ?: "" },
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("arr<0>=x")
             }
 
             it("returns empty suffix when allowEmptyLists enabled for empty iterable") {

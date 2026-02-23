@@ -1195,6 +1195,7 @@ QS.encode(
 ## Design notes
 
 - **Performance:** The implementation mirrors qs semantics but is optimized for Kotlin/JVM. Deep parsing, list compaction, and cycle-safe compaction are implemented iteratively where it matters.
+- **Perf snapshot:** For local optimization checks, run `./gradlew :comparison:run --args perf` to print encode/decode timing and allocation snapshots.
 - **Safety:** Defaults (depth, parameterLimit) help mitigate abuse in user-supplied inputs; you can loosen them when you fully trust the source.
 - **Interop:** Exposes knobs similar to qs (filters, sorters, custom encoders/decoders) to make migrations straightforward.
 

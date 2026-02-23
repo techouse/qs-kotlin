@@ -1,3 +1,10 @@
+## 1.5.2-wip
+
+* [FIX] optimize encoder deep-nesting performance by introducing lazy key-path materialization (`KeyPathNode`) and lightweight child-path assembly for known list generators
+* [FIX] speed up decode for flat query keys while preserving merge semantics when mixed with structured keys (including leading bracket and leading dot roots)
+* [CHORE] add a Kotlin performance snapshot runner (`:comparison:run --args perf`) for repeatable encode/decode timing and allocation checks
+* [CHORE] add regression tests for leading bracket/dot key merge behavior (`[a]=1&a=2`, `a=2&[a]=1`, `[0]=x&0=y`, `[]=x&0=y`, `.a=x&a=y`, `.a[b]=x&a=y`)
+
 ## 1.5.1
 
 * [CHORE] update Android Gradle Plugin to 9.0.1

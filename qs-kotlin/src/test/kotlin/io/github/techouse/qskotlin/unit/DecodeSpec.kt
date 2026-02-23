@@ -318,6 +318,14 @@ class DecodeSpec :
                 decode("a[]=b&a=c") shouldBe mapOf("a" to listOf("b", "c"))
                 decode("a[0]=b&a=c") shouldBe mapOf("a" to listOf("b", "c"))
                 decode("a=b&a[0]=c") shouldBe mapOf("a" to listOf("b", "c"))
+                decode("[a]=1&a=2") shouldBe mapOf("a" to listOf("1", "2"))
+                decode("a=2&[a]=1") shouldBe mapOf("a" to listOf("2", "1"))
+                decode("[0]=x&0=y") shouldBe mapOf("0" to listOf("x", "y"))
+                decode("[]=x&0=y") shouldBe mapOf("0" to listOf("x", "y"))
+                decode(".a=x&a=y", DecodeOptions(allowDots = true)) shouldBe
+                    mapOf("a" to listOf("x", "y"))
+                decode(".a[b]=x&a=y", DecodeOptions(allowDots = true)) shouldBe
+                    mapOf("a" to mapOf("b" to "x", "y" to true))
 
                 decode("a[1]=b&a=c", DecodeOptions(listLimit = 20)) shouldBe
                     mapOf("a" to listOf("b", "c"))
@@ -744,10 +752,11 @@ class DecodeSpec :
                 decode(mapOf("a" to re)) shouldBe mapOf("a" to re)
             }
 
-            it("params starting with a closing bracket") {
+            it("params containing a closing bracket") {
                 decode("]=toString") shouldBe mapOf("]" to "toString")
                 decode("]]=toString") shouldBe mapOf("]]" to "toString")
                 decode("]hello]=toString") shouldBe mapOf("]hello]" to "toString")
+                decode("foo]bar=toString") shouldBe mapOf("foo]bar" to "toString")
             }
 
             it("params starting with a starting bracket") {
