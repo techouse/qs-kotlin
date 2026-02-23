@@ -1,4 +1,4 @@
-## 1.5.2-wip
+## 1.5.2
 
 * [FIX] optimize encoder deep-nesting performance by introducing lazy key-path materialization (`KeyPathNode`) and lightweight child-path assembly for known list generators
 * [FIX] speed up decode for flat query keys while preserving merge semantics when mixed with structured keys (including leading bracket and leading dot roots)
