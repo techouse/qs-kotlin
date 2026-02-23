@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Builder</title>
+    <link href="../../../../images/logo-icon.svg" rel="icon" type="image/svg">
+        <script>var pathToRoot = "../../../../";</script>
+    <script>document.documentElement.classList.replace("no-js", "js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+      if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      } else {
+        const savedDarkMode = JSON.parse(storage)
+        if (savedDarkMode === true) {
+          document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+      }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../../styles/style.css" rel="Stylesheet">
+<link href="../../../../styles/main.css" rel="Stylesheet">
+<link href="../../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../../ui-kit/ui-kit.min.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../../scripts/safe-local-storage_blocking.js"></script>
+<script type="text/javascript" src="../../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../../ui-kit/ui-kit.min.js" defer="defer"></script>
+</head>
+<body>
+<div class="root">
+    <header class="navigation theme-dark" id="navigation-wrapper" role="banner">
+            <a class="library-name--link" href="../../../../index.html" tabindex="1">
+                    qs-kotlin
+            </a>
+        <button class="navigation-controls--btn navigation-controls--btn_toc ui-kit_mobile-only" id="toc-toggle"
+                type="button">Toggle table of contents
+        </button>
+        <div class="navigation-controls--break ui-kit_mobile-only"></div>
+        <div class="library-version" id="library-version">
+1.5.3        </div>
+        <div class="navigation-controls">
+        <ul class="filter-section filter-section_loading" id="filter-section" aria-label="Target filter">
+                <button class="platform-tag platform-selector jvm-like" data-active="" aria-pressed="true"
+                        data-filter=":qs-kotlin/main">jvm</button>
+            <div class="dropdown filter-section--dropdown" data-role="dropdown" id="filter-section-dropdown">
+                <button class="button button_dropdown filter-section--dropdown-toggle" role="combobox"
+                        data-role="dropdown-toggle"
+                        aria-controls="platform-tags-listbox"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-label="Toggle source sets"
+                ></button>
+                <ul role="listbox" id="platform-tags-listbox" class="dropdown--list" data-role="dropdown-listbox" aria-label="Target filter">
+                    <div class="dropdown--header"><span>Target filter</span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close target filter">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                        <li role="option" class="dropdown--option platform-selector-option jvm-like" tabindex="0">
+                            <label class="checkbox">
+                                <input type="checkbox" class="checkbox--input" id=":qs-kotlin/main"
+                                       data-filter=":qs-kotlin/main"/>
+                                <span class="checkbox--icon"></span>
+                                jvm
+                            </label>
+                        </li>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </ul>
+            <button class="navigation-controls--btn navigation-controls--btn_theme" id="theme-toggle-button"
+                    type="button">Switch theme
+            </button>
+            <div class="navigation-controls--btn navigation-controls--btn_search" id="searchBar" role="button">Search in
+                API
+            </div>
+        </div>
+    </header>
+    <div id="container">
+        <nav id="leftColumn" class="sidebar" data-item-type="SECTION" data-item-config='{"defaultSize": 280, "minSize": 200, "maxSize": 400}'>
+            <a class="toc--skip-link" href="#main">Skip to content</a>
+            <div class="dropdown theme-dark_mobile" data-role="dropdown" id="toc-dropdown">
+                <ul role="listbox" id="toc-listbox" class="dropdown--list dropdown--list_toc-list"
+                    data-role="dropdown-listbox" aria-label="Table of contents">
+                    <div class="dropdown--header">
+                            <span>
+                                    qs-kotlin
+                            </span>
+                        <button class="button" data-role="dropdown-toggle" aria-label="Close table of contents">
+                            <i class="ui-kit-icon ui-kit-icon_cross"></i>
+                        </button>
+                    </div>
+                    <div class="sidebar--inner" id="sideMenu"></div>
+                </ul>
+                <div class="dropdown--overlay"></div>
+            </div>
+        </nav>
+        <div id="resizer" class="resizer" data-item-type="BAR"></div>
+        <div id="main" data-item-type="SECTION" role="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="qs-kotlin::io.github.techouse.qskotlin.models/EncodeOptions.Builder///PointingToDeclaration//-559107718">
+  <div class="breadcrumbs"><a href="../../../../index.html">qs-kotlin</a><span class="delimiter">/</span><a href="../../index.html">io.github.techouse.qskotlin.models</a><span class="delimiter">/</span><a href="../index.html">EncodeOptions</a><span class="delimiter">/</span><span class="current">Builder</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Builder</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">Builder</a></div><p class="paragraph">Java-friendly builder to construct <a href="../index.html">EncodeOptions</a> without passing a long argument list.</p><p class="paragraph">Usage from Java:</p><pre>{@code
+EncodeOptions opts = EncodeOptions.builder()
+    .addQueryPrefix(true)
+    .listFormat(ListFormat.BRACKETS)
+    .encodeValuesOnly(false)
+    .encoder((value, cs, fmt) -> ... ) // JValueEncoder
+    .sort(Comparator.naturalOrder())
+    .build();
+}</pre></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="tableheader">Constructors</h2>
+        <div class="table"><a data-name="1963577331%2FConstructors%2F-559107718" anchor-label="Builder" id="1963577331%2FConstructors%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-togglable="CONSTRUCTOR" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-builder.html"><span><span>Builder</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1963577331%2FConstructors%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="tableheader">Functions</h2>
+        <div class="table"><a data-name="329439576%2FFunctions%2F-559107718" anchor-label="addQueryPrefix" id="329439576%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="add-query-prefix.html"><span>add</span><wbr></wbr><span>Query</span><wbr></wbr><span><span>Prefix</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="329439576%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="add-query-prefix.html"><span class="token function">addQueryPrefix</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">add<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">When <code class="lang-kotlin">true</code>, prefix the encoded string with a leading <code class="lang-kotlin">?</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-68621341%2FFunctions%2F-559107718" anchor-label="allowDots" id="-68621341%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="allow-dots.html"><span>allow</span><wbr></wbr><span><span>Dots</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-68621341%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="allow-dots.html"><span class="token function">allowDots</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">allowDots<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">When <code class="lang-kotlin">true</code>, use dot-notation for nested keys in the output (e.g., <code class="lang-kotlin">a.b=c</code>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2023850306%2FFunctions%2F-559107718" anchor-label="allowEmptyLists" id="2023850306%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="allow-empty-lists.html"><span>allow</span><wbr></wbr><span>Empty</span><wbr></wbr><span><span>Lists</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2023850306%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="allow-empty-lists.html"><span class="token function">allowEmptyLists</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">allow<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Allow empty lists to appear as <code class="lang-kotlin">a[]</code> with no values.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2100766560%2FFunctions%2F-559107718" anchor-label="build" id="-2100766560%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="build.html"><span><span>build</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2100766560%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="build.html"><span class="token function">build</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../index.html">EncodeOptions</a></div><div class="brief "><p class="paragraph">Build an immutable <a href="../index.html">EncodeOptions</a> with the configured values.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-700193058%2FFunctions%2F-559107718" anchor-label="charset" id="-700193058%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="charset.html"><span><span>charset</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-700193058%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="charset.html"><span class="token function">charset</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">charset<span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/nio/charset/Charset.html">Charset</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Output charset for percent-encoding (UTF-8 or ISO-8859-1).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-396764861%2FFunctions%2F-559107718" anchor-label="charsetSentinel" id="-396764861%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="charset-sentinel.html"><span>charset</span><wbr></wbr><span><span>Sentinel</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-396764861%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="charset-sentinel.html"><span class="token function">charsetSentinel</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">enabled<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Emit <code class="lang-kotlin">utf8=✓</code> sentinel parameter to advertise charset (Rails-style).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-877260555%2FFunctions%2F-559107718" anchor-label="commaCompactNulls" id="-877260555%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="comma-compact-nulls.html"><span>comma</span><wbr></wbr><span>Compact</span><wbr></wbr><span><span>Nulls</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-877260555%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="comma-compact-nulls.html"><span class="token function">commaCompactNulls</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">With COMMA listFormat, drop <code class="lang-kotlin">null</code> entries before joining for more compact payloads.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="933731568%2FFunctions%2F-559107718" anchor-label="commaRoundTrip" id="933731568%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="comma-round-trip.html"><span>comma</span><wbr></wbr><span>Round</span><wbr></wbr><span><span>Trip</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="933731568%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="comma-round-trip.html"><span class="token function">commaRoundTrip</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">With COMMA listFormat, append <code class="lang-kotlin">[]</code> on single-item lists to allow round trip.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1526173503%2FFunctions%2F-559107718" anchor-label="dateSerializer" id="-1526173503%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="date-serializer.html"><span>date</span><wbr></wbr><span><span>Serializer</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1526173503%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="date-serializer.html"><span class="token function">dateSerializer</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">serializer<span class="token operator">: </span><a href="../../-j-date-serializer/index.html">JDateSerializer</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Java-friendly SAM for the date serializer; adapted internally.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="date-serializer.html"><span class="token function">dateSerializer</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">serializer<span class="token operator">: </span><a href="../../-date-serializer/index.html">DateSerializer</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Provide a Kotlin <a href="../../-date-serializer/index.html">DateSerializer</a> to customize how <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/time/LocalDateTime.html">java.time.LocalDateTime</a> is rendered.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-862263208%2FFunctions%2F-559107718" anchor-label="delimiter" id="-862263208%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="delimiter.html"><span><span>delimiter</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-862263208%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="delimiter.html"><span class="token function">delimiter</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">value<span class="token operator">: </span><a href="../../-string-delimiter/index.html">StringDelimiter</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Provide a prebuilt <a href="../../-string-delimiter/index.html">StringDelimiter</a> constant.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="delimiter.html"><span class="token function">delimiter</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Pair separator to join key-value pairs (e.g., &quot;&&quot; or &quot;;&quot;).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-2107491909%2FFunctions%2F-559107718" anchor-label="encode" id="-2107491909%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="encode.html"><span><span>encode</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2107491909%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="encode.html"><span class="token function">encode</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">enabled<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">When <code class="lang-kotlin">false</code>, do not percent-encode keys/values (raw output).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="147047783%2FFunctions%2F-559107718" anchor-label="encodeDotInKeys" id="147047783%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="encode-dot-in-keys.html"><span>encode</span><wbr></wbr><span>Dot</span><wbr></wbr><span>In</span><wbr></wbr><span><span>Keys</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="147047783%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="encode-dot-in-keys.html"><span class="token function">encodeDotInKeys</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">enabled<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">When <code class="lang-kotlin">true</code>, encode dots in keys as <code class="lang-kotlin">%2E</code>. Useful with <a href="allow-dots.html">allowDots</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1273867648%2FFunctions%2F-559107718" anchor-label="encoder" id="1273867648%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="encoder.html"><span><span>encoder</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1273867648%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="encoder.html"><span class="token function">encoder</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">encoder<span class="token operator">: </span><a href="../../-j-value-encoder/index.html">JValueEncoder</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Java-friendly SAM for the value encoder; adapted to Kotlin's <a href="../../-value-encoder/index.html">ValueEncoder</a>.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="encoder.html"><span class="token function">encoder</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">encoder<span class="token operator">: </span><a href="../../-value-encoder/index.html">ValueEncoder</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Provide a Kotlin <a href="../../-value-encoder/index.html">ValueEncoder</a>. Ignored when <a href="encode.html">encode</a> is <code class="lang-kotlin">false</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-579438931%2FFunctions%2F-559107718" anchor-label="encodeValuesOnly" id="-579438931%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="encode-values-only.html"><span>encode</span><wbr></wbr><span>Values</span><wbr></wbr><span><span>Only</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-579438931%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="encode-values-only.html"><span class="token function">encodeValuesOnly</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">enabled<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">When <code class="lang-kotlin">true</code>, only values are encoded; keys are left as-is.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="728908515%2FFunctions%2F-559107718" anchor-label="filter" id="728908515%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="filter.html"><span><span>filter</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="728908515%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="filter.html"><span class="token function">filter</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">filter<span class="token operator">: </span><a href="../../-filter/index.html">Filter</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Limit or transform output: pass a key/value function or an iterable of keys/indices to include.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1283300276%2FFunctions%2F-559107718" anchor-label="format" id="1283300276%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="format.html"><span><span>format</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1283300276%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="format.html"><span class="token function">format</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">format<span class="token operator">: </span><a href="../../../io.github.techouse.qskotlin.enums/-format/index.html">Format</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">RFC variant for space encoding: <a href="../../../io.github.techouse.qskotlin.enums/-format/-r-f-c3986/index.html">Format.RFC3986</a> (<code class="lang-kotlin">%20</code>) or <a href="../../../io.github.techouse.qskotlin.enums/-format/-r-f-c1738/index.html">Format.RFC1738</a> (<code class="lang-kotlin">+</code>).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="194685975%2FFunctions%2F-559107718" anchor-label="indices" id="194685975%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="indices.html"><span><span>indices</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="194685975%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="indices.html"><span class="token function"><strike>indices</strike></span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">indices<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Deprecated: use <a href="list-format.html">listFormat</a> instead (true→INDICES, false→REPEAT).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1945814485%2FFunctions%2F-559107718" anchor-label="listFormat" id="-1945814485%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="list-format.html"><span>list</span><wbr></wbr><span><span>Format</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1945814485%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="list-format.html"><span class="token function">listFormat</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">listFormat<span class="token operator">: </span><a href="../../../io.github.techouse.qskotlin.enums/-list-format/index.html">ListFormat</a><span class="token operator">?</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Choose how lists are encoded in the query (INDICES, BRACKETS, REPEAT, COMMA).</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-213304474%2FFunctions%2F-559107718" anchor-label="skipNulls" id="-213304474%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="skip-nulls.html"><span>skip</span><wbr></wbr><span><span>Nulls</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-213304474%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="skip-nulls.html"><span class="token function">skipNulls</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">skip<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Skip keys whose values are <code class="lang-kotlin">null</code>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1635804494%2FFunctions%2F-559107718" anchor-label="sort" id="-1635804494%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="sort.html"><span><span>sort</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1635804494%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="sort.html"><span class="token function">sort</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">comparator<span class="token operator">: </span><a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Comparator.html">Comparator</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-any/index.html">Any</a><span class="token operator">?</span><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">Java-friendly key sorter; adapted to <a href="../../-sorter/index.html">Sorter</a>.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1893536900%2FFunctions%2F-559107718" anchor-label="strictNullHandling" id="-1893536900%2FFunctions%2F-559107718" data-filterable-set=":qs-kotlin/main"></a>
+          <div class="table-row table-row_content" data-filterable-current=":qs-kotlin/main" data-filterable-set=":qs-kotlin/main">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="strict-null-handling.html"><span>strict</span><wbr></wbr><span>Null</span><wbr></wbr><span><span>Handling</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1893536900%2FFunctions%2F-559107718"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable=":qs-kotlin/main"><div class="symbol monospace"><span class="token keyword">fun </span><a href="strict-null-handling.html"><span class="token function">strictNullHandling</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">strict<span class="token operator">: </span><a href="https://kotlinlang.org/api/core/kotlin-stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">EncodeOptions.Builder</a></div><div class="brief "><p class="paragraph">When <code class="lang-kotlin">true</code>, render <code class="lang-kotlin">null</code> as a bare key without <code class="lang-kotlin">=</code>, distinguishing vs empty string.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    <div class="footer">
+        <div class="footer--container">
+            <a href="#content" id="go-to-top-link" class="footer--button footer--button_go-to-top"></a>
+            <div class="footer--content">
+                <div>
+                    <span>Generated by </span>
+                    <a class="footer--link footer--link_external" href="https://github.com/Kotlin/dokka">
+                        Dokka
+                    </a>
+                    <div>© 2026 Copyright</div>
+                </div>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
