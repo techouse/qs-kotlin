@@ -14,7 +14,6 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.util.Collections
 import java.util.IdentityHashMap
-import kotlin.collections.ArrayDeque
 
 /** A collection of utility methods used by the library. */
 internal object Utils {
@@ -294,18 +293,20 @@ internal object Utils {
 
                     @Suppress("UNCHECKED_CAST")
                     val mergeTarget: MutableMap<Any?, Any?> =
-                        when {
-                            currentTarget is Iterable<*> && currentSource !is Iterable<*> ->
+                        when (currentTarget) {
+                            is Iterable<*> if currentSource !is Iterable<*> ->
                                 currentTarget
                                     .withIndex()
                                     .associate { it.index.toString() to it.value }
                                     .filterValues { it !is Undefined }
                                     .toMutableMap() as MutableMap<Any?, Any?>
-                            currentTarget is OverflowMap ->
+
+                            is OverflowMap ->
                                 OverflowMap().apply {
                                     putAll(currentTarget)
                                     maxIndex = currentTarget.maxIndex
                                 } as MutableMap<Any?, Any?>
+
                             else -> (currentTarget as Map<Any?, Any?>).toMutableMap()
                         }
 
@@ -356,7 +357,7 @@ internal object Utils {
                 MergePhase.LIST_ITER -> {
                     if (frame.listIndex >= frame.sourceList!!.size) {
                         if (
-                            frame.options.parseLists == false &&
+                            !frame.options.parseLists &&
                                 frame.indexedTarget!!.values.any { it is Undefined }
                         ) {
                             val normalized = mutableMapOf<String, Any?>()
@@ -834,7 +835,7 @@ internal object Utils {
      * @param limit The maximum number of elements allowed in a list.
      * @return A list or a map containing the combined elements.
      */
-    fun combine(a: Any?, b: Any?, limit: Int): Any? {
+    fun combine(a: Any?, b: Any?, limit: Int): Any {
         // If 'a' is already an overflow object, add to it
         if (a is OverflowMap) {
             var newIndex = a.maxIndex

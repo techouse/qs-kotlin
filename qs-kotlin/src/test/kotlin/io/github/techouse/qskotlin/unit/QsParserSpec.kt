@@ -144,6 +144,21 @@ class QsParserSpec :
 
                 decode("a=b&a[0]=c", options) shouldBe mapOf("a" to listOf("b", "c"))
 
+                decode("[a]=1&a=2", options) shouldBe mapOf("a" to listOf("1", "2"))
+
+                decode("a=2&[a]=1", options) shouldBe mapOf("a" to listOf("2", "1"))
+
+                decode("[0]=x&0=y", options) shouldBe mapOf("0" to listOf("x", "y"))
+                decode("[]=x&0=y", options) shouldBe mapOf("0" to listOf("x", "y"))
+
+                decode(".a=x&a=y", DecodeOptions(allowDots = true)) shouldBe
+                    mapOf("a" to listOf("x", "y"))
+                decode("a=y&.a=x", DecodeOptions(allowDots = true)) shouldBe
+                    mapOf("a" to listOf("y", "x"))
+
+                decode(".a[b]=x&a=y", DecodeOptions(allowDots = true)) shouldBe
+                    mapOf("a" to mapOf("b" to "x", "y" to true))
+
                 decode("a[1]=b&a=c", options20) shouldBe mapOf("a" to listOf("b", "c"))
 
                 decode("a[]=b&a=c", options0) shouldBe mapOf("a" to mapOf("0" to "b", "1" to "c"))
@@ -565,7 +580,7 @@ class QsParserSpec :
                 depth shouldBe 500
             }
 
-            it("should handle params starting with a closing bracket") {
+            it("should handle params containing a closing bracket") {
                 val options = DecodeOptions()
 
                 decode("]=toString", options) shouldBe mapOf("]" to "toString")
@@ -573,6 +588,7 @@ class QsParserSpec :
                 decode("]]=toString", options) shouldBe mapOf("]]" to "toString")
 
                 decode("]hello]=toString", options) shouldBe mapOf("]hello]" to "toString")
+                decode("foo]bar=toString", options) shouldBe mapOf("foo]bar" to "toString")
             }
 
             it("should handle params starting with a starting bracket") {
