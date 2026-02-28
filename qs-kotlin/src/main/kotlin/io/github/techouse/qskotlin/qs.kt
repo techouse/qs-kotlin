@@ -271,6 +271,7 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
         }
     }
 
+    val payloadHasText = payload.isNotEmpty()
     val out: StringBuilder = StringBuilder()
 
     if (options.addQueryPrefix) {
@@ -284,10 +285,10 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
             // encodeURIComponent('✓')
             StandardCharsets.UTF_8 -> out.append(Sentinel.CHARSET)
         }
-        if (hasPayload) out.append(options.delimiter.value)
+        if (payloadHasText) out.append(options.delimiter.value)
     }
 
-    if (hasPayload) {
+    if (payloadHasText) {
         out.append(payload)
     }
 
