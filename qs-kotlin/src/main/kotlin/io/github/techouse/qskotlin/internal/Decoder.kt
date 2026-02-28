@@ -4,6 +4,9 @@ import io.github.techouse.qskotlin.enums.Duplicates
 import io.github.techouse.qskotlin.enums.Sentinel
 import io.github.techouse.qskotlin.internal.Decoder.dotToBracketTopLevel
 import io.github.techouse.qskotlin.models.DecodeOptions
+import io.github.techouse.qskotlin.models.Delimiter
+import io.github.techouse.qskotlin.models.RegexDelimiter
+import io.github.techouse.qskotlin.models.StringDelimiter
 import io.github.techouse.qskotlin.models.Undefined
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
@@ -20,22 +23,27 @@ internal object Decoder {
      */
     private fun parseListValue(value: Any?, options: DecodeOptions, currentListLength: Int): Any? {
         if (value is String && value.isNotEmpty() && options.comma && value.contains(',')) {
-            val splitVal = value.split(',')
             if (options.listLimit >= 0) {
                 val remaining = options.listLimit - currentListLength
-                if (
-                    options.throwOnLimitExceeded &&
-                        (currentListLength + splitVal.size) > options.listLimit
-                ) {
-                    throw IndexOutOfBoundsException(
-                        "List limit exceeded. " +
-                            "Only ${options.listLimit} element${if (options.listLimit == 1) "" else "s"} allowed in a list."
-                    )
+                if (options.throwOnLimitExceeded) {
+                    if (remaining < 0) {
+                        throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
+                    }
+                    val splitVal =
+                        if (remaining == Int.MAX_VALUE) {
+                            splitCommaValue(value)
+                        } else {
+                            splitCommaValue(value, remaining + 1)
+                        }
+                    if (splitVal.size > remaining) {
+                        throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
+                    }
+                    return splitVal
                 }
                 if (remaining <= 0) return emptyList<String>()
-                return if (splitVal.size <= remaining) splitVal else splitVal.subList(0, remaining)
+                return splitCommaValue(value, remaining)
             }
-            return splitVal
+            return splitCommaValue(value)
         }
 
         if (
@@ -43,13 +51,85 @@ internal object Decoder {
                 options.throwOnLimitExceeded &&
                 currentListLength >= options.listLimit
         ) {
-            throw IndexOutOfBoundsException(
-                "List limit exceeded. " +
-                    "Only ${options.listLimit} element${if (options.listLimit == 1) "" else "s"} allowed in a list."
-            )
+            throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
         }
 
         return value
+    }
+
+    private fun listLimitExceededMessage(limit: Int): String {
+        return "List limit exceeded. Only $limit element${if (limit == 1) "" else "s"} allowed in a list."
+    }
+
+    private fun splitCommaValue(value: String, maxParts: Int? = null): List<String> {
+        if (maxParts != null && maxParts <= 0) return emptyList()
+
+        val parts = if (maxParts != null) ArrayList<String>(maxParts) else ArrayList()
+        var start = 0
+        while (true) {
+            if (maxParts != null && parts.size >= maxParts) break
+
+            val comma = value.indexOf(',', start)
+            val end = if (comma == -1) value.length else comma
+            parts.add(value.substring(start, end))
+
+            if (comma == -1) break
+            start = comma + 1
+        }
+
+        return parts
+    }
+
+    private fun collectNonEmptyParts(
+        input: String,
+        delimiter: Delimiter,
+        maxParts: Int? = null,
+    ): List<String> {
+        return when (delimiter) {
+            is StringDelimiter -> collectNonEmptyStringParts(input, delimiter.value, maxParts)
+            is RegexDelimiter -> collectNonEmptyIterableParts(delimiter.split(input), maxParts)
+        }
+    }
+
+    private fun collectNonEmptyStringParts(
+        input: String,
+        delimiter: String,
+        maxParts: Int?,
+    ): List<String> {
+        if (maxParts != null && maxParts <= 0) return emptyList()
+
+        val parts = if (maxParts != null) ArrayList<String>(maxParts) else ArrayList()
+        var start = 0
+        while (true) {
+            if (maxParts != null && parts.size >= maxParts) break
+
+            val next = input.indexOf(delimiter, start)
+            val end = if (next == -1) input.length else next
+
+            if (end > start) {
+                parts.add(input.substring(start, end))
+            }
+
+            if (next == -1) break
+            start = next + delimiter.length
+        }
+
+        return parts
+    }
+
+    private fun collectNonEmptyIterableParts(
+        parts: Iterable<String>,
+        maxParts: Int?,
+    ): List<String> {
+        if (maxParts != null && maxParts <= 0) return emptyList()
+
+        val out = if (maxParts != null) ArrayList<String>(maxParts) else ArrayList()
+        for (part in parts) {
+            if (part.isEmpty()) continue
+            out.add(part)
+            if (maxParts != null && out.size >= maxParts) break
+        }
+        return out
     }
 
     /**
@@ -69,10 +149,15 @@ internal object Decoder {
     ): MutableMap<String, Any?> {
         val obj = mutableMapOf<String, Any?>()
 
+        val baseStr = if (options.ignoreQueryPrefix) str.removePrefix("?") else str
         val cleanStr =
-            (if (options.ignoreQueryPrefix) str.removePrefix("?") else str)
-                .replace("%5B", "[", ignoreCase = true)
-                .replace("%5D", "]", ignoreCase = true)
+            if (baseStr.indexOf('%') >= 0) {
+                baseStr
+                    .replace("%5B", "[", ignoreCase = true)
+                    .replace("%5D", "]", ignoreCase = true)
+            } else {
+                baseStr
+            }
 
         val limit = if (options.parameterLimit == Int.MAX_VALUE) null else options.parameterLimit
 
@@ -80,14 +165,13 @@ internal object Decoder {
             throw IllegalArgumentException("Parameter limit must be a positive integer.")
         }
 
-        val allParts: List<String> = options.delimiter.split(cleanStr)
-        val parts =
+        val takeCount =
             if (limit != null) {
-                val takeCount: Int = if (options.throwOnLimitExceeded) limit + 1 else limit
-                allParts.asSequence().filter { it.isNotEmpty() }.take(takeCount).toList()
+                if (options.throwOnLimitExceeded) limit + 1 else limit
             } else {
-                allParts.asSequence().filter { it.isNotEmpty() }.toList()
+                null
             }
+        val parts = collectNonEmptyParts(cleanStr, options.delimiter, takeCount)
 
         if (options.throwOnLimitExceeded && limit != null && parts.size > limit) {
             throw IndexOutOfBoundsException(
