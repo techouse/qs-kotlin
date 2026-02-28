@@ -13,7 +13,6 @@ import io.github.techouse.qskotlin.models.EncodeOptions
 import io.github.techouse.qskotlin.models.FunctionFilter
 import io.github.techouse.qskotlin.models.IterableFilter
 import java.nio.charset.StandardCharsets
-import java.util.*
 
 /**
  * Decode a query [String] or a [Map] into a [Map<String, Any?>].
@@ -167,7 +166,16 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
             else -> emptyMap()
         }
 
-    val keys = mutableListOf<Any?>()
+    val payload = StringBuilder()
+    var hasPayload = false
+
+    fun appendPart(part: Any?) {
+        if (hasPayload) {
+            payload.append(options.delimiter.value)
+        }
+        payload.append(part.toString())
+        hasPayload = true
+    }
 
     if (obj.isEmpty()) {
         return ""
@@ -205,8 +213,6 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
         objKeys = objKeys.sortedWith(options.sort)
     }
 
-    val sideChannel: MutableMap<Any?, Any?> = WeakHashMap()
-
     for (i: Int in 0 until objKeys.size) {
         val key: Any? = objKeys[i]
 
@@ -243,16 +249,18 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
                 encodeValuesOnly = options.encodeValuesOnly,
                 charset = options.charset,
                 addQueryPrefix = options.addQueryPrefix,
-                sideChannel = sideChannel,
             )
 
         when (encoded) {
-            is Iterable<*> -> keys.addAll(encoded)
-            else -> keys.add(encoded)
+            is Iterable<*> -> {
+                for (part in encoded) {
+                    appendPart(part)
+                }
+            }
+            else -> appendPart(encoded)
         }
     }
 
-    val joined: String = keys.joinToString(separator = options.delimiter.value)
     val out: StringBuilder = StringBuilder()
 
     if (options.addQueryPrefix) {
@@ -266,11 +274,11 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
             // encodeURIComponent('✓')
             StandardCharsets.UTF_8 -> out.append(Sentinel.CHARSET)
         }
-        if (joined.isNotEmpty()) out.append(options.delimiter.value)
+        if (hasPayload) out.append(options.delimiter.value)
     }
 
-    if (joined.isNotEmpty()) {
-        out.append(joined)
+    if (hasPayload) {
+        out.append(payload)
     }
 
     return out.toString()
