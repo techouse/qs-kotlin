@@ -563,6 +563,9 @@ internal object Encoder {
                     }
                 return listOf(keyOnly)
             }
+            if (context.skipNulls) {
+                return emptyList<Any?>()
+            }
             leaf = ""
         }
 
