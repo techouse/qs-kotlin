@@ -336,6 +336,22 @@ class EncoderInternalSpec :
                 result shouldBe listOf("root[a][b]")
             }
 
+            it("serializes LocalDateTime leaf with custom serializer in linear chains") {
+                val stamp = LocalDateTime.parse("2024-01-02T03:04:05")
+                val data = mapOf("a" to mapOf("b" to stamp))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        serializeDate = { dt -> "X${dt.toLocalDate()}" },
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[a][b]=X2024-01-02")
+            }
+
             it("preserves skipNulls in linear chains") {
                 val data = mapOf("a" to mapOf("b" to null))
 
