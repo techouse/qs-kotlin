@@ -2177,6 +2177,20 @@ class EncodeSpec :
             out shouldBe Sentinel.ISO.toString()
         }
 
+        it("omits sentinel delimiter when emitted fragments are text-empty") {
+            val out =
+                encode(
+                    mapOf("" to null),
+                    EncodeOptions(
+                        strictNullHandling = true,
+                        charsetSentinel = true,
+                        charset = StandardCharsets.UTF_8,
+                    ),
+                )
+
+            out shouldBe Sentinel.CHARSET.toString()
+        }
+
         it("prepends query prefix when addQueryPrefix is true") {
             encode(mapOf("k" to "v"), EncodeOptions(addQueryPrefix = true)) shouldBe "?k=v"
         }
