@@ -112,6 +112,26 @@ class DecodeSpec :
                 decode("a=b&=c&d=e") shouldBe mapOf("a" to "b", "d" to "e")
             }
 
+            it("preserves flat query behavior for non-structured keys") {
+                decode("k0=v0&k1=v1&k2=v2") shouldBe mapOf("k0" to "v0", "k1" to "v1", "k2" to "v2")
+            }
+
+            it("preserves flat query behavior with comma and duplicate keys") {
+                decode("a=1,2&a=3", DecodeOptions(comma = true)) shouldBe
+                    mapOf("a" to listOf("1", "2", "3"))
+            }
+
+            it("preserves flat query behavior with charset sentinel enabled") {
+                decode(
+                    "utf8=%E2%9C%93&k0=v0&k1=v1",
+                    DecodeOptions(charsetSentinel = true, charset = StandardCharsets.ISO_8859_1),
+                ) shouldBe mapOf("k0" to "v0", "k1" to "v1")
+            }
+
+            it("preserves mixed flat and structured key merge behavior") {
+                decode("a=1&a[b]=2") shouldBe mapOf("a" to listOf("1", mapOf("b" to "2")))
+            }
+
             it("comma: false") {
                 decode("a[]=b&a[]=c") shouldBe mapOf("a" to listOf("b", "c"))
                 decode("a[0]=b&a[1]=c") shouldBe mapOf("a" to listOf("b", "c"))
