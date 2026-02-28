@@ -98,6 +98,11 @@ internal object Decoder {
         delimiter: String,
         maxParts: Int?,
     ): List<String> {
+        if (delimiter.isEmpty()) {
+            throw IllegalArgumentException(
+                "collectNonEmptyStringParts received an invalid empty delimiter."
+            )
+        }
         if (maxParts != null && maxParts <= 0) return emptyList()
 
         val parts = newSplitBuffer(maxParts)
