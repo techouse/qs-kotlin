@@ -14,6 +14,14 @@ import io.github.techouse.qskotlin.models.FunctionFilter
 import io.github.techouse.qskotlin.models.IterableFilter
 import java.nio.charset.StandardCharsets
 
+private fun hasStructuredSyntax(key: String, allowDots: Boolean): Boolean {
+    if (key.indexOf('[') >= 0) return true
+    if (!allowDots) return false
+    if (key.indexOf('.') >= 0) return true
+    if (key.indexOf('%') < 0) return false
+    return key.contains("%2E") || key.contains("%2e")
+}
+
 /**
  * Decode a query [String] or a [Map] into a [Map<String, Any?>].
  *
@@ -52,6 +60,14 @@ fun decode(input: Any?, options: DecodeOptions? = null): Map<String, Any?> {
     }
 
     val decodeFromString = input is String
+    if (decodeFromString && tempObj?.isNotEmpty() == true) {
+        val allowDots = finalOptions.getAllowDots
+        val hasAnyStructuredSyntax = tempObj.keys.any { key -> hasStructuredSyntax(key, allowDots) }
+        if (!hasAnyStructuredSyntax) {
+            return Utils.compact(tempObj, options.allowSparseLists)
+        }
+    }
+
     var obj = mutableMapOf<String, Any?>()
 
     if (tempObj?.isNotEmpty() == true) {
@@ -110,13 +126,7 @@ fun decode(input: Any?, options: DecodeOptions? = null): Map<String, Any?> {
 
         for ((key, value) in tempObj) {
             if (decodeFromString) {
-                val hasOpeningBracket = key.indexOf('[') >= 0
-                val hasPercent = key.indexOf('%') >= 0
-                val hasStructuredKeySyntax =
-                    hasOpeningBracket ||
-                        (finalOptions.getAllowDots &&
-                            (key.contains('.') ||
-                                (hasPercent && (key.contains("%2E") || key.contains("%2e")))))
+                val hasStructuredKeySyntax = hasStructuredSyntax(key, finalOptions.getAllowDots)
 
                 if (!hasStructuredKeySyntax && key !in structuredRoots) {
                     obj[key] = value
