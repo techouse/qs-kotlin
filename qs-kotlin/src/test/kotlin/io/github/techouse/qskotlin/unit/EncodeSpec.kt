@@ -2149,6 +2149,20 @@ class EncodeSpec :
             out shouldBe Sentinel.CHARSET.toString() + "&a=1"
         }
 
+        it("uses the configured delimiter between sentinel and streamed payload fragments") {
+            val out =
+                encode(
+                    linkedMapOf("a" to 1, "b" to 2),
+                    EncodeOptions(
+                        charsetSentinel = true,
+                        charset = StandardCharsets.UTF_8,
+                        delimiter = StringDelimiter(";"),
+                    ),
+                )
+
+            out shouldBe Sentinel.CHARSET.toString() + ";a=1;b=2"
+        }
+
         it("adds ISO-8859-1 charset sentinel and omits delimiter when no other pairs") {
             val out =
                 encode(
