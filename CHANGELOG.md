@@ -1,3 +1,13 @@
+## 1.5.4-wip
+
+* [FIX] optimize deep encode traversal with a linear single-key map-chain fast path (with cycle detection and safe fallback to generic traversal)
+* [FIX] reduce encode allocation churn by streaming top-level payload assembly and lazily materializing frame-local fragment buffers
+* [FIX] remove dead internal `Encoder.encode(...)` `sideChannel` plumbing (no public API change)
+* [FIX] optimize decode hot paths by replacing eager split/sequence pipelines with bounded manual token scanning for comma values and string delimiters (regex delimiter semantics preserved)
+* [FIX] add an early flat-query decode fast path for string inputs without structured key syntax
+* [FIX] prevent emitting a trailing delimiter after charset sentinel when encoded fragments are text-empty (sentinel-only output regression fix)
+* [CHORE] expand encode/decode regression coverage for fast-path parity, delimiter/sentinel behavior, and limit/edge-case handling
+
 ## 1.5.3
 
 * [CHORE] optimize decode by skipping dot-in-keys normalization when "%2E" is not present in key segments
