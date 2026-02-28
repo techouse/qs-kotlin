@@ -5,7 +5,6 @@ import io.github.techouse.qskotlin.enums.Formatter
 import io.github.techouse.qskotlin.enums.ListFormat
 import io.github.techouse.qskotlin.enums.ListFormatGenerator
 import io.github.techouse.qskotlin.models.*
-import io.github.techouse.qskotlin.models.Undefined
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
