@@ -13,6 +13,8 @@ import java.nio.charset.StandardCharsets
 
 /** A helper object for decoding query strings into structured data. */
 internal object Decoder {
+    private const val MAX_PREALLOCATED_SPLIT_PARTS = 1_024
+
     /**
      * Parses a list value from a string or any other type, applying the options provided.
      *
@@ -64,7 +66,7 @@ internal object Decoder {
     private fun splitCommaValue(value: String, maxParts: Int? = null): List<String> {
         if (maxParts != null && maxParts <= 0) return emptyList()
 
-        val parts = if (maxParts != null) ArrayList<String>(maxParts) else ArrayList()
+        val parts = newSplitBuffer(maxParts)
         var start = 0
         while (true) {
             if (maxParts != null && parts.size >= maxParts) break
@@ -98,7 +100,7 @@ internal object Decoder {
     ): List<String> {
         if (maxParts != null && maxParts <= 0) return emptyList()
 
-        val parts = if (maxParts != null) ArrayList<String>(maxParts) else ArrayList()
+        val parts = newSplitBuffer(maxParts)
         var start = 0
         while (true) {
             if (maxParts != null && parts.size >= maxParts) break
@@ -123,13 +125,19 @@ internal object Decoder {
     ): List<String> {
         if (maxParts != null && maxParts <= 0) return emptyList()
 
-        val out = if (maxParts != null) ArrayList<String>(maxParts) else ArrayList()
+        val out = newSplitBuffer(maxParts)
         for (part in parts) {
             if (part.isEmpty()) continue
             out.add(part)
             if (maxParts != null && out.size >= maxParts) break
         }
         return out
+    }
+
+    private fun newSplitBuffer(maxParts: Int?): ArrayList<String> {
+        if (maxParts == null) return ArrayList()
+        if (maxParts <= 0) return ArrayList()
+        return ArrayList(minOf(maxParts, MAX_PREALLOCATED_SPLIT_PARTS))
     }
 
     /**
