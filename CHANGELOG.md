@@ -1,4 +1,4 @@
-## 1.5.4-wip
+## 1.5.4
 
 * [FIX] optimize deep encode traversal with a linear single-key map-chain fast path (with cycle detection and safe fallback to generic traversal)
 * [FIX] reduce encode allocation churn by streaming top-level payload assembly and lazily materializing frame-local fragment buffers
