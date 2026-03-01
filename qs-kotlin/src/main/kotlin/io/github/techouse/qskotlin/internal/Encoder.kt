@@ -4,7 +4,13 @@ import io.github.techouse.qskotlin.enums.Format
 import io.github.techouse.qskotlin.enums.Formatter
 import io.github.techouse.qskotlin.enums.ListFormat
 import io.github.techouse.qskotlin.enums.ListFormatGenerator
-import io.github.techouse.qskotlin.models.*
+import io.github.techouse.qskotlin.models.DateSerializer
+import io.github.techouse.qskotlin.models.Filter
+import io.github.techouse.qskotlin.models.FunctionFilter
+import io.github.techouse.qskotlin.models.IterableFilter
+import io.github.techouse.qskotlin.models.Sorter
+import io.github.techouse.qskotlin.models.Undefined
+import io.github.techouse.qskotlin.models.ValueEncoder
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.nio.charset.StandardCharsets
@@ -59,7 +65,7 @@ internal object Encoder {
         val path: KeyPathNode,
         val context: TraversalContext,
         var phase: Phase = Phase.START,
-        val values: MutableList<Any?> = mutableListOf(),
+        var values: MutableList<Any?>? = null,
         var objKeys: List<Any?> = emptyList(),
         var index: Int = 0,
         var adjustedPath: KeyPathNode = path,
@@ -74,7 +80,6 @@ internal object Encoder {
      *
      * @param data The data to encode; can be any type.
      * @param undefined If true, will not encode undefined values.
-     * @param sideChannel Reserved for compatibility; unused (cycle tracking is internal).
      * @param prefix An optional prefix for the encoded string.
      * @param generateArrayPrefix A generator for array prefixes.
      * @param commaRoundTrip If true, uses comma for array encoding.
@@ -97,7 +102,6 @@ internal object Encoder {
     fun encode(
         data: Any?,
         undefined: Boolean,
-        @Suppress("UNUSED_PARAMETER") sideChannel: MutableMap<Any?, Any?>,
         prefix: String? = null,
         generateArrayPrefix: ListFormatGenerator? = null,
         commaRoundTrip: Boolean? = null,
@@ -140,6 +144,10 @@ internal object Encoder {
                 charset = charset,
             )
 
+        tryEncodeLinearChain(data, undefined, prefixValue, rootContext)?.let {
+            return it
+        }
+
         // Use identity-based tracking for the current traversal path to detect cycles.
         val seen = Collections.newSetFromMap(IdentityHashMap<Any?, Boolean>())
 
@@ -161,6 +169,22 @@ internal object Encoder {
                 completed.trackedObject?.let { seen.remove(it) }
             }
             lastResult = result
+        }
+
+        fun appendFrameValues(frame: Frame, encoded: Any?) {
+            if (encoded is Iterable<*>) {
+                var values: MutableList<Any?>? = frame.values
+                for (item in encoded) {
+                    if (values == null) {
+                        values = mutableListOf()
+                        frame.values = values
+                    }
+                    values.add(item)
+                }
+            } else {
+                val values = frame.values ?: mutableListOf<Any?>().also { frame.values = it }
+                values.add(encoded)
+            }
         }
 
         while (stack.isNotEmpty()) {
@@ -267,12 +291,7 @@ internal object Encoder {
                     val objKeys: List<Any?> =
                         when {
                             context.isCommaGenerator && obj is Iterable<*> -> {
-                                val items =
-                                    when {
-                                        obj is List<*> -> obj
-                                        frame.iterableList != null -> frame.iterableList!!
-                                        else -> obj.toList()
-                                    }
+                                val items = obj as? List<*> ?: frame.iterableList!!
 
                                 val filtered =
                                     if (context.commaCompactNulls) items.filterNotNull() else items
@@ -377,7 +396,7 @@ internal object Encoder {
                 Phase.ITERATE -> {
                     val context = frame.context
                     if (frame.index >= frame.objKeys.size) {
-                        finishFrame(frame.values)
+                        finishFrame(frame.values ?: emptyList<Any?>())
                         continue
                     }
 
@@ -465,10 +484,7 @@ internal object Encoder {
                 }
 
                 Phase.WAIT_CHILD -> {
-                    when (val encoded = lastResult) {
-                        is Iterable<*> -> frame.values.addAll(encoded)
-                        else -> frame.values.add(encoded)
-                    }
+                    appendFrameValues(frame, lastResult)
                     frame.phase = Phase.ITERATE
                     continue
                 }
@@ -489,5 +505,98 @@ internal object Encoder {
             generator === repeatGenerator || generator === commaGenerator -> adjustedPath
             else -> KeyPathNode.fromMaterialized(generator(adjustedPath.materialize(), encodedKey))
         }
+    }
+
+    private fun tryEncodeLinearChain(
+        data: Any?,
+        undefined: Boolean,
+        prefix: String,
+        context: TraversalContext,
+    ): Any? {
+        if (undefined) return null
+        if (context.filter != null || context.sort != null) return null
+        if (context.allowEmptyLists) return null
+        if (context.commaRoundTrip || context.commaCompactNulls || context.isCommaGenerator)
+            return null
+        if (data !is Map<*, *>) return null
+
+        val seen = Collections.newSetFromMap(IdentityHashMap<Any?, Boolean>())
+        var current: Any? = data
+        var path = KeyPathNode.fromMaterialized(prefix)
+
+        while (current is Map<*, *>) {
+            if (!seen.add(current)) {
+                throw IndexOutOfBoundsException("Cyclic object value")
+            }
+            if (current.size != 1) {
+                return null
+            }
+
+            val entry = current.entries.first()
+            val key = entry.key.toString()
+            val encodedKey =
+                if (context.allowDots && context.encodeDotInKeys) key.replace(".", "%2E") else key
+            val pathForChildren = if (context.encodeDotInKeys) path.asDotEncoded() else path
+
+            path =
+                if (context.allowDots) {
+                    pathForChildren.append(".$encodedKey")
+                } else {
+                    pathForChildren.append("[$encodedKey]")
+                }
+
+            current = entry.value
+        }
+
+        var leaf = current
+        if (leaf is LocalDateTime) {
+            leaf = context.serializeDate?.invoke(leaf) ?: leaf.toString()
+        }
+
+        if (leaf == null) {
+            if (context.skipNulls) {
+                return emptyList<Any?>()
+            }
+            if (context.strictNullHandling) {
+                val keyOnly =
+                    if (context.encoder != null && !context.encodeValuesOnly) {
+                        context.encoder.invoke(path.materialize(), context.charset, context.format)
+                    } else {
+                        path.materialize()
+                    }
+                return listOf(keyOnly)
+            }
+            leaf = ""
+        }
+
+        if (leaf is Undefined) {
+            return emptyList<Any?>()
+        }
+
+        if (
+            Utils.isNonNullishPrimitive(leaf, context.skipNulls) ||
+                leaf is ByteArray ||
+                leaf is ByteBuffer
+        ) {
+            val fragment =
+                if (context.encoder != null) {
+                    val keyValue =
+                        if (context.encodeValuesOnly) path.materialize()
+                        else
+                            context.encoder.invoke(
+                                path.materialize(),
+                                context.charset,
+                                context.format,
+                            )
+                    val encodedValue = context.encoder.invoke(leaf, context.charset, context.format)
+                    "${context.formatter(keyValue)}=${context.formatter(encodedValue)}"
+                } else {
+                    val rawValue = Utils.bytesToString(leaf, context.charset) ?: leaf.toString()
+                    "${context.formatter(path.materialize())}=${context.formatter(rawValue)}"
+                }
+            return listOf(fragment)
+        }
+
+        return null
     }
 }
