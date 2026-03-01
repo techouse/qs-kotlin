@@ -9,6 +9,8 @@ import io.github.techouse.qskotlin.models.Undefined
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
+import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
 
 class DecoderInternalSpec :
@@ -136,6 +138,67 @@ class DecoderInternalSpec :
                         DecodeOptions(comma = true, listLimit = 1, throwOnLimitExceeded = true),
                     )
                 }
+            }
+
+            it("rejects empty string delimiters") {
+                shouldThrow<IllegalArgumentException> {
+                    Decoder.parseQueryStringValues(
+                        "a=1",
+                        DecodeOptions(delimiter = StringDelimiter("")),
+                    )
+                }
+            }
+
+            it("uses unbounded comma split when listLimit is Int.MAX_VALUE") {
+                val parseListValue =
+                    Decoder::class
+                        .java
+                        .getDeclaredMethod(
+                            "parseListValue",
+                            Any::class.java,
+                            DecodeOptions::class.java,
+                            Int::class.javaPrimitiveType,
+                        )
+                parseListValue.isAccessible = true
+
+                val result =
+                    parseListValue.invoke(
+                        Decoder,
+                        "a,b",
+                        DecodeOptions(
+                            comma = true,
+                            listLimit = Int.MAX_VALUE,
+                            throwOnLimitExceeded = true,
+                        ),
+                        0,
+                    )
+
+                result shouldBe listOf("a", "b")
+            }
+
+            it("throws when comma parsing starts with negative remaining allowance") {
+                val parseListValue =
+                    Decoder::class
+                        .java
+                        .getDeclaredMethod(
+                            "parseListValue",
+                            Any::class.java,
+                            DecodeOptions::class.java,
+                            Int::class.javaPrimitiveType,
+                        )
+                parseListValue.isAccessible = true
+
+                val thrown =
+                    shouldThrow<InvocationTargetException> {
+                        parseListValue.invoke(
+                            Decoder,
+                            "a,b",
+                            DecodeOptions(comma = true, listLimit = 1, throwOnLimitExceeded = true),
+                            2,
+                        )
+                    }
+
+                thrown.cause.shouldBeInstanceOf<IndexOutOfBoundsException>()
             }
         }
 
