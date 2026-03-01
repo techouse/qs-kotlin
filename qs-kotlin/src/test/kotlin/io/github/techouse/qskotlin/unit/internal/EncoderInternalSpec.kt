@@ -368,6 +368,22 @@ class EncoderInternalSpec :
                 result shouldBe emptyList<Any?>()
             }
 
+            it("skipNulls takes precedence over strictNullHandling in linear chains") {
+                val data = mapOf("a" to mapOf("b" to null))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        skipNulls = true,
+                        strictNullHandling = true,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe emptyList<Any?>()
+            }
+
             it("returns empty list for Undefined leaf in linear chains") {
                 val data = mapOf("a" to mapOf("b" to Undefined()))
 
