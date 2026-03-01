@@ -432,6 +432,168 @@ class EncoderInternalSpec :
                     }
                     .message shouldBe "Cyclic object value"
             }
+
+            it("encodes dot in keys when allowDots and encodeDotInKeys enabled") {
+                val data = mapOf("a.b" to "v")
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        allowDots = true,
+                        encodeDotInKeys = true,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root.a%2Eb=v")
+            }
+
+            it("encodes ByteBuffer leaf via main encode path") {
+                val buf = ByteBuffer.wrap("hi".toByteArray(StandardCharsets.UTF_8))
+
+                val result =
+                    Encoder.encode(
+                        data = buf,
+                        undefined = false,
+                        prefix = "buf",
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe "buf=hi"
+            }
+
+            it("encodes ByteArray leaf via linear chain path") {
+                val data = mapOf("k" to "AB".toByteArray(StandardCharsets.UTF_8))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[k]=AB")
+            }
+
+            it("encodes ByteBuffer leaf via linear chain path") {
+                val data = mapOf("k" to ByteBuffer.wrap("CD".toByteArray(StandardCharsets.UTF_8)))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[k]=CD")
+            }
+
+            it("compact nulls in comma-separated lists") {
+                val result =
+                    Encoder.encode(
+                        data = listOf("a", null, "b"),
+                        undefined = false,
+                        prefix = "tags",
+                        generateArrayPrefix = ListFormat.COMMA.generator,
+                        commaCompactNulls = true,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("tags=a,b")
+            }
+
+            it("handles empty comma list producing Undefined value") {
+                val result =
+                    Encoder.encode(
+                        data = listOf<Any?>(),
+                        undefined = false,
+                        prefix = "tags",
+                        generateArrayPrefix = ListFormat.COMMA.generator,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe emptyList<Any?>()
+            }
+
+            it("sorts keys when sort comparator is provided") {
+                val data = mapOf("b" to "2", "a" to "1")
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        sort = { a, b -> a.toString().compareTo(b.toString()) },
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[a]=1", "root[b]=2")
+            }
+
+            it("encodes with encodeValuesOnly and custom encoder") {
+                val result =
+                    Encoder.encode(
+                        data = mapOf("k" to "v"),
+                        undefined = false,
+                        prefix = "root",
+                        encodeValuesOnly = true,
+                        encoder = { value, _, _ -> "E(${value})" },
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[k]=E(v)")
+            }
+
+            it("strictNullHandling with encoder and encodeValuesOnly false") {
+                val result =
+                    Encoder.encode(
+                        data = null,
+                        undefined = false,
+                        prefix = "key",
+                        strictNullHandling = true,
+                        encoder = { value, _, _ -> "E(${value})" },
+                        encodeValuesOnly = false,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe "E(key)"
+            }
+
+            it("linear chain strictNullHandling with encoder and encodeValuesOnly") {
+                val data = mapOf("a" to null as Any?)
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        strictNullHandling = true,
+                        encodeValuesOnly = true,
+                        encoder = { value, _, _ -> "E(${value})" },
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[a]")
+            }
+
+            it("linear chain with encoder and not encodeValuesOnly") {
+                val data = mapOf("a" to "v")
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        encoder = { value, _, _ -> "E(${value})" },
+                        encodeValuesOnly = false,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("E(root[a])=E(v)")
+            }
         }
     })
 
