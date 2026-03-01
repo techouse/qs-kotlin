@@ -98,6 +98,7 @@ internal object Decoder {
         delimiter: String,
         maxParts: Int?,
     ): List<String> {
+        require(delimiter.isNotEmpty()) { "Delimiter must not be empty." }
         if (maxParts != null && maxParts <= 0) return emptyList()
 
         val parts = newSplitBuffer(maxParts)
