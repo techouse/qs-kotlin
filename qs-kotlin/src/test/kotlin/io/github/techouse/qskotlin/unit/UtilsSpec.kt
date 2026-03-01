@@ -506,6 +506,11 @@ class UtilsSpec :
                 result shouldBe listOf(mapOf("x" to "y"), mapOf("a" to "b"))
             }
 
+            test("replaces undefined list entry when source provides concrete value") {
+                val result = Utils.merge(listOf(Undefined()), listOf("x"))
+                result shouldBe listOf("x")
+            }
+
             test("normalizes list merge with undefined holes when parseLists disabled") {
                 val result =
                     Utils.merge(
