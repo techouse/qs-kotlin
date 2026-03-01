@@ -25,6 +25,9 @@ private val parseListValueMethod by lazy {
         .apply { isAccessible = true }
 }
 
+private fun invokeParseListValue(input: String, options: DecodeOptions, startIndex: Int): Any? =
+    parseListValueMethod.invoke(Decoder, input, options, startIndex)
+
 class DecoderInternalSpec :
     DescribeSpec({
         describe("Decoder.parseQueryStringValues") {
@@ -163,8 +166,7 @@ class DecoderInternalSpec :
 
             it("uses unbounded comma split when listLimit is Int.MAX_VALUE") {
                 val result =
-                    parseListValueMethod.invoke(
-                        Decoder,
+                    invokeParseListValue(
                         "a,b",
                         DecodeOptions(
                             comma = true,
@@ -180,9 +182,8 @@ class DecoderInternalSpec :
             it("throws when comma parsing starts with negative remaining allowance") {
                 val thrown =
                     shouldThrow<InvocationTargetException> {
-                        parseListValueMethod.invoke(
-                            Decoder,
-                            "a,b",
+                        invokeParseListValue(
+                            "x,y,z",
                             DecodeOptions(comma = true, listLimit = 1, throwOnLimitExceeded = true),
                             2,
                         )
