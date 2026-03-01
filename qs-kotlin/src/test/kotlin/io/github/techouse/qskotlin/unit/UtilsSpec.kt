@@ -1050,6 +1050,104 @@ class UtilsSpec :
                 Utils.isEmpty(emptyMap<String, Any?>()) shouldBe true
                 Utils.isEmpty(emptyList<String>()) shouldBe true
             }
+
+            test("non-empty collections and non-matching types") {
+                Utils.isEmpty(listOf(1)) shouldBe false
+                Utils.isEmpty(mapOf("a" to 1)) shouldBe false
+                Utils.isEmpty(42) shouldBe false
+            }
+        }
+
+        context("Utils.isNonNullishPrimitive extras") {
+            test("returns true for Boolean, Number, Enum, Instant, LocalDateTime") {
+                Utils.isNonNullishPrimitive(true) shouldBe true
+                Utils.isNonNullishPrimitive(42) shouldBe true
+                Utils.isNonNullishPrimitive(3.14) shouldBe true
+                Utils.isNonNullishPrimitive(DummyEnum.LOREM) shouldBe true
+                Utils.isNonNullishPrimitive(java.time.Instant.now()) shouldBe true
+                Utils.isNonNullishPrimitive(java.time.LocalDateTime.now()) shouldBe true
+            }
+
+            test("returns false for null, Undefined, Map, Iterable") {
+                Utils.isNonNullishPrimitive(null) shouldBe false
+                Utils.isNonNullishPrimitive(Undefined()) shouldBe false
+                Utils.isNonNullishPrimitive(mapOf("a" to 1)) shouldBe false
+                Utils.isNonNullishPrimitive(listOf(1)) shouldBe false
+            }
+
+            test("returns true for unknown object types") {
+                Utils.isNonNullishPrimitive(Any()) shouldBe true
+            }
+        }
+
+        context("Utils.decode extras") {
+            test("returns null for null input") { Utils.decode(null) shouldBe null }
+
+            test("ISO-8859-1 decode with valid percent-encoded input") {
+                Utils.decode("%41%42", StandardCharsets.ISO_8859_1) shouldBe "AB"
+            }
+
+            test("decode with null charset falls back to UTF-8") {
+                Utils.decode("hello", null) shouldBe "hello"
+            }
+
+            test("UTF-8 decode replaces plus with space") {
+                Utils.decode("a+b", StandardCharsets.UTF_8) shouldBe "a b"
+            }
+        }
+
+        context("Utils.merge extras") {
+            test("merge where both target and source list entries are Undefined") {
+                val result = Utils.merge(listOf(Undefined()), listOf(Undefined()))
+                result shouldBe listOf(Undefined())
+            }
+
+            test("merge source map into target map") {
+                val target = mutableMapOf<String, Any?>("a" to "1")
+                val source = mapOf<Any?, Any?>("b" to "2")
+                val result = Utils.merge(target, source)
+                result.shouldBeInstanceOf<Map<*, *>>()
+                result["a"] shouldBe "1"
+                result["b"] shouldBe "2"
+            }
+
+            test("merge with source null returns target") {
+                val target = "hello"
+                Utils.merge(target, null) shouldBe "hello"
+            }
+        }
+
+        context("Utils.compact extras") {
+            test("compact removes Undefined from nested mutable lists") {
+                val inner = mutableListOf<Any?>(Undefined(), "a")
+                val root = mutableMapOf<String, Any?>("list" to inner)
+                Utils.compact(root)
+                inner shouldBe mutableListOf("a")
+            }
+
+            test("compact with allowSparseLists replaces Undefined with null") {
+                val inner = mutableListOf<Any?>(Undefined(), "a")
+                val root = mutableMapOf<String, Any?>("list" to inner)
+                Utils.compact(root, allowSparseLists = true)
+                inner shouldBe mutableListOf(null, "a")
+            }
+
+            test("compact handles nested mutable maps inside lists") {
+                val nested = mutableMapOf<String, Any?>("x" to Undefined(), "y" to "v")
+                val inner = mutableListOf<Any?>(nested)
+                val root = mutableMapOf<String, Any?>("list" to inner)
+                Utils.compact(root)
+                nested.containsKey("x") shouldBe false
+                nested["y"] shouldBe "v"
+            }
+
+            test("compact handles nested mutable lists inside lists") {
+                val nested = mutableListOf<Any?>(Undefined(), "v")
+                val inner = mutableListOf<Any?>(nested)
+                val root = mutableMapOf<String, Any?>("list" to inner)
+                Utils.compact(root)
+                nested shouldBe mutableListOf("v")
+            }
         }
     })
 
