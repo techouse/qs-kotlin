@@ -124,7 +124,7 @@ jobs:
           diff -u node.out kotlin.out > diff.out || (echo "::error::Differences found between Node and Kotlin outputs. See artifact diff.out"; exit 1)
       - name: Upload diff artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: comparison-diff
           path: |
