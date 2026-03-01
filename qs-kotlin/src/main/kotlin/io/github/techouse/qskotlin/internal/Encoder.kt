@@ -291,12 +291,7 @@ internal object Encoder {
                     val objKeys: List<Any?> =
                         when {
                             context.isCommaGenerator && obj is Iterable<*> -> {
-                                val items =
-                                    when {
-                                        obj is List<*> -> obj
-                                        frame.iterableList != null -> frame.iterableList!!
-                                        else -> obj.toList()
-                                    }
+                                val items = obj as? List<*> ?: frame.iterableList!!
 
                                 val filtered =
                                     if (context.commaCompactNulls) items.filterNotNull() else items
