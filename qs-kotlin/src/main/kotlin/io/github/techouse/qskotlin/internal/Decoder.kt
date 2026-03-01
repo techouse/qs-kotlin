@@ -142,7 +142,7 @@ internal object Decoder {
 
     /**
      * Parses a query string into a map of key-value pairs, handling various options for decoding.
-     * Percent-encoded brackets `%5B`/`%5D` are normalized to literal `[`/`]` before splitting.
+     * Percent-encoded brackets (`%5B`, `%5D`) are normalized to literal brackets before splitting.
      *
      * @param str The query string to parse.
      * @param options The decoding options that affect how the string is parsed.
