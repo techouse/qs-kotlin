@@ -5,6 +5,7 @@ import io.github.techouse.qskotlin.enums.ListFormat
 import io.github.techouse.qskotlin.internal.Encoder
 import io.github.techouse.qskotlin.models.FunctionFilter
 import io.github.techouse.qskotlin.models.IterableFilter
+import io.github.techouse.qskotlin.models.Undefined
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -361,6 +362,20 @@ class EncoderInternalSpec :
                         undefined = false,
                         prefix = "root",
                         skipNulls = true,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe emptyList<Any?>()
+            }
+
+            it("returns empty list for Undefined leaf in linear chains") {
+                val data = mapOf("a" to mapOf("b" to Undefined()))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
                         formatter = { value -> value },
                     )
 
