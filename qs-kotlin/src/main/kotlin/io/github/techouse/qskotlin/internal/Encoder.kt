@@ -559,6 +559,9 @@ internal object Encoder {
         }
 
         if (leaf == null) {
+            if (context.skipNulls) {
+                return emptyList<Any?>()
+            }
             if (context.strictNullHandling) {
                 val keyOnly =
                     if (context.encoder != null && !context.encodeValuesOnly) {
@@ -567,9 +570,6 @@ internal object Encoder {
                         path.materialize()
                     }
                 return listOf(keyOnly)
-            }
-            if (context.skipNulls) {
-                return emptyList<Any?>()
             }
             leaf = ""
         }
