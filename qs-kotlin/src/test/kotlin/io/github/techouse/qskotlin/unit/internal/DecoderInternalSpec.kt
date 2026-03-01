@@ -13,6 +13,18 @@ import io.kotest.matchers.types.shouldBeInstanceOf
 import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
 
+private val parseListValueMethod by lazy {
+    Decoder::class
+        .java
+        .getDeclaredMethod(
+            "parseListValue",
+            Any::class.java,
+            DecodeOptions::class.java,
+            Int::class.javaPrimitiveType,
+        )
+        .apply { isAccessible = true }
+}
+
 class DecoderInternalSpec :
     DescribeSpec({
         describe("Decoder.parseQueryStringValues") {
@@ -150,19 +162,8 @@ class DecoderInternalSpec :
             }
 
             it("uses unbounded comma split when listLimit is Int.MAX_VALUE") {
-                val parseListValue =
-                    Decoder::class
-                        .java
-                        .getDeclaredMethod(
-                            "parseListValue",
-                            Any::class.java,
-                            DecodeOptions::class.java,
-                            Int::class.javaPrimitiveType,
-                        )
-                parseListValue.isAccessible = true
-
                 val result =
-                    parseListValue.invoke(
+                    parseListValueMethod.invoke(
                         Decoder,
                         "a,b",
                         DecodeOptions(
@@ -177,20 +178,9 @@ class DecoderInternalSpec :
             }
 
             it("throws when comma parsing starts with negative remaining allowance") {
-                val parseListValue =
-                    Decoder::class
-                        .java
-                        .getDeclaredMethod(
-                            "parseListValue",
-                            Any::class.java,
-                            DecodeOptions::class.java,
-                            Int::class.javaPrimitiveType,
-                        )
-                parseListValue.isAccessible = true
-
                 val thrown =
                     shouldThrow<InvocationTargetException> {
-                        parseListValue.invoke(
+                        parseListValueMethod.invoke(
                             Decoder,
                             "a,b",
                             DecodeOptions(comma = true, listLimit = 1, throwOnLimitExceeded = true),
