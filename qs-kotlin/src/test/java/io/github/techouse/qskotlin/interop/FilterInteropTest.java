@@ -13,6 +13,15 @@ import org.junit.jupiter.api.Test;
 
 public class FilterInteropTest {
 
+  // Helper to get a list out of an Iterable for assertions
+  private static List<Object> toList(Iterable<?> iterable) {
+    List<Object> list = new ArrayList<>();
+    for (Object o : iterable) {
+      list.add(o);
+    }
+    return list;
+  }
+
   @Nested
   @DisplayName("FunctionFilter Java interop")
   class FunctionFilterTests {
@@ -122,14 +131,5 @@ public class FilterInteropTest {
       IterableFilter fromVarargs = IterableFilter.of();
       assertFalse(fromVarargs.getIterable().iterator().hasNext());
     }
-  }
-
-  // Helper to get a list out of an Iterable for assertions
-  private static List<Object> toList(Iterable<?> iterable) {
-    List<Object> list = new ArrayList<>();
-    for (Object o : iterable) {
-      list.add(o);
-    }
-    return list;
   }
 }
