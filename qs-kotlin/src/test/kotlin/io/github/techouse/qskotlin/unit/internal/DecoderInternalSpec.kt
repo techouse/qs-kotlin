@@ -267,5 +267,104 @@ class DecoderInternalSpec :
 
                 parsed["items"] shouldBe mutableListOf(Undefined(), Undefined(), "x")
             }
+
+            it("produces empty list when allowEmptyLists and strictNullHandling with null leaf") {
+                val options =
+                    DecodeOptions(
+                        parseLists = true,
+                        allowEmptyLists = true,
+                        strictNullHandling = true,
+                    )
+
+                val parsed =
+                    Decoder.parseKeys(
+                        givenKey = "list[]",
+                        value = null,
+                        options = options,
+                        valuesParsed = true,
+                    ) as Map<*, *>
+
+                parsed["list"] shouldBe mutableListOf<Any?>()
+            }
+
+            it("uses map with string key when listLimit is negative") {
+                val options = DecodeOptions(listLimit = -1)
+
+                val parsed =
+                    Decoder.parseKeys(
+                        givenKey = "arr[0]",
+                        value = "v",
+                        options = options,
+                        valuesParsed = true,
+                    ) as Map<*, *>
+
+                parsed["arr"] shouldBe mapOf("0" to "v")
+            }
+
+            it("decodes %2E in keys when decodeDotInKeys is enabled") {
+                val options = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+
+                val parsed =
+                    Decoder.parseKeys(
+                        givenKey = "a%2Eb",
+                        value = "v",
+                        options = options,
+                        valuesParsed = true,
+                    ) as Map<*, *>
+
+                parsed["a.b"] shouldBe "v"
+            }
+
+            it("treats numeric key beyond listLimit as map key") {
+                val options = DecodeOptions(listLimit = 2)
+
+                val parsed =
+                    Decoder.parseKeys(
+                        givenKey = "arr[5]",
+                        value = "v",
+                        options = options,
+                        valuesParsed = true,
+                    ) as Map<*, *>
+
+                parsed["arr"] shouldBe mapOf("5" to "v")
+            }
+
+            it("regex delimiter limits number of parts") {
+                val result =
+                    Decoder.parseQueryStringValues(
+                        "a=1;b=2;c=3;d=4",
+                        DecodeOptions(delimiter = RegexDelimiter("[;]"), parameterLimit = 2),
+                    )
+
+                result.size shouldBe 2
+            }
+
+            it("handles plain key without brackets") {
+                val parsed =
+                    Decoder.parseKeys(
+                        givenKey = "simple",
+                        value = "v",
+                        options = DecodeOptions(),
+                        valuesParsed = true,
+                    ) as Map<*, *>
+
+                parsed["simple"] shouldBe "v"
+            }
+
+            it("returns null for null or empty key") {
+                Decoder.parseKeys(
+                    givenKey = null,
+                    value = "v",
+                    options = DecodeOptions(),
+                    valuesParsed = true,
+                ) shouldBe null
+
+                Decoder.parseKeys(
+                    givenKey = "",
+                    value = "v",
+                    options = DecodeOptions(),
+                    valuesParsed = true,
+                ) shouldBe null
+            }
         }
     })
