@@ -5,6 +5,7 @@ import io.github.techouse.qskotlin.enums.ListFormat
 import io.github.techouse.qskotlin.internal.Encoder
 import io.github.techouse.qskotlin.models.FunctionFilter
 import io.github.techouse.qskotlin.models.IterableFilter
+import io.github.techouse.qskotlin.models.Undefined
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -24,7 +25,6 @@ class EncoderInternalSpec :
                     Encoder.encode(
                         data = data,
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = null,
                         generateArrayPrefix = null,
                         commaRoundTrip = null,
@@ -50,7 +50,6 @@ class EncoderInternalSpec :
                     Encoder.encode(
                         data = data,
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "arr",
                         generateArrayPrefix = ListFormat.INDICES.generator,
                         encoder = { value, _, _ -> value?.toString() ?: "" },
@@ -68,7 +67,6 @@ class EncoderInternalSpec :
                     Encoder.encode(
                         data = arrayOf("only"),
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "arr",
                         generateArrayPrefix = ListFormat.INDICES.generator,
                         filter = IterableFilter(listOf(2)),
@@ -87,7 +85,6 @@ class EncoderInternalSpec :
                     Encoder.encode(
                         data = Plain("value"),
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "plain",
                         generateArrayPrefix = ListFormat.INDICES.generator,
                         filter = IterableFilter(listOf("prop")),
@@ -107,7 +104,6 @@ class EncoderInternalSpec :
                     Encoder.encode(
                         data = stamp,
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "ts",
                         serializeDate = { dt -> "X${dt.toLocalDate()}" },
                         encoder = { value, _, _ -> value?.toString() ?: "" },
@@ -126,7 +122,6 @@ class EncoderInternalSpec :
                     Encoder.encode(
                         data = listOf("alpha"),
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "tags",
                         generateArrayPrefix = ListFormat.COMMA.generator,
                         encodeValuesOnly = true,
@@ -151,7 +146,6 @@ class EncoderInternalSpec :
                     Encoder.encode(
                         data = data,
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "tags",
                         generateArrayPrefix = ListFormat.COMMA.generator,
                         encoder = { value, _, _ -> value?.toString() ?: "" },
@@ -172,7 +166,6 @@ class EncoderInternalSpec :
                     Encoder.encode(
                         data = data,
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "tags",
                         generateArrayPrefix = ListFormat.COMMA.generator,
                         encodeValuesOnly = true,
@@ -197,7 +190,6 @@ class EncoderInternalSpec :
                                 "C",
                             ),
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "bytes",
                         generateArrayPrefix = ListFormat.COMMA.generator,
                         formatter = { value -> value },
@@ -213,7 +205,6 @@ class EncoderInternalSpec :
                     Encoder.encode(
                         data = listOf("x"),
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "arr",
                         generateArrayPrefix = customGenerator,
                         encoder = { value, _, _ -> value?.toString() ?: "" },
@@ -228,7 +219,6 @@ class EncoderInternalSpec :
                     Encoder.encode(
                         data = emptyList<Any?>(),
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "items",
                         allowEmptyLists = true,
                     )
@@ -247,7 +237,6 @@ class EncoderInternalSpec :
                                     emptyList<String>().iterator()
                             },
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "items",
                         allowEmptyLists = true,
                     )
@@ -264,7 +253,6 @@ class EncoderInternalSpec :
                                     listOf("solo").iterator()
                             },
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "items",
                         generateArrayPrefix = ListFormat.INDICES.generator,
                         commaRoundTrip = true,
@@ -283,7 +271,6 @@ class EncoderInternalSpec :
                     Encoder.encode(
                         data = listOf(instant, date),
                         undefined = false,
-                        sideChannel = mutableMapOf(),
                         prefix = "ts",
                         generateArrayPrefix = ListFormat.COMMA.generator,
                         encoder = { value, _, _ -> value?.toString() ?: "" },
@@ -295,25 +282,140 @@ class EncoderInternalSpec :
             it("serializes LocalDateTime with default ISO formatting when serializer null") {
                 val stamp = LocalDateTime.parse("2024-01-02T03:04:05")
 
-                val result =
-                    Encoder.encode(
-                        data = stamp,
-                        undefined = false,
-                        sideChannel = mutableMapOf(),
-                        prefix = "ts",
-                    )
+                val result = Encoder.encode(data = stamp, undefined = false, prefix = "ts")
 
                 result shouldBe "ts=2024-01-02T03:04:05"
             }
 
-            it("propagates undefined flag by returning empty mutable list") {
+            it("encodes deep single-key map chains as one fragment list") {
+                var chain: Map<String, Any?> = mapOf("leaf" to "x")
+                repeat(20) { chain = mapOf("a" to chain) }
+
                 val result =
                     Encoder.encode(
-                        data = null,
-                        undefined = true,
-                        sideChannel = mutableMapOf(),
-                        prefix = "ignored",
+                        data = chain,
+                        undefined = false,
+                        prefix = "root",
+                        formatter = { value -> value },
                     )
+
+                val expected = buildString {
+                    append("root")
+                    repeat(20) { append("[a]") }
+                    append("[leaf]=x")
+                }
+
+                result shouldBe listOf(expected)
+            }
+
+            it("falls back when linear chain leaf is iterable") {
+                val data = mapOf("a" to mapOf("b" to listOf("x", "y")))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[a][b][0]=x", "root[a][b][1]=y")
+            }
+
+            it("preserves strictNullHandling in linear chains") {
+                val data = mapOf("a" to mapOf("b" to null))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        strictNullHandling = true,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[a][b]")
+            }
+
+            it("serializes LocalDateTime leaf with custom serializer in linear chains") {
+                val stamp = LocalDateTime.parse("2024-01-02T03:04:05")
+                val data = mapOf("a" to mapOf("b" to stamp))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        serializeDate = { dt -> "X${dt.toLocalDate()}" },
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[a][b]=X2024-01-02")
+            }
+
+            it("preserves skipNulls in linear chains") {
+                val data = mapOf("a" to mapOf("b" to null))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        skipNulls = true,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe emptyList<Any?>()
+            }
+
+            it("skipNulls takes precedence over strictNullHandling in linear chains") {
+                val data = mapOf("a" to mapOf("b" to null))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        skipNulls = true,
+                        strictNullHandling = true,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe emptyList<Any?>()
+            }
+
+            it("returns empty list for Undefined leaf in linear chains") {
+                val data = mapOf("a" to mapOf("b" to Undefined()))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe emptyList<Any?>()
+            }
+
+            it("preserves allowDots + encodeDotInKeys in linear chains") {
+                val data = mapOf("k.v" to mapOf("n.m" to "x"))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "p.q",
+                        allowDots = true,
+                        encodeDotInKeys = true,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("p%2Eq%2Ek%2Ev.n%2Em=x")
+            }
+
+            it("propagates undefined flag by returning empty mutable list") {
+                val result = Encoder.encode(data = null, undefined = true, prefix = "ignored")
 
                 result.shouldBeInstanceOf<MutableList<*>>().isEmpty() shouldBe true
             }
@@ -323,12 +425,7 @@ class EncoderInternalSpec :
                 cycle["self"] = cycle
 
                 shouldThrow<IndexOutOfBoundsException> {
-                        Encoder.encode(
-                            data = cycle,
-                            undefined = false,
-                            sideChannel = mutableMapOf(),
-                            prefix = "self",
-                        )
+                        Encoder.encode(data = cycle, undefined = false, prefix = "self")
                     }
                     .message shouldBe "Cyclic object value"
             }
@@ -345,12 +442,173 @@ class EncoderInternalSpec :
                         Encoder.encode(
                             data = root,
                             undefined = false,
-                            sideChannel = mutableMapOf(),
                             prefix = "root",
                             filter = filter,
                         )
                     }
                     .message shouldBe "Cyclic object value"
+            }
+
+            it("encodes dot in keys when allowDots and encodeDotInKeys enabled") {
+                val data = mapOf("a.b" to "v")
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        allowDots = true,
+                        encodeDotInKeys = true,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root.a%2Eb=v")
+            }
+
+            it("encodes ByteBuffer leaf via main encode path") {
+                val buf = ByteBuffer.wrap("hi".toByteArray(StandardCharsets.UTF_8))
+
+                val result =
+                    Encoder.encode(
+                        data = buf,
+                        undefined = false,
+                        prefix = "buf",
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe "buf=hi"
+            }
+
+            it("encodes ByteArray leaf via linear chain path") {
+                val data = mapOf("k" to "AB".toByteArray(StandardCharsets.UTF_8))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[k]=AB")
+            }
+
+            it("encodes ByteBuffer leaf via linear chain path") {
+                val data = mapOf("k" to ByteBuffer.wrap("CD".toByteArray(StandardCharsets.UTF_8)))
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[k]=CD")
+            }
+
+            it("compact nulls in comma-separated lists") {
+                val result =
+                    Encoder.encode(
+                        data = listOf("a", null, "b"),
+                        undefined = false,
+                        prefix = "tags",
+                        generateArrayPrefix = ListFormat.COMMA.generator,
+                        commaCompactNulls = true,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("tags=a,b")
+            }
+
+            it("handles empty comma list producing Undefined value") {
+                val result =
+                    Encoder.encode(
+                        data = listOf<Any?>(),
+                        undefined = false,
+                        prefix = "tags",
+                        generateArrayPrefix = ListFormat.COMMA.generator,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe emptyList<Any?>()
+            }
+
+            it("sorts keys when sort comparator is provided") {
+                val data = mapOf("b" to "2", "a" to "1")
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        sort = { a, b -> a.toString().compareTo(b.toString()) },
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[a]=1", "root[b]=2")
+            }
+
+            it("encodes with encodeValuesOnly and custom encoder") {
+                val result =
+                    Encoder.encode(
+                        data = mapOf("k" to "v"),
+                        undefined = false,
+                        prefix = "root",
+                        encodeValuesOnly = true,
+                        encoder = { value, _, _ -> "E(${value})" },
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[k]=E(v)")
+            }
+
+            it("strictNullHandling with encoder and encodeValuesOnly false") {
+                val result =
+                    Encoder.encode(
+                        data = null,
+                        undefined = false,
+                        prefix = "key",
+                        strictNullHandling = true,
+                        encoder = { value, _, _ -> "E(${value})" },
+                        encodeValuesOnly = false,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe "E(key)"
+            }
+
+            it("linear chain strictNullHandling with encoder and encodeValuesOnly") {
+                val data = mapOf("a" to null as Any?)
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        strictNullHandling = true,
+                        encodeValuesOnly = true,
+                        encoder = { value, _, _ -> "E(${value})" },
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("root[a]")
+            }
+
+            it("linear chain with encoder and not encodeValuesOnly") {
+                val data = mapOf("a" to "v")
+
+                val result =
+                    Encoder.encode(
+                        data = data,
+                        undefined = false,
+                        prefix = "root",
+                        encoder = { value, _, _ -> "E(${value})" },
+                        encodeValuesOnly = false,
+                        formatter = { value -> value },
+                    )
+
+                result shouldBe listOf("E(root[a])=E(v)")
             }
         }
     })

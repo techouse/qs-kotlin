@@ -3,11 +3,30 @@ package io.github.techouse.qskotlin.unit.internal
 import io.github.techouse.qskotlin.enums.Duplicates
 import io.github.techouse.qskotlin.internal.Decoder
 import io.github.techouse.qskotlin.models.DecodeOptions
+import io.github.techouse.qskotlin.models.RegexDelimiter
+import io.github.techouse.qskotlin.models.StringDelimiter
 import io.github.techouse.qskotlin.models.Undefined
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
+import java.lang.reflect.InvocationTargetException
 import java.nio.charset.StandardCharsets
+
+private val parseListValueMethod by lazy {
+    Decoder::class
+        .java
+        .getDeclaredMethod(
+            "parseListValue",
+            Any::class.java,
+            DecodeOptions::class.java,
+            Int::class.javaPrimitiveType,
+        )
+        .apply { isAccessible = true }
+}
+
+private fun invokeParseListValue(input: String, options: DecodeOptions, startIndex: Int): Any? =
+    parseListValueMethod.invoke(Decoder, input, options, startIndex)
 
 class DecoderInternalSpec :
     DescribeSpec({
@@ -29,6 +48,30 @@ class DecoderInternalSpec :
                 val options = DecodeOptions(comma = true)
                 val result = Decoder.parseQueryStringValues("list=a,b", options)
                 result["list"] shouldBe listOf("a", "b")
+            }
+
+            it("string delimiter path ignores empty segments while preserving valid pairs") {
+                val result = Decoder.parseQueryStringValues("a=1&&b=2&&", DecodeOptions())
+                result shouldBe mutableMapOf("a" to "1", "b" to "2")
+            }
+
+            it("string delimiter path handles multi-character delimiters with adjacent empties") {
+                val result =
+                    Decoder.parseQueryStringValues(
+                        "a=1&&&&b=2&&",
+                        DecodeOptions(delimiter = StringDelimiter("&&")),
+                    )
+
+                result shouldBe mutableMapOf("a" to "1", "b" to "2")
+            }
+
+            it("regex delimiter path preserves parsing semantics") {
+                val result =
+                    Decoder.parseQueryStringValues(
+                        "a=1;b=2,,c=3;;",
+                        DecodeOptions(delimiter = RegexDelimiter("[;,]")),
+                    )
+                result shouldBe mutableMapOf("a" to "1", "b" to "2", "c" to "3")
             }
 
             it("respects charset sentinel and numeric entities") {
@@ -69,6 +112,84 @@ class DecoderInternalSpec :
                 val result = Decoder.parseQueryStringValues("k=1&k=2", options)
 
                 result["k"] shouldBe listOf("1", "2")
+            }
+
+            it("parameter limits count only non-empty parts for string delimiters") {
+                val result =
+                    Decoder.parseQueryStringValues(
+                        "&&a=1&&b=2",
+                        DecodeOptions(parameterLimit = 1, throwOnLimitExceeded = false),
+                    )
+                result shouldBe mutableMapOf("a" to "1")
+            }
+
+            it("parameter limits throw when non-empty parts exceed the window") {
+                shouldThrow<IndexOutOfBoundsException> {
+                    Decoder.parseQueryStringValues(
+                        "&&a=1&&b=2",
+                        DecodeOptions(parameterLimit = 1, throwOnLimitExceeded = true),
+                    )
+                }
+            }
+
+            it("comma parsing preserves empty boundary tokens") {
+                val result = Decoder.parseQueryStringValues("a=,", DecodeOptions(comma = true))
+                result["a"] shouldBe listOf("", "")
+            }
+
+            it("comma parsing truncates when listLimit is exceeded and throw disabled") {
+                val result =
+                    Decoder.parseQueryStringValues(
+                        "a=1,2,3",
+                        DecodeOptions(comma = true, listLimit = 2, throwOnLimitExceeded = false),
+                    )
+                result["a"] shouldBe listOf("1", "2")
+            }
+
+            it("comma parsing throws when listLimit is exceeded and throw enabled") {
+                shouldThrow<IndexOutOfBoundsException> {
+                    Decoder.parseQueryStringValues(
+                        "a=1,2",
+                        DecodeOptions(comma = true, listLimit = 1, throwOnLimitExceeded = true),
+                    )
+                }
+            }
+
+            it("rejects empty string delimiters") {
+                shouldThrow<IllegalArgumentException> {
+                    Decoder.parseQueryStringValues(
+                        "a=1",
+                        DecodeOptions(delimiter = StringDelimiter("")),
+                    )
+                }
+            }
+
+            it("uses unbounded comma split when listLimit is Int.MAX_VALUE") {
+                val result =
+                    invokeParseListValue(
+                        "a,b",
+                        DecodeOptions(
+                            comma = true,
+                            listLimit = Int.MAX_VALUE,
+                            throwOnLimitExceeded = true,
+                        ),
+                        0,
+                    )
+
+                result shouldBe listOf("a", "b")
+            }
+
+            it("throws when comma parsing starts with negative remaining allowance") {
+                val thrown =
+                    shouldThrow<InvocationTargetException> {
+                        invokeParseListValue(
+                            "x,y,z",
+                            DecodeOptions(comma = true, listLimit = 1, throwOnLimitExceeded = true),
+                            2,
+                        )
+                    }
+
+                thrown.cause.shouldBeInstanceOf<IndexOutOfBoundsException>()
             }
         }
 
@@ -146,6 +267,105 @@ class DecoderInternalSpec :
                     ) as Map<*, *>
 
                 parsed["items"] shouldBe mutableListOf(Undefined(), Undefined(), "x")
+            }
+
+            it("produces empty list when allowEmptyLists and strictNullHandling with null leaf") {
+                val options =
+                    DecodeOptions(
+                        parseLists = true,
+                        allowEmptyLists = true,
+                        strictNullHandling = true,
+                    )
+
+                val parsed =
+                    Decoder.parseKeys(
+                        givenKey = "list[]",
+                        value = null,
+                        options = options,
+                        valuesParsed = true,
+                    ) as Map<*, *>
+
+                parsed["list"] shouldBe mutableListOf<Any?>()
+            }
+
+            it("uses map with string key when listLimit is negative") {
+                val options = DecodeOptions(listLimit = -1)
+
+                val parsed =
+                    Decoder.parseKeys(
+                        givenKey = "arr[0]",
+                        value = "v",
+                        options = options,
+                        valuesParsed = true,
+                    ) as Map<*, *>
+
+                parsed["arr"] shouldBe mapOf("0" to "v")
+            }
+
+            it("decodes %2E in keys when decodeDotInKeys is enabled") {
+                val options = DecodeOptions(allowDots = true, decodeDotInKeys = true)
+
+                val parsed =
+                    Decoder.parseKeys(
+                        givenKey = "a%2Eb",
+                        value = "v",
+                        options = options,
+                        valuesParsed = true,
+                    ) as Map<*, *>
+
+                parsed["a.b"] shouldBe "v"
+            }
+
+            it("treats numeric key beyond listLimit as map key") {
+                val options = DecodeOptions(listLimit = 2)
+
+                val parsed =
+                    Decoder.parseKeys(
+                        givenKey = "arr[5]",
+                        value = "v",
+                        options = options,
+                        valuesParsed = true,
+                    ) as Map<*, *>
+
+                parsed["arr"] shouldBe mapOf("5" to "v")
+            }
+
+            it("regex delimiter limits number of parts") {
+                val result =
+                    Decoder.parseQueryStringValues(
+                        "a=1;b=2;c=3;d=4",
+                        DecodeOptions(delimiter = RegexDelimiter("[;]"), parameterLimit = 2),
+                    )
+
+                result.size shouldBe 2
+            }
+
+            it("handles plain key without brackets") {
+                val parsed =
+                    Decoder.parseKeys(
+                        givenKey = "simple",
+                        value = "v",
+                        options = DecodeOptions(),
+                        valuesParsed = true,
+                    ) as Map<*, *>
+
+                parsed["simple"] shouldBe "v"
+            }
+
+            it("returns null for null or empty key") {
+                Decoder.parseKeys(
+                    givenKey = null,
+                    value = "v",
+                    options = DecodeOptions(),
+                    valuesParsed = true,
+                ) shouldBe null
+
+                Decoder.parseKeys(
+                    givenKey = "",
+                    value = "v",
+                    options = DecodeOptions(),
+                    valuesParsed = true,
+                ) shouldBe null
             }
         }
     })
