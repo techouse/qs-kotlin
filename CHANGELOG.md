@@ -1,3 +1,7 @@
+## 1.5.5
+
+* [CHORE] update Android Gradle Plugin to 9.1.0
+
 ## 1.5.4
 
 * [FIX] optimize deep encode traversal with a linear single-key map-chain fast path (with cycle detection and safe fallback to generic traversal)
