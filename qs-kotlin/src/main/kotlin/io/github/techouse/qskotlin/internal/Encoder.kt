@@ -209,15 +209,14 @@ internal object Encoder {
                     if (obj is LocalDateTime) {
                         obj = context.serializeDate?.invoke(obj) ?: obj.toString()
                     } else if (context.isCommaGenerator && obj is Iterable<*>) {
-                        obj =
-                            obj.map { value ->
-                                when (value) {
-                                    is Instant -> value.toString()
-                                    is LocalDateTime ->
-                                        context.serializeDate?.invoke(value) ?: value.toString()
-                                    else -> value
-                                }
+                        obj = obj.map { value ->
+                            when (value) {
+                                is Instant -> value.toString()
+                                is LocalDateTime ->
+                                    context.serializeDate?.invoke(value) ?: value.toString()
+                                else -> value
                             }
+                        }
                     }
 
                     if (!frame.undefined && obj == null) {

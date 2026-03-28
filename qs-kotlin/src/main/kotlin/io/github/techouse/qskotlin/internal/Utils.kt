@@ -136,10 +136,12 @@ internal object Utils {
                                 }
 
                                 if (currentSource is Iterable<*>) {
-                                    val targetMaps =
-                                        currentTarget.all { it is Map<*, *> || it is Undefined }
-                                    val sourceMaps =
-                                        currentSource.all { it is Map<*, *> || it is Undefined }
+                                    val targetMaps = currentTarget.all {
+                                        it is Map<*, *> || it is Undefined
+                                    }
+                                    val sourceMaps = currentSource.all {
+                                        it is Map<*, *> || it is Undefined
+                                    }
 
                                     if (targetMaps && sourceMaps) {
                                         frame.indexedTarget = toIndexedMap(currentTarget)
