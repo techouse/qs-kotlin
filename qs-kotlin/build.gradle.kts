@@ -32,6 +32,7 @@ dependencies {
     testImplementation(libs.kotest.assertions.core)
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)
+    testImplementation(libs.kotlinx.serialization.json)
 }
 
 tasks.test {

@@ -1,0 +1,329 @@
+{
+  "provenance": {
+    "sourceFiles": [
+      "wpt/url/urlencoded-parser.any.js",
+      "wpt/url/urlsearchparams-stringifier.any.js"
+    ],
+    "note": "Curated and translated from WPT for qs-kotlin. Expected outputs reflect qs-kotlin public API semantics and intentionally exclude browser-only WHATWG URLSearchParams behavior."
+  },
+  "decode": [
+    {
+      "name": "bare key defaults to empty string",
+      "input": "test",
+      "expected": {
+        "test": ""
+      }
+    },
+    {
+      "name": "bare key respects strict null handling",
+      "input": "test",
+      "options": {
+        "strictNullHandling": true
+      },
+      "expected": {
+        "test": null
+      }
+    },
+    {
+      "name": "literal bom in key and value is preserved",
+      "input": "\uFEFFtest=\uFEFF",
+      "expected": {
+        "\uFEFFtest": "\uFEFF"
+      }
+    },
+    {
+      "name": "percent-encoded bom in key and value decodes",
+      "input": "%EF%BB%BFtest=%EF%BB%BF",
+      "expected": {
+        "\uFEFFtest": "\uFEFF"
+      }
+    },
+    {
+      "name": "noncharacter scalar value decodes",
+      "input": "%EF%BF%BF=%EF%BF%BF",
+      "expected": {
+        "\uFFFF": "\uFFFF"
+      }
+    },
+    {
+      "name": "malformed utf-8 bytes in a bare key are replaced",
+      "input": "%FE%FF",
+      "expected": {
+        "\uFFFD\uFFFD": ""
+      }
+    },
+    {
+      "name": "short malformed utf-8 sequence becomes replacement",
+      "input": "%C2",
+      "expected": {
+        "\uFFFD": ""
+      }
+    },
+    {
+      "name": "short malformed utf-8 sequence preserves trailing literal text",
+      "input": "%C2x",
+      "expected": {
+        "\uFFFDx": ""
+      }
+    },
+    {
+      "name": "repeated flat keys combine with empty and valued entries",
+      "input": "\u2020&\u2020=x",
+      "expected": {
+        "\u2020": [
+          "",
+          "x"
+        ]
+      }
+    },
+    {
+      "name": "simple pair decodes",
+      "input": "a=b",
+      "expected": {
+        "a": "b"
+      }
+    },
+    {
+      "name": "empty value is preserved",
+      "input": "a=",
+      "expected": {
+        "a": ""
+      }
+    },
+    {
+      "name": "leading and trailing delimiters are ignored",
+      "input": "&&&a=b&&&&c=d&",
+      "expected": {
+        "a": "b",
+        "c": "d"
+      }
+    },
+    {
+      "name": "duplicate flat keys combine by default",
+      "input": "a=a&a=b&a=c",
+      "expected": {
+        "a": [
+          "a",
+          "b",
+          "c"
+        ]
+      }
+    },
+    {
+      "name": "extra equals remain in the value",
+      "input": "a==a",
+      "expected": {
+        "a": "=a"
+      }
+    },
+    {
+      "name": "plus decodes to spaces",
+      "input": "a=a+b+c+d",
+      "expected": {
+        "a": "a b c d"
+      }
+    },
+    {
+      "name": "invalid percent key remains literal",
+      "input": "%=a",
+      "expected": {
+        "%": "a"
+      }
+    },
+    {
+      "name": "invalid percent prefix in key remains literal",
+      "input": "%a=a",
+      "expected": {
+        "%a": "a"
+      }
+    },
+    {
+      "name": "hex-encoded key decodes",
+      "input": "%61=a",
+      "expected": {
+        "a": "a"
+      }
+    },
+    {
+      "name": "mixed decoded key and pluses preserve empty value",
+      "input": "%61+%4d%4D=",
+      "expected": {
+        "a MM": ""
+      }
+    },
+    {
+      "name": "literal percent value survives failed percent decoding",
+      "input": "id=0&value=%",
+      "expected": {
+        "id": "0",
+        "value": "%"
+      }
+    },
+    {
+      "name": "malformed percent escape remains literal when utf-8 decoding fails",
+      "input": "b=%2sf%2a",
+      "expected": {
+        "b": "%2sf%2a"
+      }
+    },
+    {
+      "name": "mixed malformed percent escape remains literal when utf-8 decoding fails",
+      "input": "b=%2%2af%2a",
+      "expected": {
+        "b": "%2%2af%2a"
+      }
+    },
+    {
+      "name": "double-percent malformed escape remains literal when utf-8 decoding fails",
+      "input": "b=%%2a",
+      "expected": {
+        "b": "%%2a"
+      }
+    },
+    {
+      "name": "nul in value is decoded",
+      "input": "a=b%00c",
+      "expected": {
+        "a": "b\u0000c"
+      }
+    },
+    {
+      "name": "empty decoded keys are intentionally unsupported",
+      "input": "=b",
+      "skipReason": "qs-kotlin drops empty decoded keys instead of preserving them as URLSearchParams would."
+    },
+    {
+      "name": "legacy _charset_ based decoding is intentionally unsupported",
+      "input": "_charset_=windows-1252&test=%C2x",
+      "skipReason": "qs-kotlin only supports UTF-8 and ISO-8859-1 via its public charset and utf8=sentinel options."
+    }
+  ],
+  "encode": [
+    {
+      "name": "spaces in values use RFC1738 plus encoding",
+      "input": {
+        "a": "b c"
+      },
+      "options": {
+        "format": "RFC1738"
+      },
+      "expected": "a=b+c"
+    },
+    {
+      "name": "spaces in keys use RFC1738 plus encoding",
+      "input": {
+        "a b": "c"
+      },
+      "options": {
+        "format": "RFC1738"
+      },
+      "expected": "a+b=c"
+    },
+    {
+      "name": "empty value is preserved during encoding",
+      "input": {
+        "a": ""
+      },
+      "expected": "a="
+    },
+    {
+      "name": "repeated empty values use repeat list format",
+      "input": {
+        "a": [
+          "",
+          ""
+        ]
+      },
+      "options": {
+        "listFormat": "REPEAT"
+      },
+      "expected": "a=&a="
+    },
+    {
+      "name": "plus in value is encoded",
+      "input": {
+        "a": "b+c"
+      },
+      "expected": "a=b%2Bc"
+    },
+    {
+      "name": "plus in key is encoded",
+      "input": {
+        "a+b": "c"
+      },
+      "expected": "a%2Bb=c"
+    },
+    {
+      "name": "equals in keys and values are encoded",
+      "input": {
+        "=": "a",
+        "b": "="
+      },
+      "expected": "%3D=a&b=%3D"
+    },
+    {
+      "name": "ampersands in keys and values are encoded",
+      "input": {
+        "&": "a",
+        "b": "&"
+      },
+      "expected": "%26=a&b=%26"
+    },
+    {
+      "name": "percent in value is encoded",
+      "input": {
+        "a": "b%c"
+      },
+      "expected": "a=b%25c"
+    },
+    {
+      "name": "percent in key is encoded",
+      "input": {
+        "a%b": "c"
+      },
+      "expected": "a%25b=c"
+    },
+    {
+      "name": "nul in value is encoded",
+      "input": {
+        "a": "b\u0000c"
+      },
+      "expected": "a=b%00c"
+    },
+    {
+      "name": "nul in key is encoded",
+      "input": {
+        "a\u0000b": "c"
+      },
+      "expected": "a%00b=c"
+    },
+    {
+      "name": "emoji in value is encoded",
+      "input": {
+        "a": "b\uD83D\uDCA9c"
+      },
+      "expected": "a=b%F0%9F%92%A9c"
+    },
+    {
+      "name": "emoji in key is encoded",
+      "input": {
+        "a\uD83D\uDCA9b": "c"
+      },
+      "expected": "a%F0%9F%92%A9b=c"
+    },
+    {
+      "name": "repeated flat values use repeat list format",
+      "input": {
+        "a": [
+          "b",
+          "b",
+          "c"
+        ]
+      },
+      "options": {
+        "listFormat": "REPEAT"
+      },
+      "expected": "a=b&a=b&a=c"
+    }
+  ]
+}
