@@ -12,7 +12,7 @@ googleJavaFormat = "1.22.0"
 desugarJdkLibs = "2.1.5"
 androidCompileSdk = "36"
 androidMinSdk = "25"
-kotlinxSerializationJson = "1.10.0"
+kotlinxSerializationJson = "1.11.0"
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
