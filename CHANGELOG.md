@@ -1,3 +1,12 @@
+## 1.5.7
+
+* [CHORE] add WPT-derived form URL encoding fixture coverage for encode/decode parity, including resource-backed fixture loading and provenance checks
+* [CHORE] add `kotlinx-serialization-json` test fixture support and align comparison serialization dependency to 1.11.0
+* [CHORE] update Kotlin to 2.3.21
+* [CHORE] update Android Gradle Plugin to 9.2.0
+* [CHORE] update Dokka to 2.2.0, Kotest to 6.1.11, and Gradle Develocity to 4.4.1
+* [CHORE] update CI/tooling dependencies (`gradle/actions` to v6, `codecov/codecov-action` to v6, `android-actions/setup-android` to v4, `softprops/action-gh-release` to v3, Node.js compatibility job to 24)
+
 ## 1.5.6
 
 * [CHORE] update Kotlin to 2.3.20
