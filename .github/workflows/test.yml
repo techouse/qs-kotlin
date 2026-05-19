@@ -107,10 +107,10 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
         with:
-          package_json_file: QsNet.Comparison/js/package.json
+          package_json_file: comparison/js/package.json
           run_install: false
           cache: true
-          cache_dependency_path: QsNet.Comparison/js/pnpm-lock.yaml
+          cache_dependency_path: comparison/js/pnpm-lock.yaml
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
         working-directory: comparison/js
