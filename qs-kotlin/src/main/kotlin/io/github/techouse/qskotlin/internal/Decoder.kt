@@ -23,36 +23,31 @@ internal object Decoder {
      * @param currentListLength The current length of the list being parsed, used for limit checks.
      * @return The parsed value, which may be a List or the original value if no parsing is needed.
      */
-    private fun parseListValue(value: Any?, options: DecodeOptions, currentListLength: Int): Any? {
+    private fun parseListValue(
+        value: Any?,
+        options: DecodeOptions,
+        currentListLength: Int,
+        isBracketListValue: Boolean = false,
+    ): Any? {
         if (value is String && value.isNotEmpty() && options.comma && value.contains(',')) {
-            if (options.listLimit >= 0) {
-                val remaining = options.listLimit - currentListLength
-                if (options.throwOnLimitExceeded) {
-                    if (remaining < 0) {
-                        throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
-                    }
-                    val splitVal =
-                        if (remaining == Int.MAX_VALUE) {
-                            splitCommaValue(value)
-                        } else {
-                            splitCommaValue(value, remaining + 1)
-                        }
-                    if (splitVal.size > remaining) {
-                        throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
-                    }
-                    return splitVal
+            if (options.throwOnLimitExceeded && !isBracketListValue) {
+                if (options.listLimit < 0) {
+                    throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
                 }
-                if (remaining <= 0) return emptyList<String>()
-                return splitCommaValue(value, remaining)
+                val splitVal =
+                    splitCommaValue(
+                        value,
+                        if (options.listLimit == Int.MAX_VALUE) null else options.listLimit + 1,
+                    )
+                if (splitVal.size > options.listLimit) {
+                    throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
+                }
+                return splitVal
             }
             return splitCommaValue(value)
         }
 
-        if (
-            options.listLimit >= 0 &&
-                options.throwOnLimitExceeded &&
-                currentListLength >= options.listLimit
-        ) {
+        if (options.throwOnLimitExceeded && currentListLength >= options.listLimit) {
             throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
         }
 
@@ -211,11 +206,13 @@ internal object Decoder {
 
             val part = parts[i]
             if (part.isEmpty()) continue
+            val isBracketListValue = part.contains("[]=")
             val bracketEqualsPos = part.indexOf("]=")
             val pos = if (bracketEqualsPos == -1) part.indexOf('=') else bracketEqualsPos + 1
 
             val key: String
             var value: Any?
+            var parsedCommaList = false
 
             if (pos == -1) {
                 // Decode a bare key (no '=') using key-aware decoding
@@ -224,16 +221,19 @@ internal object Decoder {
             } else {
                 // Decode the key slice as a key; values decode as values
                 key = options.decodeKey(part.take(pos), charset).orEmpty()
+                val rawValue = part.substring(pos + 1)
+                val parsedValue =
+                    parseListValue(
+                        rawValue,
+                        options,
+                        if (obj.containsKey(key) && obj[key] is List<*>) {
+                            (obj[key] as List<*>).size
+                        } else 0,
+                        isBracketListValue,
+                    )
+                parsedCommaList = rawValue.isNotEmpty() && options.comma && rawValue.contains(',')
                 value =
-                    Utils.apply(
-                        parseListValue(
-                            part.substring(pos + 1),
-                            options,
-                            if (obj.containsKey(key) && obj[key] is List<*>) {
-                                (obj[key] as List<*>).size
-                            } else 0,
-                        )
-                    ) { v: Any? ->
+                    Utils.apply(parsedValue) { v: Any? ->
                         options.decodeValue(v as String?, charset)
                     }
             }
@@ -252,13 +252,20 @@ internal object Decoder {
                     )
             }
 
-            if (part.contains("[]=")) {
+            if (isBracketListValue) {
                 value = if (value is Iterable<*>) listOf(value) else value
+            }
+
+            if (parsedCommaList && value is List<*> && value.size > options.listLimit) {
+                if (options.throwOnLimitExceeded) {
+                    throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
+                }
+                value = Utils.combine(emptyList<Any?>(), value, options.listLimit)
             }
 
             val existing = obj.containsKey(key)
             when {
-                existing && options.duplicates == Duplicates.COMBINE -> {
+                existing && (options.duplicates == Duplicates.COMBINE || isBracketListValue) -> {
                     obj[key] = Utils.combine(obj[key], value, options.listLimit)
                 }
 
@@ -330,19 +337,29 @@ internal object Decoder {
                     idx != null && root != decodedRoot && idx.toString() == decodedRoot
 
                 when {
-                    // If list parsing is disabled OR listLimit < 0: always make a map with string
-                    // key
-                    !options.parseLists || options.listLimit < 0 -> {
+                    // If list parsing is disabled, always make a map with string key.
+                    !options.parseLists -> {
                         val keyForMap = if (decodedRoot == "") "0" else decodedRoot
                         mutableObj[keyForMap] = leaf
                         obj = mutableObj
                     }
 
-                    // Proper list index (e.g., "[3]") and allowed by listLimit -> build a list
-                    isBracketedNumeric && idx >= 0 && idx <= options.listLimit -> {
+                    // Proper list index (e.g., "[3]") and allowed by listLimit -> build a list.
+                    isBracketedNumeric && idx >= 0 && idx < options.listLimit -> {
                         val list = MutableList<Any?>(idx + 1) { Undefined.Companion() }
                         list[idx] = leaf
                         obj = list
+                    }
+
+                    isBracketedNumeric && idx >= 0 && options.throwOnLimitExceeded -> {
+                        throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
+                    }
+
+                    isBracketedNumeric && idx >= 0 -> {
+                        val overflow = Utils.OverflowMap()
+                        overflow[decodedRoot] = leaf
+                        overflow.maxIndex = idx
+                        obj = overflow
                     }
 
                     // Otherwise, treat it as a map with *string* key (even if numeric)
@@ -489,14 +506,12 @@ internal object Decoder {
         maxDepth: Int,
         strictDepth: Boolean,
     ): List<String> {
-        // Depth 0 semantics: use the original key as a single segment; never throw.
-        if (maxDepth <= 0) {
-            return listOf(originalKey)
-        }
-
-        // Apply dot→bracket *before* splitting, but when depth == 0, we do NOT split at all and do
-        // NOT throw.
         val key: String = if (allowDots) dotToBracketTopLevel(originalKey) else originalKey
+
+        // Depth 0 semantics: normalize dots first, then keep the key as a single segment.
+        if (maxDepth <= 0) {
+            return listOf(key)
+        }
 
         val segments = ArrayList<String>(key.count { it == '[' } + 1)
 

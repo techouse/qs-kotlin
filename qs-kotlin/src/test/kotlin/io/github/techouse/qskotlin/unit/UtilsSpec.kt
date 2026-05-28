@@ -696,6 +696,19 @@ class UtilsSpec :
                 Utils.merge(mapOf("a" to "b"), "") shouldBe mapOf("a" to "b")
             }
 
+            test("strictMerge wraps map and scalar in a list by default") {
+                Utils.merge(mapOf("foo" to "bar"), "baz") shouldBe
+                    listOf(mapOf("foo" to "bar"), "baz")
+            }
+
+            test("strictMerge=false adds a scalar string as a map key") {
+                Utils.merge(
+                    mapOf("foo" to "bar"),
+                    "baz",
+                    DecodeOptions(strictMerge = false),
+                ) shouldBe mapOf("foo" to "bar", "baz" to true)
+            }
+
             test("merges two objects with the same key") {
                 val result = Utils.merge(mapOf("a" to "b"), mapOf("a" to "c"))
                 result shouldBe mapOf("a" to listOf("b", "c"))
@@ -924,10 +937,10 @@ class UtilsSpec :
                 map.maxIndex shouldBe 4
             }
 
-            test("combine does not overflow when listLimit is negative") {
+            test("combine overflows when listLimit is negative") {
                 val result = Utils.combine("a", "b", limit = -1)
-                result.shouldBeInstanceOf<List<*>>()
-                result shouldBe listOf("a", "b")
+                result.shouldBeInstanceOf<Utils.OverflowMap>()
+                result shouldBe mapOf("0" to "a", "1" to "b")
             }
 
             test("both lists") {

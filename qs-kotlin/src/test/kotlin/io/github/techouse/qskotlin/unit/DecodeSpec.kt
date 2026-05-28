@@ -159,18 +159,30 @@ class DecodeSpec :
                     .message shouldBe "List limit exceeded. Only 3 elements allowed in a list."
             }
 
-            it("comma: true truncates when list limit exceeded without throwing") {
+            it("comma: true converts to a map when list limit exceeded without throwing") {
                 decode(
                     "a=b,c",
                     DecodeOptions(comma = true, throwOnLimitExceeded = false, listLimit = 1),
-                ) shouldBe mapOf("a" to listOf("b"))
+                ) shouldBe mapOf("a" to mapOf("0" to "b", "1" to "c"))
             }
 
-            it("comma: true ignores negative list limit") {
+            it("comma: true applies list limit after bracket list wrapping") {
+                decode(
+                    "a[]=b,c,d",
+                    DecodeOptions(comma = true, throwOnLimitExceeded = true, listLimit = 1),
+                ) shouldBe mapOf("a" to listOf(listOf("b", "c", "d")))
+
+                decode(
+                    "a[]=b,c,d",
+                    DecodeOptions(comma = true, throwOnLimitExceeded = false, listLimit = 0),
+                ) shouldBe mapOf("a" to mapOf("0" to listOf("b", "c", "d")))
+            }
+
+            it("comma: true treats negative list limit as exceeded") {
                 decode(
                     "a=b,c",
                     DecodeOptions(comma = true, throwOnLimitExceeded = false, listLimit = -1),
-                ) shouldBe mapOf("a" to listOf("b", "c"))
+                ) shouldBe mapOf("a" to mapOf("0" to "b", "1" to "c"))
             }
 
             it("comma: true counts existing list length across duplicates") {
@@ -182,11 +194,11 @@ class DecodeSpec :
                 }
             }
 
-            it("comma: true keeps existing list when duplicate arrives at list limit") {
+            it("comma: true preserves duplicate comma values as a map when over list limit") {
                 decode(
                     "a=b,c&a=d,e",
                     DecodeOptions(comma = true, throwOnLimitExceeded = false, listLimit = 2),
-                ) shouldBe mapOf("a" to listOf("b", "c"))
+                ) shouldBe mapOf("a" to mapOf("0" to "b", "1" to "c", "2" to "d", "3" to "e"))
             }
 
             it("allows enabling dot notation") {
@@ -318,11 +330,13 @@ class DecodeSpec :
                     mapOf("a" to mapOf("b" to mapOf("[c][d]" to "e")))
             }
 
-            it("uses original key when depth = 0") {
+            it("normalizes dots before keeping a single key when depth = 0") {
                 decode("a[0]=b&a[1]=c", DecodeOptions(depth = 0)) shouldBe
                     mapOf("a[0]" to "b", "a[1]" to "c")
                 decode("a[0][0]=b&a[0][1]=c&a[1]=d&e=2", DecodeOptions(depth = 0)) shouldBe
                     mapOf("a[0][0]" to "b", "a[0][1]" to "c", "a[1]" to "d", "e" to "2")
+                decode("a.b=c", DecodeOptions(depth = 0, allowDots = true)) shouldBe
+                    mapOf("a[b]" to "c")
             }
 
             it("parses a simple list") { decode("a=b&a=c") shouldBe mapOf("a" to listOf("b", "c")) }
@@ -345,7 +359,12 @@ class DecodeSpec :
                 decode(".a=x&a=y", DecodeOptions(allowDots = true)) shouldBe
                     mapOf("a" to listOf("x", "y"))
                 decode(".a[b]=x&a=y", DecodeOptions(allowDots = true)) shouldBe
-                    mapOf("a" to mapOf("b" to "x", "y" to true))
+                    mapOf("a" to listOf(mapOf("b" to "x"), "y"))
+
+                decode("a[]=b&a=") shouldBe mapOf("a" to listOf("b"))
+                decode("a[0]=b&a=") shouldBe mapOf("a" to listOf("b"))
+                decode("a[20]=b&a=") shouldBe mapOf("a" to mapOf("20" to "b"))
+                decode("a[b]=c&a=") shouldBe mapOf("a" to mapOf("b" to "c"))
 
                 decode("a[1]=b&a=c", DecodeOptions(listLimit = 20)) shouldBe
                     mapOf("a" to listOf("b", "c"))
@@ -387,12 +406,12 @@ class DecodeSpec :
             }
 
             it("limits specific list indices to listLimit") {
-                decode("a[20]=a", DecodeOptions(listLimit = 20)) shouldBe mapOf("a" to listOf("a"))
-                decode("a[21]=a", DecodeOptions(listLimit = 20)) shouldBe
-                    mapOf("a" to mapOf("21" to "a"))
+                decode("a[19]=a", DecodeOptions(listLimit = 20)) shouldBe mapOf("a" to listOf("a"))
+                decode("a[20]=a", DecodeOptions(listLimit = 20)) shouldBe
+                    mapOf("a" to mapOf("20" to "a"))
 
-                decode("a[20]=a") shouldBe mapOf("a" to listOf("a"))
-                decode("a[21]=a") shouldBe mapOf("a" to mapOf("21" to "a"))
+                decode("a[19]=a") shouldBe mapOf("a" to listOf("a"))
+                decode("a[20]=a") shouldBe mapOf("a" to mapOf("20" to "a"))
             }
 
             it("supports keys that begin with a number") {
@@ -590,7 +609,8 @@ class DecodeSpec :
             it("allows overriding list limit") {
                 decode("a[0]=b", DecodeOptions(listLimit = -1)) shouldBe
                     mapOf("a" to mapOf("0" to "b"))
-                decode("a[0]=b", DecodeOptions(listLimit = 0)) shouldBe mapOf("a" to listOf("b"))
+                decode("a[0]=b", DecodeOptions(listLimit = 0)) shouldBe
+                    mapOf("a" to mapOf("0" to "b"))
 
                 decode("a[-1]=b", DecodeOptions(listLimit = -1)) shouldBe
                     mapOf("a" to mapOf("-1" to "b"))
@@ -787,6 +807,37 @@ class DecodeSpec :
 
             it("add keys to maps") { decode("a[b]=c") shouldBe mapOf("a" to mapOf("b" to "c")) }
 
+            it("parses literal bracket text inside bracket groups") {
+                decode("search[withbracket[]]=foobar") shouldBe
+                    mapOf("search" to mapOf("withbracket[]" to "foobar"))
+                decode("a[b[]]=c") shouldBe mapOf("a" to mapOf("b[]" to "c"))
+                decode("list[][x[]]=y") shouldBe mapOf("list" to listOf(mapOf("x[]" to "y")))
+                decode("a[b[c[]]]=d") shouldBe mapOf("a" to mapOf("b[c[]]" to "d"))
+                decode("a[b[c[]]][d]=e", DecodeOptions(depth = 1)) shouldBe
+                    mapOf("a" to mapOf("b[c[]]" to mapOf("[d]" to "e")))
+                decode("a[[]b=c") shouldBe mapOf("a" to mapOf("[[]b" to "c"))
+            }
+
+            it("does not mangle percent-encoded bracket text") {
+                decode("a%25255Bb=c") shouldBe mapOf("a%255Bb" to "c")
+                decode("a%25255Db=c") shouldBe mapOf("a%255Db" to "c")
+                decode("a%5Bb%25255Bc%5D=d") shouldBe mapOf("a" to mapOf("b%255Bc" to "d"))
+            }
+
+            it("strictMerge wraps object and scalar conflicts by default") {
+                decode("a[b]=c&a=d") shouldBe mapOf("a" to listOf(mapOf("b" to "c"), "d"))
+                decode("a=d&a[b]=c") shouldBe mapOf("a" to listOf("d", mapOf("b" to "c")))
+                decode("a[b]=c&a=toString") shouldBe
+                    mapOf("a" to listOf(mapOf("b" to "c"), "toString"))
+            }
+
+            it("strictMerge=false restores legacy object scalar merge behavior") {
+                decode("a[b]=c&a=d", DecodeOptions(strictMerge = false)) shouldBe
+                    mapOf("a" to mapOf("b" to "c", "d" to true))
+                decode("a[b]=c&a=", DecodeOptions(strictMerge = false)) shouldBe
+                    mapOf("a" to mapOf("b" to "c"))
+            }
+
             @Suppress("UNCHECKED_CAST")
             it("can return null maps") {
                 val expected = mutableMapOf<String, Any?>()
@@ -813,6 +864,16 @@ class DecodeSpec :
 
                 decode("%8c%a7=%91%e5%8d%e3%95%7b", DecodeOptions(decoder = customDecoder)) shouldBe
                     expected
+            }
+
+            it("ignores keys when the custom decoder returns null for a key") {
+                val decoder = Decoder { str, charset, kind ->
+                    if (kind == DecodeKind.KEY && str == "drop") null
+                    else Utils.decode(str, charset)
+                }
+
+                decode("drop=value&keep=value", DecodeOptions(decoder = decoder)) shouldBe
+                    mapOf("keep" to "value")
             }
 
             it("parses an iso-8859-1 string if asked to") {
@@ -973,11 +1034,11 @@ class DecodeSpec :
                     mapOf("foo" to listOf("bar", "baz"))
             }
 
-            it("duplicates: combine with listLimit < 0 preserves list") {
+            it("duplicates: combine with listLimit < 0 converts to map") {
                 decode(
                     "foo=bar&foo=baz",
                     DecodeOptions(duplicates = Duplicates.COMBINE, listLimit = -1),
-                ) shouldBe mapOf("foo" to listOf("bar", "baz"))
+                ) shouldBe mapOf("foo" to mapOf("0" to "bar", "1" to "baz"))
             }
 
             it("duplicates: first") {
@@ -988,6 +1049,14 @@ class DecodeSpec :
             it("duplicates: last") {
                 decode("foo=bar&foo=baz", DecodeOptions(duplicates = Duplicates.LAST)) shouldBe
                     mapOf("foo" to "baz")
+            }
+
+            it("bracket notation always combines regardless of duplicates") {
+                decode("a=1&a=2&b[]=1&b[]=2", DecodeOptions(duplicates = Duplicates.FIRST)) shouldBe
+                    mapOf("a" to "1", "b" to listOf("1", "2"))
+
+                decode("a=1&a=2&b[]=1&b[]=2", DecodeOptions(duplicates = Duplicates.LAST)) shouldBe
+                    mapOf("a" to "2", "b" to listOf("1", "2"))
             }
         }
 
@@ -1167,11 +1236,20 @@ class DecodeSpec :
                     mapOf("a" to mapOf("0" to "1", "1" to "2"))
             }
 
-            it("handles negative list limit correctly") {
+            it("handles negative list limit without throwing") {
                 decode(
                     "a[]=1&a[]=2",
-                    DecodeOptions(listLimit = -1, throwOnLimitExceeded = true),
-                ) shouldBe mapOf("a" to listOf("1", "2"))
+                    DecodeOptions(listLimit = -1, throwOnLimitExceeded = false),
+                ) shouldBe mapOf("a" to mapOf("0" to "1", "1" to "2"))
+            }
+
+            it("throws on negative list limit when throwOnLimitExceeded=true") {
+                shouldThrow<IndexOutOfBoundsException> {
+                    decode(
+                        "a[]=1&a[]=2",
+                        DecodeOptions(listLimit = -1, throwOnLimitExceeded = true),
+                    )
+                }
             }
 
             it("applies list limit to nested lists") {
@@ -1267,9 +1345,9 @@ class DecodeSpec :
                     mapOf("a" to mapOf("b" to ""))
             }
 
-            it("depth=0 with allowDots=true: do not split key") {
+            it("depth=0 with allowDots=true: normalizes dots but does not split key") {
                 decode("a.b=c", DecodeOptions(allowDots = true, depth = 0)) shouldBe
-                    mapOf("a.b" to "c")
+                    mapOf("a[b]" to "c")
             }
 
             it("top-level dot→bracket conversion guardrails: leading/trailing/double dots") {
@@ -1551,7 +1629,7 @@ class DecodeSpec :
                 }
             }
 
-            it("depth=0: never split; return the original key as a single segment") {
+            it("depth=0: normalize dots and return one key segment") {
                 val segs1 =
                     InternalDecoder.splitKeyIntoSegments(
                         originalKey = "a.b.c",
@@ -1559,7 +1637,7 @@ class DecodeSpec :
                         maxDepth = 0,
                         strictDepth = false,
                     )
-                segs1 shouldBe listOf("a.b.c")
+                segs1 shouldBe listOf("a[b][c]")
 
                 val segs2 =
                     InternalDecoder.splitKeyIntoSegments(
@@ -1644,12 +1722,12 @@ class DecodeSpec :
                 }
 
                 it(
-                    "comma-separated values over listLimit are truncated when throwOnLimitExceeded=false"
+                    "comma-separated values over listLimit convert to a map when throwOnLimitExceeded=false"
                 ) {
                     decode(
                         "a=1,2,3,4",
                         DecodeOptions(comma = true, listLimit = 3, throwOnLimitExceeded = false),
-                    ) shouldBe mapOf("a" to listOf("1", "2", "3"))
+                    ) shouldBe mapOf("a" to mapOf("0" to "1", "1" to "2", "2" to "3", "3" to "4"))
                 }
 
                 it("advisory-shaped payload throws when comma split exceeds listLimit") {

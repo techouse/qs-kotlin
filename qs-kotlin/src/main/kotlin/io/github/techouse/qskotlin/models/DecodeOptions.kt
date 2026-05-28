@@ -67,11 +67,11 @@ data class DecodeOptions(
     val allowSparseLists: Boolean = false,
 
     /**
-     * QS will limit specifying indices in a List to a maximum index of `20`. Any List members with
-     * an index of greater than `20` will instead be converted to a Map with the index as the key.
-     * This is needed to handle cases when someone sent, for example, `a[999999999]` and it will
-     * take significant time to iterate over this huge List. This limit can be overridden by passing
-     * a listLimit option.
+     * QS will limit parsed List values to a maximum count of `20`. Any explicit index greater than
+     * or equal to the limit is converted to a Map with the index as the key. This is needed to
+     * handle cases when someone sent, for example, `a[999999999]` and it would take significant
+     * time to iterate over this huge List. This limit can be overridden by passing a listLimit
+     * option.
      */
     val listLimit: Int = 20,
 
@@ -145,6 +145,15 @@ data class DecodeOptions(
 
     /** Set to `true` to throw an error when the limit is exceeded. */
     val throwOnLimitExceeded: Boolean = false,
+
+    /**
+     * Preserve object/scalar conflicts as lists.
+     *
+     * When `true`, `a[b]=c&a=d` decodes as `a = [{ b = c }, d]`, matching modern qs behavior. Set
+     * to `false` to restore legacy behavior where the scalar is added as a map key with value
+     * `true`.
+     */
+    val strictMerge: Boolean = true,
 ) {
     /**
      * Builder for [DecodeOptions]. Prefer this from Java to avoid long, ambiguous constructors.
@@ -180,6 +189,7 @@ data class DecodeOptions(
         private var interpretNumericEntities: Boolean = false
         private var parseLists: Boolean = true
         private var strictDepth: Boolean = false
+        private var strictMerge: Boolean = true
         private var strictNullHandling: Boolean = false
         private var throwOnLimitExceeded: Boolean = false
 
@@ -228,8 +238,8 @@ data class DecodeOptions(
         fun allowSparseLists(value: Boolean) = apply { this.allowSparseLists = value }
 
         /**
-         * Maximum explicit index allowed when parsing lists. Higher indices trigger a map fallback
-         * to avoid huge sparse allocations. Default is 20.
+         * Maximum list element count. Indices greater than or equal to this value trigger a map
+         * fallback to avoid huge sparse allocations. Default is 20.
          */
         fun listLimit(value: Int) = apply { this.listLimit = value }
 
@@ -288,6 +298,12 @@ data class DecodeOptions(
          */
         fun strictDepth(value: Boolean) = apply { this.strictDepth = value }
 
+        /**
+         * When `true`, object/scalar merge conflicts are wrapped in lists. Set to `false` for
+         * legacy qs behavior.
+         */
+        fun strictMerge(value: Boolean) = apply { this.strictMerge = value }
+
         /** When `true`, parameters without `=` decode to `null` (rather than empty string). */
         fun strictNullHandling(value: Boolean) = apply { this.strictNullHandling = value }
 
@@ -315,6 +331,7 @@ data class DecodeOptions(
                 interpretNumericEntities = interpretNumericEntities,
                 parseLists = parseLists,
                 strictDepth = strictDepth,
+                strictMerge = strictMerge,
                 strictNullHandling = strictNullHandling,
                 throwOnLimitExceeded = throwOnLimitExceeded,
             )
