@@ -58,6 +58,24 @@ internal object Decoder {
         return "List limit exceeded. Only $limit element${if (limit == 1) "" else "s"} allowed in a list."
     }
 
+    private fun findKeyValueSeparator(part: String): Int {
+        var firstEquals = -1
+        var depth = 0
+
+        for (i in part.indices) {
+            when (part[i]) {
+                '[' -> depth += 1
+                ']' -> if (depth > 0) depth -= 1
+                '=' -> {
+                    if (firstEquals == -1) firstEquals = i
+                    if (depth == 0) return i
+                }
+            }
+        }
+
+        return firstEquals
+    }
+
     private fun splitCommaValue(value: String, maxParts: Int? = null): List<String> {
         if (maxParts != null && maxParts <= 0) return emptyList()
 
@@ -206,9 +224,9 @@ internal object Decoder {
 
             val part = parts[i]
             if (part.isEmpty()) continue
-            val isBracketListValue = part.contains("[]=")
-            val bracketEqualsPos = part.indexOf("]=")
-            val pos = if (bracketEqualsPos == -1) part.indexOf('=') else bracketEqualsPos + 1
+            val pos = findKeyValueSeparator(part)
+            val keySlice = if (pos == -1) part else part.take(pos)
+            val isBracketListValue = keySlice.endsWith("[]")
 
             val key: String
             var value: Any?
@@ -216,11 +234,11 @@ internal object Decoder {
 
             if (pos == -1) {
                 // Decode a bare key (no '=') using key-aware decoding
-                key = options.decodeKey(part, charset).orEmpty()
+                key = options.decodeKey(keySlice, charset).orEmpty()
                 value = if (options.strictNullHandling) null else ""
             } else {
                 // Decode the key slice as a key; values decode as values
-                key = options.decodeKey(part.take(pos), charset).orEmpty()
+                key = options.decodeKey(keySlice, charset).orEmpty()
                 val rawValue = part.substring(pos + 1)
                 val parsedValue =
                     parseListValue(
