@@ -1,6 +1,6 @@
 ## Unreleased
 
-* [FEAT] add `DecodeOptions.strictMerge` and default object/scalar conflicts to list wrapping to match `qs` 6.15.0
+* [FEAT] add `DecodeOptions.strictMerge` and default object/scalar conflicts to list wrapping to match `qs` 6.15.x
 * [FIX] match `qs` 6.15.x duplicate bracket-list handling, list-limit overflow semantics, depth-zero dot normalization, and comma overflow preservation
 * [FIX] apply RFC formatters to strict-null encoded keys
 
