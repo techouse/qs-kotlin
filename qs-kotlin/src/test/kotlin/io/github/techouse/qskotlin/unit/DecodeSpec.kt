@@ -431,7 +431,7 @@ class DecodeSpec :
                 decode("pets=[\"tobi\"]") shouldBe mapOf("pets" to "[\"tobi\"]")
                 decode("operators=[\">=\", \"<=\"]") shouldBe
                     mapOf("operators" to "[\">=\", \"<=\"]")
-                decode("a=foo[]=bar") shouldBe mapOf("a" to "foo[]=bar")
+                decode("a=foo[]=bar") shouldBe mapOf("a=foo" to listOf("bar"))
             }
 
             it("allows empty values") {

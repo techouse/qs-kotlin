@@ -58,24 +58,6 @@ internal object Decoder {
         return "List limit exceeded. Only $limit element${if (limit == 1) "" else "s"} allowed in a list."
     }
 
-    private fun findKeyValueSeparator(part: String): Int {
-        var firstEquals = -1
-        var depth = 0
-
-        for (i in part.indices) {
-            when (part[i]) {
-                '[' -> depth += 1
-                ']' -> if (depth > 0) depth -= 1
-                '=' -> {
-                    if (firstEquals == -1) firstEquals = i
-                    if (depth == 0) return i
-                }
-            }
-        }
-
-        return firstEquals
-    }
-
     private fun splitCommaValue(value: String, maxParts: Int? = null): List<String> {
         if (maxParts != null && maxParts <= 0) return emptyList()
 
@@ -224,7 +206,8 @@ internal object Decoder {
 
             val part = parts[i]
             if (part.isEmpty()) continue
-            val pos = findKeyValueSeparator(part)
+            val bracketEqualsPos = part.indexOf("]=")
+            val pos = if (bracketEqualsPos == -1) part.indexOf('=') else bracketEqualsPos + 1
             val keySlice = if (pos == -1) part else part.take(pos)
             val isBracketListValue = keySlice.endsWith("[]")
 
