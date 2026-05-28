@@ -231,7 +231,7 @@ internal object Encoder {
                                 } else {
                                     materializedPath()
                                 }
-                            finishFrame(keyOnly)
+                            finishFrame(context.formatter(keyOnly))
                             continue
                         }
                         obj = ""
@@ -563,7 +563,7 @@ internal object Encoder {
                     } else {
                         path.materialize()
                     }
-                return listOf(keyOnly)
+                return listOf(context.formatter(keyOnly))
             }
             leaf = ""
         }

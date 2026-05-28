@@ -616,6 +616,45 @@ class EncodeSpec :
                 ) shouldBe "a%5B0%5D=%2C&a%5B1%5D=&a%5B2%5D=c%2Cd%25"
             }
 
+            it("does not crash on null entries in comma lists with encodeValuesOnly") {
+                encode(
+                    mapOf("a" to listOf(null, "b")),
+                    EncodeOptions(listFormat = ListFormat.COMMA, encodeValuesOnly = true),
+                ) shouldBe "a=,b"
+
+                encode(
+                    mapOf("a" to listOf(null, "b")),
+                    EncodeOptions(
+                        listFormat = ListFormat.COMMA,
+                        encodeValuesOnly = true,
+                        skipNulls = true,
+                    ),
+                ) shouldBe "a=,b"
+
+                encode(
+                    mapOf("a" to listOf<String?>(null)),
+                    EncodeOptions(listFormat = ListFormat.COMMA, encodeValuesOnly = true),
+                ) shouldBe "a="
+
+                encode(
+                    mapOf("a" to listOf<String?>(null)),
+                    EncodeOptions(
+                        listFormat = ListFormat.COMMA,
+                        encodeValuesOnly = true,
+                        strictNullHandling = true,
+                    ),
+                ) shouldBe "a"
+
+                encode(
+                    mapOf("a" to listOf<String?>(null)),
+                    EncodeOptions(
+                        listFormat = ListFormat.COMMA,
+                        encodeValuesOnly = true,
+                        skipNulls = true,
+                    ),
+                ) shouldBe ""
+            }
+
             it("encodes comma and empty non-list values") {
                 encode(
                     mapOf("a" to ",", "b" to "", "c" to "c,d%"),
@@ -1413,6 +1452,11 @@ class EncodeSpec :
 
                 encode(mapOf("foo(ref)" to "bar"), EncodeOptions(format = Format.RFC1738)) shouldBe
                     "foo(ref)=bar"
+
+                encode(
+                    mapOf("a b" to null, "c d" to "e f"),
+                    EncodeOptions(strictNullHandling = true, format = Format.RFC1738),
+                ) shouldBe "a+b&c+d=e+f"
             }
 
             it("RFC 3986 spaces serialization") {
