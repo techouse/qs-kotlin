@@ -33,6 +33,7 @@ class DecodeOptionsSpec :
                         interpretNumericEntities = true,
                         parameterLimit = 200,
                         parseLists = true,
+                        strictMerge = false,
                         strictNullHandling = true,
                     )
 
@@ -51,6 +52,7 @@ class DecodeOptionsSpec :
                 newOptions.interpretNumericEntities shouldBe true
                 newOptions.parameterLimit shouldBe 200
                 newOptions.parseLists shouldBe true
+                newOptions.strictMerge shouldBe false
                 newOptions.strictNullHandling shouldBe true
                 newOptions shouldBe options
             }
@@ -71,6 +73,7 @@ class DecodeOptionsSpec :
                         interpretNumericEntities = true,
                         parameterLimit = 100,
                         parseLists = false,
+                        strictMerge = false,
                         strictNullHandling = true,
                     )
 
@@ -89,6 +92,7 @@ class DecodeOptionsSpec :
                         interpretNumericEntities = false,
                         parameterLimit = 200,
                         parseLists = true,
+                        strictMerge = true,
                         strictNullHandling = false,
                     )
 
@@ -105,6 +109,7 @@ class DecodeOptionsSpec :
                 newOptions.interpretNumericEntities shouldBe false
                 newOptions.parameterLimit shouldBe 200
                 newOptions.parseLists shouldBe true
+                newOptions.strictMerge shouldBe true
                 newOptions.strictNullHandling shouldBe false
             }
 
@@ -114,6 +119,38 @@ class DecodeOptionsSpec :
 
             it("exposes defaults() convenience instance") {
                 DecodeOptions.defaults() shouldBe DecodeOptions()
+            }
+
+            it("keeps strictNullHandling at its legacy positional constructor slot") {
+                val options =
+                    DecodeOptions(
+                        null,
+                        null,
+                        null,
+                        null,
+                        false,
+                        false,
+                        20,
+                        StandardCharsets.UTF_8,
+                        false,
+                        false,
+                        Delimiter.AMPERSAND,
+                        5,
+                        1000,
+                        Duplicates.COMBINE,
+                        false,
+                        false,
+                        true,
+                        false,
+                        true,
+                        false,
+                    )
+
+                options.parseLists shouldBe true
+                options.strictDepth shouldBe false
+                options.strictNullHandling shouldBe true
+                options.throwOnLimitExceeded shouldBe false
+                options.strictMerge shouldBe true
             }
         }
 
@@ -320,6 +357,7 @@ class DecodeOptionsSpec :
                         .interpretNumericEntities(true)
                         .parseLists(false)
                         .strictDepth(true)
+                        .strictMerge(false)
                         .strictNullHandling(true)
                         .throwOnLimitExceeded(true)
                         .build()
@@ -342,6 +380,7 @@ class DecodeOptionsSpec :
                 options.interpretNumericEntities shouldBe true
                 options.parseLists shouldBe false
                 options.strictDepth shouldBe true
+                options.strictMerge shouldBe false
                 options.strictNullHandling shouldBe true
                 options.throwOnLimitExceeded shouldBe true
                 options.decode("token", StandardCharsets.ISO_8859_1, DecodeKind.KEY) shouldBe

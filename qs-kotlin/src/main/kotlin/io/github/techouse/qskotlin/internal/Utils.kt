@@ -38,6 +38,21 @@ internal object Utils {
         var overflowMax: Int? = null,
     )
 
+    private fun isFalsyPrimitiveForMerge(value: Any?): Boolean =
+        when (value) {
+            null -> true
+            is Undefined -> true
+            is String -> value.isEmpty()
+            is Boolean -> !value
+            is Byte -> value.toInt() == 0
+            is Short -> value.toInt() == 0
+            is Int -> value == 0
+            is Long -> value == 0L
+            is Float -> value == 0f || value.isNaN()
+            is Double -> value == 0.0 || value.isNaN()
+            else -> false
+        }
+
     /**
      * Merges two objects, where the source object overrides or extends the target object.
      * - If the source is a Map, it will merge its entries into the target.
@@ -92,7 +107,7 @@ internal object Utils {
                     val currentTarget = frame.target
                     val currentSource = frame.source
 
-                    if (currentSource == null) {
+                    if (isFalsyPrimitiveForMerge(currentSource)) {
                         stack.removeLast()
                         frame.onResult(currentTarget)
                         continue
@@ -196,6 +211,16 @@ internal object Utils {
                                     frame.onResult(currentTarget)
                                     continue
                                 }
+                                if (
+                                    frame.options.strictMerge &&
+                                        currentSource !is Iterable<*> &&
+                                        currentSource !is Undefined &&
+                                        !isFalsyPrimitiveForMerge(currentSource)
+                                ) {
+                                    stack.removeLast()
+                                    frame.onResult(listOf(currentTarget, currentSource))
+                                    continue
+                                }
                                 val mutableTarget = currentTarget.toMutableMap()
 
                                 when (currentSource) {
@@ -210,8 +235,8 @@ internal object Utils {
                                         // ignore
                                     }
                                     else -> {
-                                        val k = currentSource.toString()
-                                        if (k.isNotEmpty()) {
+                                        if (!isFalsyPrimitiveForMerge(currentSource)) {
+                                            val k = currentSource.toString()
                                             mutableTarget[k] = true
                                         }
                                     }
@@ -869,7 +894,7 @@ internal object Utils {
             else -> result.add(b)
         }
 
-        if (limit >= 0 && result.size > limit) {
+        if (result.size > limit) {
             val map = OverflowMap()
             result.forEachIndexed { index, item -> map[index.toString()] = item }
             map.maxIndex = result.size - 1

@@ -21,6 +21,7 @@ private val parseListValueMethod by lazy {
             Any::class.java,
             DecodeOptions::class.java,
             Int::class.javaPrimitiveType,
+            Boolean::class.javaPrimitiveType,
         )
         .apply { isAccessible = true }
 }
@@ -29,7 +30,9 @@ private fun invokeParseListValue(
     input: String,
     options: DecodeOptions,
     currentListLength: Int,
-): Any? = parseListValueMethod.invoke(Decoder, input, options, currentListLength)
+    isBracketListValue: Boolean = false,
+): Any? =
+    parseListValueMethod.invoke(Decoder, input, options, currentListLength, isBracketListValue)
 
 class DecoderInternalSpec :
     DescribeSpec({
@@ -140,13 +143,13 @@ class DecoderInternalSpec :
                 result["a"] shouldBe listOf("", "")
             }
 
-            it("comma parsing truncates when listLimit is exceeded and throw disabled") {
+            it("comma parsing converts to a map when listLimit is exceeded and throw disabled") {
                 val result =
                     Decoder.parseQueryStringValues(
                         "a=1,2,3",
                         DecodeOptions(comma = true, listLimit = 2, throwOnLimitExceeded = false),
                     )
-                result["a"] shouldBe listOf("1", "2")
+                result["a"] shouldBe mapOf("0" to "1", "1" to "2", "2" to "3")
             }
 
             it("comma parsing throws when listLimit is exceeded and throw enabled") {

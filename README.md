@@ -387,6 +387,12 @@ QS.decode(
   DecodeOptions(duplicates = Duplicates.LAST)
 )
 // => mapOf("foo" to "baz")
+
+QS.decode(
+  "foo=bar&foo=baz&items[]=a&items[]=b",
+  DecodeOptions(duplicates = Duplicates.LAST)
+)
+// => mapOf("foo" to "baz", "items" to listOf("a", "b"))
 ```
 Java:
 ```java
@@ -416,6 +422,47 @@ QS.decode(
     .build()
 );
 // => {foo=baz}
+
+QS.decode(
+  "foo=bar&foo=baz&items[]=a&items[]=b",
+  DecodeOptions.builder()
+    .duplicates(Duplicates.LAST)
+    .build()
+);
+// => {foo=baz, items=[a, b]}
+```
+
+Bracket-list notation (`[]`) always combines values, regardless of
+`duplicates`.
+
+### Strict merge
+
+When a key appears as both an object and a scalar, qs-kotlin wraps the conflict
+in a list by default:
+
+Kotlin:
+```kotlin
+QS.decode("a[b]=c&a=d")
+// => mapOf("a" to listOf(mapOf("b" to "c"), "d"))
+
+QS.decode(
+  "a[b]=c&a=d",
+  DecodeOptions(strictMerge = false)
+)
+// => mapOf("a" to mapOf("b" to "c", "d" to true))
+```
+Java:
+```java
+QS.decode("a[b]=c&a=d");
+// => {a=[{b=c}, d]}
+
+QS.decode(
+  "a[b]=c&a=d",
+  DecodeOptions.builder()
+    .strictMerge(false)
+    .build()
+);
+// => {a={b=c, d=true}}
 ```
 
 ### Charset and sentinel
@@ -533,12 +580,13 @@ QS.decode("a[]=&a[]=b");
 // => {a=["", b]}
 ```
 
-Large indices convert to a map by default:
+`listLimit` is the maximum list element count. Indices greater than or equal to
+the limit convert to a map by default:
 
 Kotlin:
 ```kotlin
 QS.decode("a[100]=b")
-// => mapOf("a" to mapOf(100 to "b"))
+// => mapOf("a" to mapOf("100" to "b"))
 ```
 Java:
 ```java
@@ -554,7 +602,7 @@ QS.decode(
   "a[]=b",
   DecodeOptions(parseLists = false)
 )
-// => mapOf("a" to mapOf(0 to "b"))
+// => mapOf("a" to mapOf("0" to "b"))
 ```
 Java:
 ```java
@@ -572,7 +620,7 @@ Mixing notations merges into a map:
 Kotlin:
 ```kotlin
 QS.decode("a[0]=b&a[b]=c")
-// => mapOf("a" to mapOf(0 to "b", "b" to "c"))
+// => mapOf("a" to mapOf("0" to "b", "b" to "c"))
 ```
 Java:
 ```java
@@ -601,10 +649,9 @@ QS.decode(
 // => {a=[b, c]}
 ```
 
-When `comma = true`, this port enforces `listLimit` for comma-split values. If
-`throwOnLimitExceeded = true`, decode throws; otherwise values are truncated to the
-configured `listLimit`. This intentionally differs from `qs@6.14.2`, which converts
-over-limit comma results to an object-like overflow structure.
+When `comma = true`, comma-split values also honor `listLimit`. If
+`throwOnLimitExceeded = true`, decode throws; otherwise over-limit comma results
+convert to a map while preserving all values.
 
 ### Primitive/scalar values
 

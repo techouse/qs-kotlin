@@ -142,14 +142,17 @@ Use these options with `decode(query, DecodeOptions(...))` in Kotlin or
 - Double-encoded literal dots in keys such as `name%252Eobj.first=John`:
   `decodeDotInKeys = true`.
 - Duplicate keys: `duplicates = Duplicates.COMBINE` keeps all values as a list;
-  use `Duplicates.FIRST` or `Duplicates.LAST` to collapse.
+  use `Duplicates.FIRST` or `Duplicates.LAST` to collapse plain duplicate keys.
+  Bracket-list keys such as `items[]` always combine.
 - Bracket lists: enabled by default; set `parseLists = false` to treat list
   syntax as map keys.
 - Empty list tokens such as `foo[]`: `allowEmptyLists = true`.
-- Large or sparse list indices: default `listLimit` is `20`; indices above the
-  limit become map keys. A negative `listLimit` disables numeric-index list
-  parsing.
+- Large or sparse list indices: default `listLimit` is `20`; indices greater
+  than or equal to the limit become map keys. A negative `listLimit` forces list
+  values to map overflow, or throws when `throwOnLimitExceeded = true`.
 - Comma-separated values such as `a=b,c`: `comma = true`.
+- Object/scalar conflicts such as `a[b]=c&a=d`: `strictMerge = true` wraps the
+  conflict in a list; set `strictMerge = false` for legacy key-as-true behavior.
 - Tokens without `=` as `null`: `strictNullHandling = true`.
 - Custom delimiters: `delimiter = Delimiter.SEMICOLON`,
   `delimiter = StringDelimiter(";")`, or `delimiter = RegexDelimiter("[;,]")`.
@@ -277,7 +280,8 @@ Warn or adjust before giving code for these cases:
 - `parameterLimit` must be positive, or `Int.MAX_VALUE` for effectively
   unlimited parsing.
 - `throwOnLimitExceeded = true` turns parameter and list limit violations into
-  `IndexOutOfBoundsException`; without it, parsing truncates or falls back.
+  `IndexOutOfBoundsException`; without it, parameter parsing stops at the limit
+  and list overflows fall back to maps.
 - `strictDepth = true` throws on well-formed depth overflow; with the default
   `false`, the remainder beyond `depth` is kept as a trailing key segment.
 - Built-in charset handling supports only `StandardCharsets.UTF_8` and
