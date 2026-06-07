@@ -9,12 +9,14 @@ Please read this guide before contributing.
 
 ## Supported toolchain
 
-- **Kotlin:** 2.2+
-- **JVM target:** 17 (project compiles and runs tests on JDK 17; please avoid using preview APIs)
-- **Gradle:** 8.x
+- **Local Gradle runtime:** JDK 25
+- **JVM target:** 17 (published artifacts remain Java 17-compatible; please avoid using preview APIs)
+- **Kotlin:** 2.4+
+- **Gradle:** 9.x
 - **IDE:** IntelliJ IDEA (Community or Ultimate)
 
-If you find breakage on newer Kotlin/JDK versions, open an issue with repro details.
+The repo includes `.java-version` for Java version managers that support it. CI also runs JVM
+tests on JDK 17, 21, and 25 to preserve runtime compatibility coverage.
 
 ---
 
