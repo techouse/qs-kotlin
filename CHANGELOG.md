@@ -1,3 +1,7 @@
+## 1.5.9
+
+* [CHORE] update Kotlin to 2.4.0
+
 ## 1.5.8
 
 * [FEAT] add `DecodeOptions.strictMerge` and default object/scalar conflicts to list wrapping to match `qs` 6.15.x
