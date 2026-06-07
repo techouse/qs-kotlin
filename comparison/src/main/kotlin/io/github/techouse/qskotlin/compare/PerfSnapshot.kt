@@ -35,8 +35,11 @@ private fun currentThreadAllocatedBytesOrNull(): Long? {
     if (!bean.isThreadAllocatedMemorySupported || !bean.isThreadAllocatedMemoryEnabled) {
         return null
     }
-    return bean.getThreadAllocatedBytes(Thread.currentThread().id)
+    return bean.getThreadAllocatedBytes(currentThreadId())
 }
+
+@Suppress("DEPRECATION")
+private fun currentThreadId(): Long = Thread.currentThread().id
 
 private fun median(values: MutableList<Double>): Double {
     values.sort()
