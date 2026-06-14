@@ -84,7 +84,7 @@ publishing {
                 }
                 properties.put(
                     "changelogUrl",
-                    "https://github.com/techouse/qs_codec/blob/master/CHANGELOG.md",
+                    "https://github.com/techouse/qs-kotlin/blob/main/CHANGELOG.md",
                 )
             }
         }
