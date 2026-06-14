@@ -1,3 +1,8 @@
+## 1.6.0-dev
+
+* [FEAT] add optional `qs-kotlin-okhttp` JVM module with OkHttp `HttpUrl` and `HttpUrl.Builder` extensions for appending qs-kotlin encoded query parameters without double encoding
+* [CHORE] add OkHttp integration specification, README usage docs, publication metadata, CI coverage, and Kotest regression tests
+
 ## 1.5.9
 
 * [CHORE] update Kotlin to 2.4.0
