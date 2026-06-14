@@ -23,8 +23,9 @@ This repo provides:
 
 - **`qs-kotlin`** – the core JVM library (Jar)
 - **`qs-kotlin-android`** – a thin Android AAR wrapper that re-exports the same API
+- **`qs-kotlin-okhttp`** – optional OkHttp `HttpUrl` extensions for adding qs-style nested query parameters
 
-> If you only target the JVM (including Android projects that are fine with a plain Jar), just use `qs-kotlin`. The Android wrapper is provided for teams that prefer an AAR coordinate and AGP metadata.
+> If you only target the JVM (including Android projects that are fine with a plain Jar), just use `qs-kotlin`. The Android wrapper is provided for teams that prefer an AAR coordinate and AGP metadata. The OkHttp module is optional and keeps OkHttp out of the core artifact.
 
 ---
 
@@ -72,6 +73,21 @@ dependencies {
 }
 ```
 
+### OkHttp integration (Jar)
+
+Kotlin:
+```kotlin
+dependencies {
+    implementation("io.github.techouse:qs-kotlin-okhttp:<version>")
+}
+```
+Java (Gradle Groovy DSL):
+```groovy
+dependencies {
+    implementation 'io.github.techouse:qs-kotlin-okhttp:<version>'
+}
+```
+
 > The Android AAR depends on Java 17 APIs. If your app’s `minSdk < 26` and you use `java.time` transitively, enable **core library desugaring** in your app:
 
 Kotlin:
@@ -108,6 +124,7 @@ dependencies {
 - Kotlin **2.3.0+**
 - Java **17+**
 - Android wrapper: AGP **8.7+**, `compileSdk 35`, `minSdk 25`
+- OkHttp integration: OkHttp **5.4.0**
 
 ---
 
@@ -137,6 +154,82 @@ Map<@NotNull String, @Nullable Object> obj = QS.decode("foo[bar]=baz&foo[list][]
 String qs = QS.encode(Map.of("foo", Map.of("bar", "baz")));
 // -> "foo%5Bbar%5D=baz"
 ```
+
+---
+
+## OkHttp integration
+
+OkHttp's `HttpUrl.Builder.addQueryParameter` encodes names and values itself.
+qs-kotlin already returns an encoded query string, including nested bracket
+notation such as `filter%5Bwhere%5D%5Bname%5D=John`. The
+`qs-kotlin-okhttp` module splits qs-kotlin output into pairs and adds them with
+OkHttp's encoded query-parameter API to avoid double-encoding `%5B` into
+`%255B`.
+
+### HttpUrl.Builder
+
+```kotlin
+import io.github.techouse.qskotlin.okhttp.addQsQueryParameters
+import okhttp3.HttpUrl.Companion.toHttpUrl
+
+val url =
+    "https://api.example.com/products"
+        .toHttpUrl()
+        .newBuilder()
+        .addQsQueryParameters(
+            mapOf(
+                "filter" to
+                    mapOf(
+                        "where" to
+                            mapOf(
+                                "name" to "John",
+                                "age" to mapOf("gte" to 30),
+                            )
+                    ),
+                "tags" to listOf("a", "b"),
+            )
+        )
+        .build()
+
+// https://api.example.com/products?filter%5Bwhere%5D%5Bname%5D=John&filter%5Bwhere%5D%5Bage%5D%5Bgte%5D=30&tags%5B0%5D=a&tags%5B1%5D=b
+```
+
+### Immutable HttpUrl
+
+```kotlin
+import io.github.techouse.qskotlin.okhttp.addQsQueryParameters
+import okhttp3.HttpUrl.Companion.toHttpUrl
+
+val original = "https://api.example.com/products?existing=1".toHttpUrl()
+val updated = original.addQsQueryParameters(mapOf("page" to 2))
+
+// original: https://api.example.com/products?existing=1
+// updated:  https://api.example.com/products?existing=1&page=2
+```
+
+### List formats
+
+The integration uses qs-kotlin defaults unless you pass `EncodeOptions`.
+
+```kotlin
+import io.github.techouse.qskotlin.enums.ListFormat
+import io.github.techouse.qskotlin.models.EncodeOptions
+import io.github.techouse.qskotlin.okhttp.addQsQueryParameters
+import okhttp3.HttpUrl.Companion.toHttpUrl
+
+val repeated =
+    "https://api.example.com/search"
+        .toHttpUrl()
+        .addQsQueryParameters(
+            mapOf("tag" to listOf("kotlin", "android")),
+            EncodeOptions(listFormat = ListFormat.REPEAT),
+        )
+
+// https://api.example.com/search?tag=kotlin&tag=android
+```
+
+This module only targets `HttpUrl` and `HttpUrl.Builder`. Retrofit helpers are
+not included yet.
 
 ---
 
