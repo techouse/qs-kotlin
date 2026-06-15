@@ -1,5 +1,7 @@
 ## 1.6.0-dev
 
+* [FEAT] add optional `qs-kotlin-ktor` JVM module with Ktor `URLBuilder`, `Url`, and `ApplicationRequest` helpers for qs-style query encoding and parsing
+* [CHORE] add Ktor integration specification, README usage docs, publication metadata, CI coverage, and Kotest regression tests
 * [FEAT] add optional `qs-kotlin-okhttp` JVM module with OkHttp `HttpUrl` and `HttpUrl.Builder` extensions for appending qs-kotlin encoded query parameters without double encoding
 * [CHORE] add OkHttp integration specification, README usage docs, publication metadata, CI coverage, and Kotest regression tests
 

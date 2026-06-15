@@ -24,8 +24,9 @@ This repo provides:
 - **`qs-kotlin`** – the core JVM library (Jar)
 - **`qs-kotlin-android`** – a thin Android AAR wrapper that re-exports the same API
 - **`qs-kotlin-okhttp`** – optional OkHttp `HttpUrl` extensions for adding qs-style nested query parameters
+- **`qs-kotlin-ktor`** – optional Ktor `URLBuilder`, `Url`, and `ApplicationRequest` extensions
 
-> If you only target the JVM (including Android projects that are fine with a plain Jar), just use `qs-kotlin`. The Android wrapper is provided for teams that prefer an AAR coordinate and AGP metadata. The OkHttp module is optional and keeps OkHttp out of the core artifact.
+> If you only target the JVM (including Android projects that are fine with a plain Jar), just use `qs-kotlin`. The Android wrapper is provided for teams that prefer an AAR coordinate and AGP metadata. The OkHttp and Ktor modules are optional and keep HTTP-client/server integrations out of the core artifact.
 
 ---
 
@@ -88,6 +89,21 @@ dependencies {
 }
 ```
 
+### Ktor integration (Jar)
+
+Kotlin:
+```kotlin
+dependencies {
+    implementation("io.github.techouse:qs-kotlin-ktor:<version>")
+}
+```
+Java (Gradle Groovy DSL):
+```groovy
+dependencies {
+    implementation 'io.github.techouse:qs-kotlin-ktor:<version>'
+}
+```
+
 > The Android AAR depends on Java 17 APIs. If your app’s `minSdk < 26` and you use `java.time` transitively, enable **core library desugaring** in your app:
 
 Kotlin:
@@ -125,6 +141,7 @@ dependencies {
 - Java **17+**
 - Android wrapper: AGP **8.7+**, `compileSdk 35`, `minSdk 25`
 - OkHttp integration: OkHttp **5.4.0**
+- Ktor integration: Ktor **3.5.0**
 
 ---
 
@@ -230,6 +247,102 @@ val repeated =
 
 This module only targets `HttpUrl` and `HttpUrl.Builder`. Retrofit helpers are
 not included yet.
+
+---
+
+## Ktor integration
+
+Ktor's decoded query parameter APIs encode names and values when building URLs.
+qs-kotlin already returns an encoded query string, including nested bracket
+notation such as `filter%5Bwhere%5D%5Bname%5D=John`. The `qs-kotlin-ktor`
+module splits qs-kotlin output into pairs and appends them with Ktor's encoded
+query-parameter API to avoid double-encoding `%5B` into `%255B`.
+
+The design was validated against the local Ktor clone at
+`/Users/klemen/Work/ktor`.
+
+### URLBuilder
+
+```kotlin
+import io.github.techouse.qskotlin.ktor.appendQsQueryParameters
+import io.ktor.client.request.get
+import io.ktor.client.request.url
+
+val response = client.get("https://api.example.com/products") {
+    url {
+        appendQsQueryParameters(
+            mapOf(
+                "filter" to
+                    mapOf(
+                        "where" to
+                            mapOf(
+                                "name" to "John",
+                                "age" to mapOf("gte" to 30),
+                            )
+                    ),
+                "tags" to listOf("a", "b"),
+            )
+        )
+    }
+}
+
+// https://api.example.com/products?filter%5Bwhere%5D%5Bname%5D=John&filter%5Bwhere%5D%5Bage%5D%5Bgte%5D=30&tags%5B0%5D=a&tags%5B1%5D=b
+```
+
+### Immutable Url
+
+```kotlin
+import io.github.techouse.qskotlin.ktor.appendQsQueryParameters
+import io.ktor.http.Url
+
+val original = Url("https://api.example.com/products?existing=1")
+val updated = original.appendQsQueryParameters(mapOf("page" to 2))
+
+// original: https://api.example.com/products?existing=1
+// updated:  https://api.example.com/products?existing=1&page=2
+```
+
+### List formats
+
+The integration uses qs-kotlin defaults unless you pass `EncodeOptions`.
+
+```kotlin
+import io.github.techouse.qskotlin.enums.ListFormat
+import io.github.techouse.qskotlin.models.EncodeOptions
+import io.github.techouse.qskotlin.ktor.appendQsQueryParameters
+import io.ktor.http.Url
+
+val repeated =
+    Url("https://api.example.com/search")
+        .appendQsQueryParameters(
+            mapOf("tag" to listOf("kotlin", "ktor")),
+            EncodeOptions(listFormat = ListFormat.REPEAT),
+        )
+
+// https://api.example.com/search?tag=kotlin&tag=ktor
+```
+
+### Server parsing
+
+```kotlin
+import io.github.techouse.qskotlin.ktor.parseQsQuery
+import io.ktor.server.response.respond
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
+
+routing {
+    get("/products") {
+        val query = call.request.parseQsQuery()
+        call.respond(query)
+    }
+}
+```
+
+The server helper reads Ktor's raw `queryString()` and passes it to qs-kotlin.
+It does not parse `queryParameters`, because Ktor has already interpreted those
+values.
+
+This module does not include Retrofit support.
 
 ---
 
