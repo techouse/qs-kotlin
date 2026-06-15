@@ -33,7 +33,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
       - name: Run ktfmtCheck
-        run: ./gradlew :qs-kotlin:ktfmtCheck --stacktrace
+        run: ./gradlew :qs-kotlin:ktfmtCheck :qs-kotlin-okhttp:ktfmtCheck --stacktrace
       - name: Run spotlessCheck
         run: ./gradlew :qs-kotlin:spotlessCheck --stacktrace
   jvm_tests:
@@ -60,7 +60,7 @@ jobs:
       - name: Setup Gradle (with caching)
         uses: gradle/actions/setup-gradle@v6
       - name: Run JVM tests
-        run: ./gradlew :qs-kotlin:clean :qs-kotlin:test :qs-kotlin:jacocoTestReport --stacktrace
+        run: ./gradlew :qs-kotlin:clean :qs-kotlin:test :qs-kotlin:jacocoTestReport :qs-kotlin-okhttp:clean :qs-kotlin-okhttp:test --stacktrace
       - name: Upload test results
         uses: codecov/codecov-action@v7
         with:
