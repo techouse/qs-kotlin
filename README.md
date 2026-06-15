@@ -245,8 +245,45 @@ val repeated =
 // https://api.example.com/search?tag=kotlin&tag=android
 ```
 
-This module only targets `HttpUrl` and `HttpUrl.Builder`. Retrofit helpers are
-not included yet.
+This module only targets `HttpUrl` and `HttpUrl.Builder`.
+
+---
+
+## Retrofit
+
+There is no dedicated Retrofit integration because Retrofit's `@QueryMap` API
+cannot represent all qs-kotlin output, such as duplicate keys and name-only
+parameters.
+
+For full qs-kotlin fidelity, build the URL with `qs-kotlin-okhttp` and pass the
+resulting `HttpUrl` to Retrofit through `@Url`.
+
+```kotlin
+import io.github.techouse.qskotlin.okhttp.addQsQueryParameters
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import retrofit2.http.GET
+import retrofit2.http.Url
+
+interface ProductsApi {
+    @GET
+    suspend fun search(@Url url: HttpUrl): ProductsResponse
+}
+
+val url =
+    "https://api.example.com/products"
+        .toHttpUrl()
+        .addQsQueryParameters(
+            mapOf(
+                "filter" to mapOf("where" to mapOf("name" to "John")),
+                "tags" to listOf("a", "b"),
+            )
+        )
+
+val response = api.search(url)
+
+// https://api.example.com/products?filter%5Bwhere%5D%5Bname%5D=John&tags%5B0%5D=a&tags%5B1%5D=b
+```
 
 ---
 
@@ -339,7 +376,7 @@ The server helper reads Ktor's raw `queryString()` and passes it to qs-kotlin.
 It does not parse `queryParameters`, because Ktor has already interpreted those
 values.
 
-This module does not include Retrofit support.
+This module does not include client framework adapters beyond Ktor.
 
 ---
 
