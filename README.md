@@ -258,9 +258,6 @@ notation such as `filter%5Bwhere%5D%5Bname%5D=John`. The `qs-kotlin-ktor`
 module splits qs-kotlin output into pairs and appends them with Ktor's encoded
 query-parameter API to avoid double-encoding `%5B` into `%255B`.
 
-The design was validated against the local Ktor clone at
-`/Users/klemen/Work/ktor`.
-
 ### URLBuilder
 
 ```kotlin
