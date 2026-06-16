@@ -1,4 +1,4 @@
-## 1.6.0-dev
+## 1.6.0
 
 * [FEAT] add optional `qs-kotlin-spring-web` JVM module with Spring Web `UriComponentsBuilder.queryQs` for appending qs-kotlin encoded query parameters
 * [CHORE] add Spring Web integration README usage docs, publication metadata, CI coverage, and Kotest double-encoding regression tests
