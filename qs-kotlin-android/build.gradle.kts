@@ -1,3 +1,4 @@
+import org.gradle.jvm.tasks.Jar
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -24,13 +25,11 @@ android {
         compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
     }
 
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-            withJavadocJar()
-        }
-    }
+    publishing { singleVariant("release") { withSourcesJar() } }
 }
+
+// The Android wrapper has no sources; avoid AGP's Dokka-backed Javadoc task under Java 25.
+val emptyJavadocJar by tasks.registering(Jar::class) { archiveClassifier.set("javadoc") }
 
 dependencies {
     api(project(":qs-kotlin"))
@@ -44,6 +43,7 @@ afterEvaluate {
         publications {
             create<MavenPublication>("release") {
                 from(components["release"])
+                artifact(emptyJavadocJar)
 
                 groupId = project.group.toString()
                 artifactId = "qs-kotlin-android"
