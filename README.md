@@ -158,7 +158,7 @@ dependencies {
 - Android wrapper: AGP **8.7+**, `compileSdk 35`, `minSdk 25`
 - OkHttp integration: OkHttp **5.4.0**
 - Ktor integration: Ktor **3.5.0**
-- Spring Web integration: Spring Web **6.0.23**
+- Spring Web integration: Spring Web **7.0.8**
 
 ---
 

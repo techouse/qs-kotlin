@@ -15,7 +15,7 @@ androidMinSdk = "25"
 kotlinxSerializationJson = "1.11.0"
 okhttp = "5.4.0"
 ktor = "3.5.0"
-springFramework = "6.0.23"
+springFramework = "7.0.8"
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
