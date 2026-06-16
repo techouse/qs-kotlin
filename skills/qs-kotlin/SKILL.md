@@ -1,12 +1,13 @@
 ---
 name: qs-kotlin
-description: Use this skill whenever a user wants to install, configure, troubleshoot, or write Kotlin, Java, JVM, or Android application code for encoding and decoding nested query strings with the qs-kotlin package. This skill helps produce practical QS.decode, QS.encode, decode, encode, toQueryMap, and toQueryString snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid qs-kotlin edge-case pitfalls around lists, dot notation, duplicates, null handling, charset sentinels, depth limits, Java interop, Android coordinates, and untrusted input.
+description: Use this skill whenever a user wants to install, configure, troubleshoot, or write Kotlin, Java, JVM, Android, OkHttp, Ktor, or Spring Web application code for encoding and decoding nested query strings with the qs-kotlin packages. This skill helps produce practical QS.decode, QS.encode, decode, encode, toQueryMap, toQueryString, addQsQueryParameters, appendQsQueryParameters, parseQsQuery, and queryQs snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid qs-kotlin edge-case pitfalls around lists, dot notation, duplicates, null handling, charset sentinels, depth limits, Java interop, Android coordinates, framework URL builders, double encoding, and untrusted input.
 ---
 
 # qs-kotlin Usage Assistant
 
 Help users parse and build query strings with the Kotlin/JVM `qs-kotlin`
-package and the Android `qs-kotlin-android` wrapper.
+package, the Android `qs-kotlin-android` wrapper, and the optional OkHttp,
+Ktor, and Spring Web integration modules.
 Focus on user application code and interoperability outcomes, not repository
 maintenance.
 
@@ -15,7 +16,8 @@ maintenance.
 Before producing a final snippet, collect only the missing details that change
 the code:
 
-- Runtime: Kotlin/JVM, Android, Java, tests, backend code, or generated example.
+- Runtime: Kotlin/JVM, Android, Java, OkHttp, Ktor, Spring Web, tests,
+  backend code, or generated example.
 - Direction: decode an incoming query string, encode Kotlin or Java data, or
   normalize query-string handling around an existing URL/request object.
 - The actual query string or data structure when available.
@@ -45,6 +47,33 @@ coordinate and Android Gradle Plugin metadata:
 ```kotlin
 dependencies {
     implementation("io.github.techouse:qs-kotlin-android:<version>")
+}
+```
+
+Add only the optional integration artifact for the framework URL helper the
+application uses. Each integration module depends on the core artifact.
+
+OkHttp:
+
+```kotlin
+dependencies {
+    implementation("io.github.techouse:qs-kotlin-okhttp:<version>")
+}
+```
+
+Ktor:
+
+```kotlin
+dependencies {
+    implementation("io.github.techouse:qs-kotlin-ktor:<version>")
+}
+```
+
+Spring Web:
+
+```kotlin
+dependencies {
+    implementation("io.github.techouse:qs-kotlin-spring-web:<version>")
 }
 ```
 
@@ -78,6 +107,15 @@ import io.github.techouse.qskotlin.toQueryString
 
 val params = "a[b]=c".toQueryMap()
 val query = mapOf("a" to mapOf("b" to "c")).toQueryString()
+```
+
+Optional framework helpers live in integration packages:
+
+```kotlin
+import io.github.techouse.qskotlin.okhttp.addQsQueryParameters
+import io.github.techouse.qskotlin.ktor.appendQsQueryParameters
+import io.github.techouse.qskotlin.ktor.parseQsQuery
+import io.github.techouse.qskotlin.spring.web.queryQs
 ```
 
 ## Base Patterns
@@ -243,6 +281,86 @@ val query =
 check(query == "?q=query%20strings&tag=kotlin&tag=android")
 ```
 
+## Framework Integrations
+
+Use the framework helpers when callers need to append qs-kotlin output to URL
+builder types without losing duplicate keys, name-only values, bracket notation,
+or existing query parameters. Pass `EncodeOptions` the same way as `encode`.
+The helpers append already encoded names and values through encoded query APIs
+to avoid double-encoding `%5B` into `%255B`.
+
+OkHttp:
+
+```kotlin
+import io.github.techouse.qskotlin.okhttp.addQsQueryParameters
+import okhttp3.HttpUrl.Companion.toHttpUrl
+
+val url =
+    "https://api.example.com/products"
+        .toHttpUrl()
+        .addQsQueryParameters(mapOf("filter" to mapOf("name" to "John")))
+
+check(url.toString() == "https://api.example.com/products?filter%5Bname%5D=John")
+```
+
+Use `HttpUrl.Builder.addQsQueryParameters(value, options)` when the caller
+already has a builder. Use `HttpUrl.addQsQueryParameters(value, options)` to
+return a new immutable URL and leave the original unchanged.
+
+Ktor client or shared URL building:
+
+```kotlin
+import io.github.techouse.qskotlin.ktor.appendQsQueryParameters
+import io.ktor.http.URLBuilder
+
+val url =
+    URLBuilder("https://api.example.com/products")
+        .appendQsQueryParameters(mapOf("tags" to listOf("a", "b")))
+        .build()
+
+check(url.encodedQuery == "tags%5B0%5D=a&tags%5B1%5D=b")
+```
+
+Ktor server request parsing:
+
+```kotlin
+import io.github.techouse.qskotlin.ktor.parseQsQuery
+
+val params = call.request.parseQsQuery()
+
+check(params == mapOf("filter" to mapOf("name" to "John")))
+```
+
+`parseQsQuery` intentionally reads `ApplicationRequest.queryString()` and then
+calls `decode`, so prefer it over decoded Ktor parameter collections when
+bracket notation, duplicate keys, or original percent escapes matter.
+
+Spring Web:
+
+```kotlin
+import io.github.techouse.qskotlin.spring.web.queryQs
+import org.springframework.web.util.UriComponentsBuilder
+
+val uri =
+    UriComponentsBuilder.fromUriString("https://api.example.com/products")
+        .queryQs(mapOf("filter" to mapOf("name" to "John Doe")))
+        .build(true)
+        .toUri()
+
+check(uri.toString() == "https://api.example.com/products?filter%5Bname%5D=John%20Doe")
+```
+
+Always finish Spring `queryQs` usage with `build(true).toUri()` or
+`build(true).toUriString()`. Do not use `build().toUri()`,
+`encode().build()`, or `build().encode()` after `queryQs`, because Spring will
+double-encode qs-kotlin's already encoded output. `queryQs` requires
+`EncodeOptions.encode = true`; raw unencoded output is not safe with Spring's
+encoded-component path.
+
+There is no dedicated Retrofit integration. When full qs-kotlin fidelity is
+needed, build an OkHttp `HttpUrl` with `qs-kotlin-okhttp` and pass it to
+Retrofit with `@Url`.
+
 ## Java Interop
 
 Use builders from Java to avoid long Kotlin data-class constructors:
@@ -297,6 +415,12 @@ Warn or adjust before giving code for these cases:
 - The JDK and many web frameworks flatten duplicates or nested query syntax.
   Prefer `decode` or `QS.decode` on the raw query string when qs-style nested or
   repeated values matter.
+- OkHttp and Ktor URL helpers preserve qs-kotlin output by using encoded query
+  parameter APIs; normal decoded query APIs can double-encode bracket notation.
+- Ktor server code should parse `ApplicationRequest.queryString()`, not
+  `queryParameters`, when qs-style nested or repeated values matter.
+- Spring Web `queryQs` must be followed by `build(true)` and rejects
+  `EncodeOptions(encode = false)`.
 
 ## Response Shape
 
@@ -306,7 +430,7 @@ For code-generation requests, answer with:
    list format, null handling, charset, prefix handling, and whether input is
    trusted.
 2. One concrete Kotlin or Java snippet using `decode`, `encode`, `toQueryMap`,
-   `toQueryString`, or `QS`.
+   `toQueryString`, `QS`, or the relevant framework helper.
 3. A brief explanation of only the options used.
 4. A small verification example, such as an expected map, expected query string,
    JUnit assertion, Kotest assertion, or `check(...)`.

@@ -1,4 +1,4 @@
 interface:
   display_name: "qs-kotlin"
-  short_description: "Encode and decode nested Kotlin and Java query strings"
-  default_prompt: "Use $qs-kotlin to parse or build a Kotlin, Java, JVM, or Android query string with qs-kotlin."
+  short_description: "Nested query strings for Kotlin web clients"
+  default_prompt: "Use $qs-kotlin to parse, build, or attach a nested query string in Kotlin, Java, Android, OkHttp, Ktor, or Spring Web."
