@@ -10,6 +10,7 @@ build/
 .idea/compiler.xml
 .idea/libraries/
 .idea/copilot.*
+.idea/caches/
 *.iws
 *.iml
 *.ipr
