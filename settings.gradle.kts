@@ -33,4 +33,11 @@ develocity {
 
 rootProject.name = "qs-kotlin"
 
-include(":qs-kotlin", ":qs-kotlin-android", ":qs-kotlin-okhttp", ":qs-kotlin-ktor", ":comparison")
+include(
+    ":qs-kotlin",
+    ":qs-kotlin-android",
+    ":qs-kotlin-okhttp",
+    ":qs-kotlin-ktor",
+    ":qs-kotlin-spring-web",
+    ":comparison",
+)

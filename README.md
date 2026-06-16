@@ -25,8 +25,9 @@ This repo provides:
 - **`qs-kotlin-android`** – a thin Android AAR wrapper that re-exports the same API
 - **`qs-kotlin-okhttp`** – optional OkHttp `HttpUrl` extensions for adding qs-style nested query parameters
 - **`qs-kotlin-ktor`** – optional Ktor `URLBuilder`, `Url`, and `ApplicationRequest` extensions
+- **`qs-kotlin-spring-web`** – optional Spring Web `UriComponentsBuilder` extension
 
-> If you only target the JVM (including Android projects that are fine with a plain Jar), just use `qs-kotlin`. The Android wrapper is provided for teams that prefer an AAR coordinate and AGP metadata. The OkHttp and Ktor modules are optional and keep HTTP-client/server integrations out of the core artifact.
+> If you only target the JVM (including Android projects that are fine with a plain Jar), just use `qs-kotlin`. The Android wrapper is provided for teams that prefer an AAR coordinate and AGP metadata. The OkHttp, Ktor, and Spring Web modules are optional and keep HTTP-client/server integrations out of the core artifact.
 
 ---
 
@@ -104,6 +105,21 @@ dependencies {
 }
 ```
 
+### Spring Web integration (Jar)
+
+Kotlin:
+```kotlin
+dependencies {
+    implementation("io.github.techouse:qs-kotlin-spring-web:<version>")
+}
+```
+Java (Gradle Groovy DSL):
+```groovy
+dependencies {
+    implementation 'io.github.techouse:qs-kotlin-spring-web:<version>'
+}
+```
+
 > The Android AAR depends on Java 17 APIs. If your app’s `minSdk < 26` and you use `java.time` transitively, enable **core library desugaring** in your app:
 
 Kotlin:
@@ -142,6 +158,7 @@ dependencies {
 - Android wrapper: AGP **8.7+**, `compileSdk 35`, `minSdk 25`
 - OkHttp integration: OkHttp **5.4.0**
 - Ktor integration: Ktor **3.5.0**
+- Spring Web integration: Spring Web **7.0.8**
 
 ---
 
@@ -377,6 +394,42 @@ It does not parse `queryParameters`, because Ktor has already interpreted those
 values.
 
 This module does not include client framework adapters beyond Ktor.
+
+---
+
+## Spring Web integration
+
+Spring's URI builders can double-encode already encoded query components when
+the wrong final build path is used. qs-kotlin already returns an encoded query
+string, including nested bracket notation such as
+`filter%5Bwhere%5D%5Bname%5D=John`. The `qs-kotlin-spring-web` module splits
+qs-kotlin output into pairs and appends them to `UriComponentsBuilder`.
+
+Call `.build(true).toUri()` after `queryQs(...)`. This is mandatory: using
+`.build().toUri()` or `.encode().build()` can double-encode `%5B` into
+`%255B`.
+
+```kotlin
+import io.github.techouse.qskotlin.spring.web.queryQs
+import org.springframework.web.util.UriComponentsBuilder
+
+val uri =
+    UriComponentsBuilder
+        .fromUriString("https://api.example.com/products")
+        .queryQs(
+            mapOf(
+                "filter" to mapOf("where" to mapOf("name" to "John")),
+                "tags" to listOf("a", "b"),
+            )
+        )
+        .build(true)
+        .toUri()
+
+// https://api.example.com/products?filter%5Bwhere%5D%5Bname%5D=John&tags%5B0%5D=a&tags%5B1%5D=b
+```
+
+This module only targets `UriComponentsBuilder`. It does not include WebClient,
+RestClient, `UriBuilder`, Spring Boot, or auto-configuration helpers.
 
 ---
 

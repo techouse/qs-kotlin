@@ -14,6 +14,7 @@
             <option value="$PROJECT_DIR$/qs-kotlin-android" />
             <option value="$PROJECT_DIR$/qs-kotlin-ktor" />
             <option value="$PROJECT_DIR$/qs-kotlin-okhttp" />
+            <option value="$PROJECT_DIR$/qs-kotlin-spring-web" />
           </set>
         </option>
       </GradleProjectSettings>
