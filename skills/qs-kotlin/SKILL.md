@@ -1,6 +1,6 @@
 ---
 name: qs-kotlin
-description: Use this skill whenever a user wants to install, configure, troubleshoot, or write Kotlin, Java, JVM, Android, OkHttp, Ktor, or Spring Web application code for encoding and decoding nested query strings with the qs-kotlin packages. This skill helps produce practical QS.decode, QS.encode, decode, encode, toQueryMap, toQueryString, addQsQueryParameters, appendQsQueryParameters, parseQsQuery, and queryQs snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid qs-kotlin edge-case pitfalls around lists, dot notation, duplicates, null handling, charset sentinels, depth limits, Java interop, Android coordinates, framework URL builders, double encoding, and untrusted input.
+description: Use this skill whenever a user wants to install, configure, troubleshoot, or write Kotlin, Java, JVM, Android, OkHttp, Ktor, or Spring Web application code for encoding and decoding nested query strings with the qs-kotlin packages. This skill helps produce practical QS.decode, QS.encode, decode, encode, toQueryMap, toQueryString, decodeQsQuery, addQsQueryParameters, appendQsQueryParameters, parseQsQuery, and queryQs snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid qs-kotlin edge-case pitfalls around lists, dot notation, duplicates, null handling, charset sentinels, depth limits, Java interop, java.net.URI raw query handling, Android coordinates, framework URL builders, double encoding, and untrusted input.
 ---
 
 # qs-kotlin Usage Assistant
@@ -16,7 +16,7 @@ maintenance.
 Before producing a final snippet, collect only the missing details that change
 the code:
 
-- Runtime: Kotlin/JVM, Android, Java, OkHttp, Ktor, Spring Web, tests,
+- Runtime: Kotlin/JVM, Android, Java, `java.net.URI`, OkHttp, Ktor, Spring Web, tests,
   backend code, or generated example.
 - Direction: decode an incoming query string, encode Kotlin or Java data, or
   normalize query-string handling around an existing URL/request object.
@@ -109,6 +109,19 @@ val params = "a[b]=c".toQueryMap()
 val query = mapOf("a" to mapOf("b" to "c")).toQueryString()
 ```
 
+Decode a `java.net.URI` through its raw query component:
+
+```kotlin
+import io.github.techouse.qskotlin.decodeQsQuery
+import java.net.URI
+
+val params = URI("https://example.com/?a%5Bb%5D=c").decodeQsQuery()
+```
+
+Use `QS.decodeQsQuery(uri)` from Java. This helper deliberately reads
+`URI.rawQuery`; do not pass `URI.query` or `URI.getQuery()` to qs because those
+accessors percent-decode before qs splits query pairs.
+
 Optional framework helpers live in integration packages:
 
 ```kotlin
@@ -176,6 +189,8 @@ Use these options with `decode(query, DecodeOptions(...))` in Kotlin or
 `QS.decode(query, DecodeOptions.builder()...build())` in Java:
 
 - Leading question mark: `ignoreQueryPrefix = true`.
+- `java.net.URI`: use `uri.decodeQsQuery(options)`, which reads `rawQuery` and
+  returns an empty map for absent, empty, or opaque query components.
 - Dot notation such as `a.b=c`: `allowDots = true`.
 - Double-encoded literal dots in keys such as `name%252Eobj.first=John`:
   `decodeDotInKeys = true`.
@@ -415,6 +430,9 @@ Warn or adjust before giving code for these cases:
 - The JDK and many web frameworks flatten duplicates or nested query syntax.
   Prefer `decode` or `QS.decode` on the raw query string when qs-style nested or
   repeated values matter.
+- For `java.net.URI`, prefer `decodeQsQuery`; never decode `URI.query` and then
+  pass it to qs, because encoded delimiters and percent signs can be decoded too
+  early.
 - OkHttp and Ktor URL helpers preserve qs-kotlin output by using encoded query
   parameter APIs; normal decoded query APIs can double-encode bracket notation.
 - Ktor server code should parse `ApplicationRequest.queryString()`, not
@@ -430,7 +448,7 @@ For code-generation requests, answer with:
    list format, null handling, charset, prefix handling, and whether input is
    trusted.
 2. One concrete Kotlin or Java snippet using `decode`, `encode`, `toQueryMap`,
-   `toQueryString`, `QS`, or the relevant framework helper.
+   `toQueryString`, `decodeQsQuery`, `QS`, or the relevant framework helper.
 3. A brief explanation of only the options used.
 4. A small verification example, such as an expected map, expected query string,
    JUnit assertion, Kotest assertion, or `check(...)`.
