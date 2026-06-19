@@ -462,6 +462,53 @@ String encoded = QS.encode(Map.of("a", "c"));
 
 ## Decoding
 
+### `java.net.URI`
+
+Use `decodeQsQuery` to decode a URI's raw query component without losing qs
+semantics:
+
+Kotlin:
+```kotlin
+import io.github.techouse.qskotlin.decodeQsQuery
+import java.net.URI
+
+val uri = URI("https://example.com/search?filter%5Bname%5D=Jane%20Doe")
+val decoded = uri.decodeQsQuery()
+// => mapOf("filter" to mapOf("name" to "Jane Doe"))
+```
+
+Java:
+```java
+import io.github.techouse.qskotlin.QS;
+import java.net.URI;
+import java.util.Map;
+
+URI uri = URI.create("https://example.com/search?filter%5Bname%5D=Jane%20Doe");
+Map<String, Object> decoded = QS.decodeQsQuery(uri);
+// => {filter={name=Jane Doe}}
+```
+
+The helper intentionally reads `URI.rawQuery`, not `URI.query`. The decoded
+accessor can turn an encoded value delimiter such as `%26` into `&` before qs
+parses the query, changing its structure. URIs with an absent or explicitly
+empty query return an empty map. Opaque URIs also return an empty map because
+Java does not expose a query component for them.
+
+To construct a new URI when there is no existing query to preserve, encode the
+query first and use the single-string URI constructor:
+
+```kotlin
+import io.github.techouse.qskotlin.toQueryString
+import java.net.URI
+
+val encoded = mapOf("filter" to mapOf("name" to "Jane Doe")).toQueryString()
+val uri = URI("https://example.com/search?$encoded")
+```
+
+Do not decode and re-encode an existing URI query to replace or append values;
+that can lose name-only values, duplicate ordering, delimiters, and list
+formatting.
+
 ### Nested maps
 
 Kotlin:

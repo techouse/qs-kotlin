@@ -1,3 +1,8 @@
+## 1.6.1
+
+* [FEAT] add core `java.net.URI.decodeQsQuery` extension for parsing raw URI query components without lossy pre-decoding
+* [CHORE] add URI decoding documentation, Kotlin and Java regression coverage, and qs-kotlin skill guidance
+
 ## 1.6.0
 
 * [FEAT] add optional `qs-kotlin-spring-web` JVM module with Spring Web `UriComponentsBuilder.queryQs` for appending qs-kotlin encoded query parameters
