@@ -1,0 +1,11 @@
+---
+# Exclude test sources from Codacy code-pattern analysis.
+# Coverage exclusions must be handled in the coverage tool/report itself.
+exclude_paths:
+  - ".github/**"
+  - "comparison/**"
+  - "gradle/**"
+  - "qs-kotlin/src/test/**"
+  - "qs-kotlin-ktor/src/test/**"
+  - "qs-kotlin-okhttp/src/test/**"
+  - "qs-kotlin-spring-web/src/test/**"
