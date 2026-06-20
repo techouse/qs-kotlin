@@ -404,11 +404,10 @@ data class DecodeOptions(
      * Keys are decoded identically to values via [Utils.decode], which percent‑decodes `%2E/%2e` to
      * '.'. Whether a '.' participates in key splitting is decided by the parser (based on options).
      */
-    private fun defaultDecode(value: String?, charset: Charset?): Any? {
-        if (value == null) return null
+    private fun defaultDecode(value: String?, charset: Charset?): Any? =
+        if (value == null) null
         // Keys decode exactly like values; do NOT “protect” encoded dots.
-        return Utils.decode(value, charset)
-    }
+        else Utils.decode(value, charset)
 
     /** Convenience: decode a key to String? */
     @JvmOverloads
