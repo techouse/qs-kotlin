@@ -30,13 +30,12 @@ internal class WeakWrapper<T : Any>(value: T) {
      * Returns true if the referent is still alive and identical to the given object. This is an
      * identity check (===) rather than an equality check (==).
      */
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is WeakWrapper<*>) return false
-        val a = this.get() ?: return false
-        val b = other.get() ?: return false
-        return a === b
-    }
+    override fun equals(other: Any?): Boolean =
+        when {
+            this === other -> true
+            other !is WeakWrapper<*> -> false
+            else -> (this.get() ?: return false) === (other.get() ?: return false)
+        }
 
     /**
      * Returns the original hash code of the referent at the time of construction. This is stable
