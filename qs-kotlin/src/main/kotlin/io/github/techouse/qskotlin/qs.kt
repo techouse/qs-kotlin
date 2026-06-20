@@ -223,7 +223,7 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
         objKeys = objKeys.sortedWith(options.sort)
     }
 
-    for (i: Int in 0 until objKeys.size) {
+    for (i: Int in objKeys.indices) {
         val key: Any? = objKeys[i]
 
         if (key !is String? || (obj[key] == null && options.skipNulls)) {
