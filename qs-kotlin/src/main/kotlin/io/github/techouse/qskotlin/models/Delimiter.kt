@@ -108,12 +108,14 @@ class RegexDelimiter(private val jPattern: Pattern) : Delimiter() {
     override fun split(input: String): List<String> = jPattern.split(input).toList()
 
     /** Two [RegexDelimiter]s are equal when both pattern text and flags are equal. */
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is RegexDelimiter) return false
-        return jPattern.pattern() == other.jPattern.pattern() &&
-            jPattern.flags() == other.jPattern.flags()
-    }
+    override fun equals(other: Any?): Boolean =
+        when {
+            this === other -> true
+            other !is RegexDelimiter -> false
+            else ->
+                jPattern.pattern() == other.jPattern.pattern() &&
+                    jPattern.flags() == other.jPattern.flags()
+        }
 
     /** Hash is derived from pattern text and flags. */
     override fun hashCode(): Int = 31 * jPattern.pattern().hashCode() + jPattern.flags()
