@@ -54,9 +54,8 @@ internal object Decoder {
         return value
     }
 
-    private fun listLimitExceededMessage(limit: Int): String {
-        return "List limit exceeded. Only $limit element${if (limit == 1) "" else "s"} allowed in a list."
-    }
+    private fun listLimitExceededMessage(limit: Int): String =
+        "List limit exceeded. Only $limit element${if (limit == 1) "" else "s"} allowed in a list."
 
     private fun splitCommaValue(value: String, maxParts: Int? = null): List<String> {
         if (maxParts != null && maxParts <= 0) return emptyList()
@@ -81,12 +80,11 @@ internal object Decoder {
         input: String,
         delimiter: Delimiter,
         maxParts: Int? = null,
-    ): List<String> {
-        return when (delimiter) {
+    ): List<String> =
+        when (delimiter) {
             is StringDelimiter -> collectNonEmptyStringParts(input, delimiter.value, maxParts)
             is RegexDelimiter -> collectNonEmptyIterableParts(delimiter.split(input), maxParts)
         }
-    }
 
     private fun collectNonEmptyStringParts(
         input: String,
@@ -130,11 +128,12 @@ internal object Decoder {
         return out
     }
 
-    private fun newSplitBuffer(maxParts: Int?): ArrayList<String> {
-        if (maxParts == null) return ArrayList()
-        if (maxParts <= 0) return ArrayList()
-        return ArrayList(minOf(maxParts, MAX_PREALLOCATED_SPLIT_PARTS))
-    }
+    private fun newSplitBuffer(maxParts: Int?): ArrayList<String> =
+        when {
+            maxParts == null -> ArrayList()
+            maxParts <= 0 -> ArrayList()
+            else -> ArrayList(minOf(maxParts, MAX_PREALLOCATED_SPLIT_PARTS))
+        }
 
     /**
      * Parses a query string into a map of key-value pairs, handling various options for decoding.
@@ -314,6 +313,7 @@ internal object Decoder {
                         options.allowEmptyLists &&
                             (leaf == "" || (options.strictNullHandling && leaf == null)) ->
                             mutableListOf<Any?>()
+
                         Utils.isOverflow(leaf) -> leaf
                         else -> Utils.combine(emptyList<Any?>(), leaf, options.listLimit)
                     }
@@ -434,11 +434,13 @@ internal object Decoder {
                     sb.append(ch)
                     i++
                 }
+
                 ']' -> {
                     if (depth > 0) depth--
                     sb.append(ch)
                     i++
                 }
+
                 '.' -> {
                     if (depth == 0) {
                         // Look ahead to decide what to do with a top‑level dot
@@ -455,6 +457,7 @@ internal object Decoder {
                                 sb.append('.')
                                 i++
                             }
+
                             else -> {
                                 // Normal split: convert a.b → a[b] at top level
                                 val start = ++i
@@ -469,6 +472,7 @@ internal object Decoder {
                         i++
                     }
                 }
+
                 '%' -> {
                     // Preserve percent sequences verbatim at top level. Encoded dots (%2E/%2e)
                     // are *not* used as separators here; they may be mapped to '.' later
@@ -476,6 +480,7 @@ internal object Decoder {
                     sb.append('%')
                     i++
                 }
+
                 else -> {
                     sb.append(ch)
                     i++
