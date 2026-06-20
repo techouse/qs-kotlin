@@ -14,13 +14,14 @@ import io.github.techouse.qskotlin.models.FunctionFilter
 import io.github.techouse.qskotlin.models.IterableFilter
 import java.nio.charset.StandardCharsets
 
-private fun hasStructuredSyntax(key: String, allowDots: Boolean): Boolean {
-    if (key.indexOf('[') >= 0) return true
-    if (!allowDots) return false
-    if (key.indexOf('.') >= 0) return true
-    if (key.indexOf('%') < 0) return false
-    return key.contains("%2E") || key.contains("%2e")
-}
+private fun hasStructuredSyntax(key: String, allowDots: Boolean): Boolean =
+    when {
+        key.indexOf('[') >= 0 -> true
+        !allowDots -> false
+        key.indexOf('.') >= 0 -> true
+        key.indexOf('%') < 0 -> false
+        else -> key.contains("%2E") || key.contains("%2e")
+    }
 
 /**
  * Decode a query [String] or a [Map] into a [Map<String, Any?>].
