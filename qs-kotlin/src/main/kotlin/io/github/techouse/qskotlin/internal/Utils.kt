@@ -468,8 +468,8 @@ internal object Utils {
                     c == 0x2B || // +
                     c == 0x2E || // .
                     c == 0x2F || // /
-                    (format == Format.RFC1738 && (c == 0x28 || c == 0x29))
-            ) { // ( )
+                    (format == Format.RFC1738 && (c == 0x28 || c == 0x29)) // ( )
+            ) {
                 buffer.append(str[i])
                 continue
             }
