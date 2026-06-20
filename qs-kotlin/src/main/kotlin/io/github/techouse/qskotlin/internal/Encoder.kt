@@ -53,9 +53,8 @@ internal object Encoder {
     ) {
         val isCommaGenerator: Boolean = generateArrayPrefix === commaGenerator
 
-        fun withEncoder(value: ValueEncoder?): TraversalContext {
-            return if (value === encoder) this else copy(encoder = value)
-        }
+        fun withEncoder(value: ValueEncoder?): TraversalContext =
+            if (value === encoder) this else copy(encoder = value)
     }
 
     // Mutable traversal frame; kept local to avoid leaking internal state.
@@ -203,6 +202,7 @@ internal object Encoder {
                         is FunctionFilter -> {
                             obj = f.function(materializedPath(), obj)
                         }
+
                         else -> Unit
                     }
 
@@ -214,6 +214,7 @@ internal object Encoder {
                                 is Instant -> value.toString()
                                 is LocalDateTime ->
                                     context.serializeDate?.invoke(value) ?: value.toString()
+
                                 else -> value
                             }
                         }
@@ -270,7 +271,11 @@ internal object Encoder {
                             } else {
                                 val rawValue =
                                     Utils.bytesToString(obj, context.charset) ?: obj.toString()
-                                "${context.formatter(materializedPath())}=${context.formatter(rawValue)}"
+                                "${context.formatter(materializedPath())}=${
+                                    context.formatter(
+                                        rawValue
+                                    )
+                                }"
                             }
 
                         finishFrame(fragment)
@@ -310,6 +315,7 @@ internal object Encoder {
                                                 is ByteArray,
                                                 is ByteBuffer ->
                                                     Utils.bytesToString(el, context.charset) ?: ""
+
                                                 else -> el?.toString() ?: ""
                                             }
                                         }
@@ -337,6 +343,7 @@ internal object Encoder {
                                             val list = frame.iterableList ?: obj.toList()
                                             list.indices
                                         }
+
                                         else -> emptyList()
                                     }
 
@@ -409,6 +416,7 @@ internal object Encoder {
                                 key["value"] !is Undefined -> {
                                 Pair(key["value"], false)
                             }
+
                             else ->
                                 when (obj) {
                                     is Map<*, *> -> Pair(obj[key], !obj.containsKey(key))
@@ -425,6 +433,7 @@ internal object Encoder {
                                             Pair(null, true)
                                         }
                                     }
+
                                     is Array<*> -> {
                                         val index = key as? Int
                                         if (index != null && index >= 0 && index < obj.size) {
@@ -433,6 +442,7 @@ internal object Encoder {
                                             Pair(null, true)
                                         }
                                     }
+
                                     else -> Pair(null, true)
                                 }
                         }
@@ -497,14 +507,13 @@ internal object Encoder {
         adjustedPath: KeyPathNode,
         encodedKey: String,
         generator: ListFormatGenerator,
-    ): KeyPathNode {
-        return when {
+    ): KeyPathNode =
+        when {
             generator === indicesGenerator -> adjustedPath.append("[$encodedKey]")
             generator === bracketsGenerator -> adjustedPath.append("[]")
             generator === repeatGenerator || generator === commaGenerator -> adjustedPath
             else -> KeyPathNode.fromMaterialized(generator(adjustedPath.materialize(), encodedKey))
         }
-    }
 
     private fun tryEncodeLinearChain(
         data: Any?,
@@ -512,12 +521,17 @@ internal object Encoder {
         prefix: String,
         context: TraversalContext,
     ): Any? {
-        if (undefined) return null
-        if (context.filter != null || context.sort != null) return null
-        if (context.allowEmptyLists) return null
-        if (context.commaRoundTrip || context.commaCompactNulls || context.isCommaGenerator)
+        if (
+            undefined ||
+                context.filter != null ||
+                context.sort != null ||
+                context.allowEmptyLists ||
+                context.commaRoundTrip ||
+                context.commaCompactNulls ||
+                context.isCommaGenerator ||
+                data !is Map<*, *>
+        )
             return null
-        if (data !is Map<*, *>) return null
 
         val seen = Collections.newSetFromMap(IdentityHashMap<Any?, Boolean>())
         var current: Any? = data
