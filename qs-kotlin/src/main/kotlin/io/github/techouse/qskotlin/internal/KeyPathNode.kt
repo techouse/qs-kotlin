@@ -16,9 +16,7 @@ private constructor(private val parent: KeyPathNode?, private val segment: Strin
     private val depth: Int = (parent?.depth ?: 0) + 1
     private val totalLength: Int = (parent?.totalLength ?: 0) + segment.length
 
-    fun append(value: String): KeyPathNode {
-        return if (value.isEmpty()) this else KeyPathNode(this, value)
-    }
+    fun append(value: String): KeyPathNode = if (value.isEmpty()) this else KeyPathNode(this, value)
 
     fun asDotEncoded(): KeyPathNode {
         dotEncoded?.let {
@@ -27,18 +25,19 @@ private constructor(private val parent: KeyPathNode?, private val segment: Strin
 
         val encodedSegment = replaceDots(segment)
         val encoded =
-            if (parent == null) {
-                if (encodedSegment === segment) {
-                    this
-                } else {
-                    KeyPathNode(null, encodedSegment)
-                }
-            } else {
-                val encodedParent = parent.asDotEncoded()
-                if (encodedParent === parent && encodedSegment === segment) {
-                    this
-                } else {
-                    KeyPathNode(encodedParent, encodedSegment)
+            when (parent) {
+                null ->
+                    when (encodedSegment) {
+                        segment -> this
+                        else -> KeyPathNode(null, encodedSegment)
+                    }
+
+                else -> {
+                    val encodedParent = parent.asDotEncoded()
+                    when {
+                        encodedParent === parent && encodedSegment == segment -> this
+                        else -> KeyPathNode(encodedParent, encodedSegment)
+                    }
                 }
             }
 
@@ -52,22 +51,22 @@ private constructor(private val parent: KeyPathNode?, private val segment: Strin
         }
 
         val out =
-            if (parent == null) {
-                segment
-            } else if (depth == 2) {
-                parent.segment + segment
-            } else {
-                val parts = arrayOfNulls<String>(depth)
-                var index = depth - 1
-                var node: KeyPathNode? = this
-                while (node != null) {
-                    parts[index--] = node.segment
-                    node = node.parent
-                }
+            when {
+                parent == null -> segment
+                depth == 2 -> parent.segment + segment
+                else -> {
+                    val parts = arrayOfNulls<String>(depth)
+                    var index = depth - 1
+                    var node: KeyPathNode? = this
+                    while (node != null) {
+                        parts[index--] = node.segment
+                        node = node.parent
+                    }
 
-                buildString(totalLength) {
-                    for (part in parts) {
-                        append(part)
+                    buildString(totalLength) {
+                        for (part in parts) {
+                            append(part)
+                        }
                     }
                 }
             }
@@ -79,8 +78,7 @@ private constructor(private val parent: KeyPathNode?, private val segment: Strin
     companion object {
         fun fromMaterialized(value: String): KeyPathNode = KeyPathNode(null, value)
 
-        private fun replaceDots(value: String): String {
-            return if (value.indexOf('.') >= 0) value.replace(".", "%2E") else value
-        }
+        private fun replaceDots(value: String): String =
+            if (value.indexOf('.') >= 0) value.replace(".", "%2E") else value
     }
 }
