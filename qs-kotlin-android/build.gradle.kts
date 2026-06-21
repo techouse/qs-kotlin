@@ -29,7 +29,7 @@ android {
 }
 
 // The Android wrapper has no sources; avoid AGP's Dokka-backed Javadoc task under Java 25.
-val emptyJavadocJar by tasks.registering(Jar::class) { archiveClassifier.set("javadoc") }
+val emptyJavadocJar = tasks.register<Jar>("emptyJavadocJar") { archiveClassifier.set("javadoc") }
 
 dependencies {
     api(project(":qs-kotlin"))
