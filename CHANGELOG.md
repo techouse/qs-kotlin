@@ -1,4 +1,4 @@
-## 1.6.2-dev
+## 1.6.2
 
 * [FIX] match Node `qs` 6.15.3 cumulative list-limit enforcement across duplicate, comma, and mixed list merges
 * [FIX] keep list parsing independent of top-level parameter count and reject oversized flat comma values before decoding
