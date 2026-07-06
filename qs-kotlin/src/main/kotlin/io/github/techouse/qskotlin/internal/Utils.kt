@@ -32,6 +32,7 @@ internal object Utils {
         var indexedTarget: MutableMap<Int, Any?>? = null,
         var sourceList: List<Any?>? = null,
         var listIndex: Int = 0,
+        var listNextIndex: Int = 0,
         var targetIsSet: Boolean = false,
         var mergeTarget: MutableMap<Any?, Any?>? = null,
         var mapIterator: Iterator<Map.Entry<Any?, Any?>>? = null,
@@ -53,10 +54,25 @@ internal object Utils {
             else -> false
         }
 
+    internal fun throwListLimitExceeded(limit: Int): Nothing =
+        throw IndexOutOfBoundsException(
+            "List limit exceeded. Only $limit element${if (limit == 1) "" else "s"} allowed in a list."
+        )
+
+    private fun enforceListLimit(values: List<Any?>, options: DecodeOptions): Any {
+        if (values.size <= options.listLimit) return values
+        if (options.throwOnLimitExceeded) throwListLimitExceeded(options.listLimit)
+
+        val overflow = OverflowMap()
+        values.forEachIndexed { index, value -> overflow[index.toString()] = value }
+        overflow.maxIndex = values.lastIndex
+        return overflow
+    }
+
     /**
      * Merges two objects, where the source object overrides or extends the target object.
      * - If the source is a Map, it will merge its entries into the target.
-     * - If the source is an Iterable, it will append its items to the target.
+     * - If the source is an Iterable, it will append or merge its items by index.
      * - If the source is a primitive, it will combine with the target following qs semantics
      *   (including OverflowMap append behavior).
      *
@@ -116,7 +132,10 @@ internal object Utils {
                     if (currentSource !is Map<*, *>) {
                         when (currentTarget) {
                             is Iterable<*> -> {
-                                if (currentTarget.any { it is Undefined }) {
+                                if (
+                                    currentTarget.any { it is Undefined } &&
+                                        (currentTarget !is List<*> || currentSource !is Iterable<*>)
+                                ) {
                                     val mutableTarget: MutableMap<String, Any?> =
                                         currentTarget
                                             .withIndex()
@@ -142,7 +161,11 @@ internal object Utils {
                                                 mutableTarget.values.any { it is Undefined } ->
                                                 mutableTarget.filterValues { it !is Undefined }
                                             currentTarget is Set<*> -> mutableTarget.values.toSet()
-                                            else -> mutableTarget.values.toList()
+                                            else ->
+                                                enforceListLimit(
+                                                    mutableTarget.values.toList(),
+                                                    options,
+                                                )
                                         }
 
                                     stack.removeLast()
@@ -151,18 +174,21 @@ internal object Utils {
                                 }
 
                                 if (currentSource is Iterable<*>) {
-                                    val targetMaps = currentTarget.all {
-                                        it is Map<*, *> || it is Undefined
-                                    }
-                                    val sourceMaps = currentSource.all {
-                                        it is Map<*, *> || it is Undefined
-                                    }
+                                    val mergeByIndex =
+                                        currentTarget is List<*> ||
+                                            (currentTarget.all {
+                                                it is Map<*, *> || it is Undefined
+                                            } &&
+                                                currentSource.all {
+                                                    it is Map<*, *> || it is Undefined
+                                                })
 
-                                    if (targetMaps && sourceMaps) {
+                                    if (mergeByIndex) {
                                         frame.indexedTarget = toIndexedMap(currentTarget)
                                         frame.sourceList = currentSource.toList()
                                         frame.targetIsSet = currentTarget is Set<*>
                                         frame.listIndex = 0
+                                        frame.listNextIndex = frame.indexedTarget!!.size
                                         frame.phase = MergePhase.LIST_ITER
                                         continue
                                     }
@@ -171,8 +197,13 @@ internal object Utils {
                                     val merged =
                                         when (currentTarget) {
                                             is Set<*> -> currentTarget + filtered
-                                            is List<*> -> currentTarget + filtered
-                                            else -> listOf(currentTarget) + filtered
+                                            is List<*> ->
+                                                enforceListLimit(currentTarget + filtered, options)
+                                            else ->
+                                                enforceListLimit(
+                                                    listOf(currentTarget) + filtered,
+                                                    options,
+                                                )
                                         }
                                     stack.removeLast()
                                     frame.onResult(merged)
@@ -182,8 +213,13 @@ internal object Utils {
                                 val merged =
                                     when (currentTarget) {
                                         is Set<*> -> currentTarget + currentSource
-                                        is List<*> -> currentTarget + currentSource
-                                        else -> listOf(currentTarget, currentSource)
+                                        is List<*> ->
+                                            enforceListLimit(currentTarget + currentSource, options)
+                                        else ->
+                                            enforceListLimit(
+                                                listOf(currentTarget, currentSource),
+                                                options,
+                                            )
                                     }
                                 stack.removeLast()
                                 frame.onResult(merged)
@@ -191,7 +227,17 @@ internal object Utils {
                             }
 
                             is Map<*, *> -> {
-                                if (currentTarget is OverflowMap && currentSource !is Iterable<*>) {
+                                if (currentSource is Iterable<*>) {
+                                    val indexedSource = linkedMapOf<String, Any?>()
+                                    currentSource.forEachIndexed { index, item ->
+                                        if (item !is Undefined) {
+                                            indexedSource[index.toString()] = item
+                                        }
+                                    }
+                                    frame.source = indexedSource
+                                    continue
+                                }
+                                if (currentTarget is OverflowMap) {
                                     val newIndex = currentTarget.maxIndex + 1
                                     currentTarget[newIndex.toString()] = currentSource
                                     currentTarget.maxIndex = newIndex
@@ -199,21 +245,8 @@ internal object Utils {
                                     frame.onResult(currentTarget)
                                     continue
                                 }
-                                if (currentTarget is OverflowMap && currentSource is Iterable<*>) {
-                                    var newIndex = currentTarget.maxIndex
-                                    for (item in currentSource) {
-                                        if (item is Undefined) continue
-                                        newIndex += 1
-                                        currentTarget[newIndex.toString()] = item
-                                    }
-                                    currentTarget.maxIndex = newIndex
-                                    stack.removeLast()
-                                    frame.onResult(currentTarget)
-                                    continue
-                                }
                                 if (
                                     frame.options.strictMerge &&
-                                        currentSource !is Iterable<*> &&
                                         currentSource !is Undefined &&
                                         !isFalsyPrimitiveForMerge(currentSource)
                                 ) {
@@ -224,13 +257,6 @@ internal object Utils {
                                 val mutableTarget = currentTarget.toMutableMap()
 
                                 when (currentSource) {
-                                    is Iterable<*> -> {
-                                        currentSource.forEachIndexed { i, item ->
-                                            if (item !is Undefined) {
-                                                mutableTarget[i.toString()] = item
-                                            }
-                                        }
-                                    }
                                     is Undefined -> {
                                         // ignore
                                     }
@@ -251,8 +277,11 @@ internal object Utils {
                                 val merged =
                                     when (currentSource) {
                                         is Iterable<*> ->
-                                            listOf(currentTarget) +
-                                                currentSource.filterNot { it is Undefined }
+                                            enforceListLimit(
+                                                listOf(currentTarget) +
+                                                    currentSource.filterNot { it is Undefined },
+                                                options,
+                                            )
                                         else -> listOf(currentTarget, currentSource)
                                     }
                                 stack.removeLast()
@@ -265,19 +294,12 @@ internal object Utils {
                     // Source is a Map
                     if (currentTarget == null || currentTarget !is Map<*, *>) {
                         if (currentTarget is Iterable<*>) {
-                            val mutableTarget: MutableMap<String, Any?> =
+                            frame.target =
                                 currentTarget
                                     .withIndex()
                                     .associate { it.index.toString() to it.value }
                                     .filterValues { it !is Undefined }
                                     .toMutableMap()
-
-                            @Suppress("UNCHECKED_CAST")
-                            (currentSource as Map<Any?, Any?>).forEach { (key, value) ->
-                                mutableTarget[key.toString()] = value
-                            }
-                            stack.removeLast()
-                            frame.onResult(mutableTarget)
                             continue
                         }
 
@@ -314,27 +336,44 @@ internal object Utils {
                             else -> mutableTarget.add(currentSource)
                         }
                         stack.removeLast()
-                        frame.onResult(mutableTarget)
+                        frame.onResult(enforceListLimit(mutableTarget, options))
                         continue
                     }
 
                     @Suppress("UNCHECKED_CAST")
-                    val mergeTarget: MutableMap<Any?, Any?> =
-                        when (currentTarget) {
-                            is Iterable<*> if currentSource !is Iterable<*> ->
-                                currentTarget
-                                    .withIndex()
-                                    .associate { it.index.toString() to it.value }
-                                    .filterValues { it !is Undefined }
-                                    .toMutableMap() as MutableMap<Any?, Any?>
+                    val normalizedTarget: Map<Any?, Any?> =
+                        if (currentTarget is Iterable<*> && currentSource !is Iterable<*>) {
+                            currentTarget
+                                .withIndex()
+                                .associate { it.index.toString() to it.value }
+                                .filterValues { it !is Undefined }
+                        } else {
+                            currentTarget as Map<Any?, Any?>
+                        }
 
-                            is OverflowMap ->
+                    @Suppress("UNCHECKED_CAST")
+                    val mergeTarget: MutableMap<Any?, Any?> =
+                        when {
+                            currentTarget is OverflowMap ->
                                 OverflowMap().apply {
                                     putAll(currentTarget)
                                     maxIndex = currentTarget.maxIndex
                                 } as MutableMap<Any?, Any?>
 
-                            else -> (currentTarget as Map<Any?, Any?>).toMutableMap()
+                            currentSource is OverflowMap ->
+                                OverflowMap().apply {
+                                    normalizedTarget.forEach { (key, value) ->
+                                        this[key.toString()] = value
+                                    }
+                                    maxIndex =
+                                        normalizedTarget.keys.fold(currentSource.maxIndex) {
+                                            current,
+                                            key ->
+                                            updateOverflowMax(current, key)
+                                        }
+                                } as MutableMap<Any?, Any?>
+
+                            else -> normalizedTarget.toMutableMap()
                         }
 
                     frame.mergeTarget = mergeTarget
@@ -402,7 +441,10 @@ internal object Utils {
                             if (frame.targetIsSet) {
                                 frame.indexedTarget!!.values.toSet()
                             } else {
-                                frame.indexedTarget!!.values.toList()
+                                enforceListLimit(
+                                    frame.indexedTarget!!.values.toList(),
+                                    frame.options,
+                                )
                             }
                         stack.removeLast()
                         frame.onResult(merged)
@@ -424,18 +466,29 @@ internal object Utils {
                         if (item is Undefined) {
                             continue
                         }
-                        stack.add(
-                            MergeFrame(
-                                target = childTarget,
-                                source = item,
-                                options = frame.options,
-                                onResult = { value -> indexedTarget[idx] = value },
+                        val targetIsStructured =
+                            childTarget is Map<*, *> || childTarget is Iterable<*>
+                        val sourceIsStructured = item is Map<*, *> || item is Iterable<*>
+                        if (targetIsStructured && sourceIsStructured) {
+                            stack.add(
+                                MergeFrame(
+                                    target = childTarget,
+                                    source = item,
+                                    options = frame.options,
+                                    onResult = { value -> indexedTarget[idx] = value },
+                                )
                             )
-                        )
+                            continue
+                        }
+
+                        indexedTarget[frame.listNextIndex++] = item
                         continue
                     }
 
                     indexedTarget[idx] = item
+                    if (idx >= frame.listNextIndex) {
+                        frame.listNextIndex = idx + 1
+                    }
                     continue
                 }
             }
@@ -860,22 +913,16 @@ internal object Utils {
      * @param a The first object to combine.
      * @param b The second object to combine.
      * @param limit The maximum number of elements allowed in a list.
+     * @param throwOnLimitExceeded Throw instead of returning an overflow map.
      * @return A list or a map containing the combined elements.
      */
-    fun combine(a: Any?, b: Any?, limit: Int): Any {
+    fun combine(a: Any?, b: Any?, limit: Int, throwOnLimitExceeded: Boolean = false): Any {
         // If 'a' is already an overflow object, add to it
         if (a is OverflowMap) {
-            var newIndex = a.maxIndex
-            if (b is Iterable<*>) {
-                for (item in b) {
-                    if (item is Undefined) continue
-                    newIndex += 1
-                    a[newIndex.toString()] = item
-                }
-            } else {
-                newIndex += 1
-                a[newIndex.toString()] = b
-            }
+            if (throwOnLimitExceeded) throwListLimitExceeded(limit)
+
+            val newIndex = a.maxIndex + 1
+            a[newIndex.toString()] = b
             a.maxIndex = newIndex
             return a
         }
@@ -895,6 +942,8 @@ internal object Utils {
         }
 
         if (result.size > limit) {
+            if (throwOnLimitExceeded) throwListLimitExceeded(limit)
+
             val map = OverflowMap()
             result.forEachIndexed { index, item -> map[index.toString()] = item }
             map.maxIndex = result.size - 1
