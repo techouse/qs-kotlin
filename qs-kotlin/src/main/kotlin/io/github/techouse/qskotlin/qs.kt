@@ -55,14 +55,9 @@ fun decode(input: Any?, options: DecodeOptions? = null): Map<String, Any?> {
             else -> null
         }
 
-    var finalOptions = options
-    if (options.parseLists && options.listLimit > 0 && (tempObj?.size ?: 0) > options.listLimit) {
-        finalOptions = options.copy(parseLists = false)
-    }
-
     val decodeFromString = input is String
     if (decodeFromString && tempObj?.isNotEmpty() == true) {
-        val allowDots = finalOptions.getAllowDots
+        val allowDots = options.getAllowDots
         val hasAnyStructuredSyntax = tempObj.keys.any { key -> hasStructuredSyntax(key, allowDots) }
         if (!hasAnyStructuredSyntax) {
             return Utils.compact(tempObj, options.allowSparseLists)
@@ -78,9 +73,9 @@ fun decode(input: Any?, options: DecodeOptions? = null): Map<String, Any?> {
                     val segments =
                         Decoder.splitKeyIntoSegments(
                             originalKey = key,
-                            allowDots = finalOptions.getAllowDots,
-                            maxDepth = finalOptions.depth,
-                            strictDepth = finalOptions.strictDepth,
+                            allowDots = options.getAllowDots,
+                            maxDepth = options.depth,
+                            strictDepth = options.strictDepth,
                         )
                     val first = segments.firstOrNull() ?: return key
                     if (!first.startsWith('[')) return first
@@ -96,13 +91,13 @@ fun decode(input: Any?, options: DecodeOptions? = null): Map<String, Any?> {
                         val bracketIndex = key.indexOf('[').takeIf { it >= 0 } ?: Int.MAX_VALUE
                         val hasPercent = key.indexOf('%') >= 0
                         val dotIndex =
-                            if (finalOptions.getAllowDots) {
+                            if (options.getAllowDots) {
                                 key.indexOf('.').takeIf { it >= 0 } ?: Int.MAX_VALUE
                             } else {
                                 Int.MAX_VALUE
                             }
                         val encodedDotIndex =
-                            if (finalOptions.getAllowDots && hasPercent) {
+                            if (options.getAllowDots && hasPercent) {
                                 minOf(
                                     key.indexOf("%2E").takeIf { it >= 0 } ?: Int.MAX_VALUE,
                                     key.indexOf("%2e").takeIf { it >= 0 } ?: Int.MAX_VALUE,
@@ -127,7 +122,7 @@ fun decode(input: Any?, options: DecodeOptions? = null): Map<String, Any?> {
 
         for ((key, value) in tempObj) {
             if (decodeFromString) {
-                val hasStructuredKeySyntax = hasStructuredSyntax(key, finalOptions.getAllowDots)
+                val hasStructuredKeySyntax = hasStructuredSyntax(key, options.getAllowDots)
 
                 if (!hasStructuredKeySyntax && key !in structuredRoots) {
                     obj[key] = value
@@ -135,7 +130,7 @@ fun decode(input: Any?, options: DecodeOptions? = null): Map<String, Any?> {
                 }
             }
 
-            val parsed = Decoder.parseKeys(key, value, finalOptions, decodeFromString)
+            val parsed = Decoder.parseKeys(key, value, options, decodeFromString)
 
             if (obj.isEmpty() && parsed is MutableMap<*, *>) {
                 @Suppress("UNCHECKED_CAST")
@@ -144,7 +139,7 @@ fun decode(input: Any?, options: DecodeOptions? = null): Map<String, Any?> {
             }
 
             @Suppress("UNCHECKED_CAST")
-            obj = Utils.merge(obj, parsed, finalOptions) as MutableMap<String, Any?>
+            obj = Utils.merge(obj, parsed, options) as MutableMap<String, Any?>
         }
     }
 
