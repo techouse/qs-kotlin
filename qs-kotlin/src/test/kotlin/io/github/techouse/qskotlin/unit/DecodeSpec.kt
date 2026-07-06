@@ -819,6 +819,37 @@ class DecodeSpec :
                 decode("a[[]b=c") shouldBe mapOf("a" to mapOf("[[]b" to "c"))
             }
 
+            it("parses unbalanced bracket keys leniently") {
+                val cases =
+                    listOf(
+                        "a[bc=v" to mapOf("a" to mapOf("[bc" to "v")),
+                        "a[=v" to mapOf("a" to mapOf("[" to "v")),
+                        "a[b][c=v" to mapOf("a" to mapOf("b" to mapOf("[c" to "v"))),
+                        "a[b]c[d=v" to mapOf("a" to mapOf("b" to mapOf("[d" to "v"))),
+                        "filters[customtags:Env: Prod=v" to
+                            mapOf("filters" to mapOf("[customtags:Env: Prod" to "v")),
+                        "][a=v" to mapOf("]" to mapOf("[a" to "v")),
+                        "a][b=v" to mapOf("a]" to mapOf("[b" to "v")),
+                        "a[b[c=v" to mapOf("a" to mapOf("[b[c" to "v")),
+                        "a[b[c]=v" to mapOf("a" to mapOf("[b[c]" to "v")),
+                        "a[b][c[d=v" to mapOf("a" to mapOf("b" to mapOf("[c[d" to "v"))),
+                        "[abc=v" to mapOf("[abc" to "v"),
+                        "[[]b=v" to mapOf("[[]b" to "v"),
+                        "a]b=v" to mapOf("a]b" to "v"),
+                        "a[b]extra=v" to mapOf("a" to mapOf("b" to "v")),
+                    )
+
+                for ((query, expected) in cases) {
+                    decode(query) shouldBe expected
+                }
+
+                decode("a[b]c[d]e[f=v", DecodeOptions(depth = 1)) shouldBe
+                    mapOf("a" to mapOf("b" to mapOf("[d]e[f" to "v")))
+                decode("a[bc=v", DecodeOptions(depth = 0)) shouldBe mapOf("a[bc" to "v")
+                decode("a.b[c=v", DecodeOptions(allowDots = true)) shouldBe
+                    mapOf("a" to mapOf("b" to mapOf("[c" to "v")))
+            }
+
             it("does not mangle percent-encoded bracket text") {
                 decode("a%25255Bb=c") shouldBe mapOf("a%255Bb" to "c")
                 decode("a%25255Db=c") shouldBe mapOf("a%255Db" to "c")
@@ -1260,6 +1291,114 @@ class DecodeSpec :
                         DecodeOptions(listLimit = 3, throwOnLimitExceeded = true),
                     )
                 }
+            }
+
+            it("enforces cumulative comma growth across duplicate keys") {
+                val options =
+                    DecodeOptions(comma = true, listLimit = 5, throwOnLimitExceeded = true)
+
+                shouldThrow<IndexOutOfBoundsException> { decode("a=1,2,3&a=4,5,6", options) }
+                shouldThrow<IndexOutOfBoundsException> {
+                    decode("a=v,v,v,v,v&a=v,v,v,v,v&a=v,v,v,v,v", options)
+                }
+            }
+
+            it("enforces duplicate and mixed list growth at the boundary") {
+                val options = DecodeOptions(listLimit = 1, throwOnLimitExceeded = true)
+
+                shouldThrow<IndexOutOfBoundsException> { decode("a=x&a=y", options) }
+                shouldThrow<IndexOutOfBoundsException> { decode("a[]=x&a[]=y", options) }
+                shouldThrow<IndexOutOfBoundsException> { decode("a=x&a[0]=y", options) }
+                shouldThrow<IndexOutOfBoundsException> { decode("a[0]=x&a=y", options) }
+                shouldThrow<IndexOutOfBoundsException> { decode("a[0]=x&a[]=y", options) }
+            }
+
+            it("converts cumulative and mixed list growth to overflow maps") {
+                val options = DecodeOptions(listLimit = 1)
+                val expected = mapOf("a" to mapOf("0" to "x", "1" to "y"))
+
+                decode("a=x&a[0]=y", options) shouldBe expected
+                decode("a[0]=x&a=y", options) shouldBe expected
+                decode("a[0]=x&a[]=y", options) shouldBe expected
+                decode("a[0]=x&a[1]=y&a=z", options) shouldBe
+                    mapOf("a" to mapOf("0" to "x", "1" to "y", "2" to "z"))
+                decode("a[0]=x&a[1]=y&a[]=z", options) shouldBe
+                    mapOf("a" to mapOf("0" to listOf("x", "z"), "1" to "y"))
+
+                decode("a=1,2,3&a=4,5,6", DecodeOptions(comma = true, listLimit = 5)) shouldBe
+                    mapOf(
+                        "a" to
+                            mapOf(
+                                "0" to "1",
+                                "1" to "2",
+                                "2" to "3",
+                                "3" to "4",
+                                "4" to "5",
+                                "5" to "6",
+                            )
+                    )
+
+                decode("a=1,2,3&a=4,5", DecodeOptions(comma = true, listLimit = 2)) shouldBe
+                    mapOf("a" to mapOf("0" to "1", "1" to "2", "2" to "3", "3" to listOf("4", "5")))
+            }
+
+            it("merges mixed list elements by index before enforcing the limit") {
+                val query = "a[0][x]=1&a[1]=q&a[0][y]=2"
+                val expected = mapOf("a" to listOf(mapOf("x" to "1", "y" to "2"), "q"))
+
+                decode(query, DecodeOptions(listLimit = 2)) shouldBe expected
+                decode(query, DecodeOptions(listLimit = 2, throwOnLimitExceeded = true)) shouldBe
+                    expected
+
+                val sparseQuery = "a[1][x]=1&a[1][z]=3&b=y"
+                val sparseExpected = mapOf("a" to listOf(mapOf("x" to "1", "z" to "3")), "b" to "y")
+
+                decode(sparseQuery, DecodeOptions(listLimit = 2)) shouldBe sparseExpected
+                decode(
+                    sparseQuery,
+                    DecodeOptions(listLimit = 2, throwOnLimitExceeded = true),
+                ) shouldBe sparseExpected
+            }
+
+            it("keeps exact-limit and bracketed comma groups as lists") {
+                decode(
+                    "a=1,2,3&a=4",
+                    DecodeOptions(comma = true, listLimit = 4, throwOnLimitExceeded = true),
+                ) shouldBe mapOf("a" to listOf("1", "2", "3", "4"))
+
+                decode(
+                    "a[]=1,2,3&a[]=4,5,6",
+                    DecodeOptions(comma = true, listLimit = 2, throwOnLimitExceeded = true),
+                ) shouldBe mapOf("a" to listOf(listOf("1", "2", "3"), listOf("4", "5", "6")))
+            }
+
+            it("throws before decoding an oversized flat comma value") {
+                var decodedValues = 0
+                val decoder = Decoder { value, charset, kind ->
+                    if (kind == DecodeKind.VALUE) decodedValues += 1
+                    Utils.decode(value, charset)
+                }
+
+                shouldThrow<IndexOutOfBoundsException> {
+                    decode(
+                        "a=1,2",
+                        DecodeOptions(
+                            comma = true,
+                            listLimit = 1,
+                            throwOnLimitExceeded = true,
+                            decoder = decoder,
+                        ),
+                    )
+                }
+                decodedValues shouldBe 0
+            }
+
+            it("does not disable list parsing based on top-level parameter count") {
+                val options = DecodeOptions(listLimit = 1, throwOnLimitExceeded = true)
+
+                decode("a[0]=x&b=y", options) shouldBe mapOf("a" to listOf("x"), "b" to "y")
+                decode("a[0]=x&b=y&c=z", options) shouldBe
+                    mapOf("a" to listOf("x"), "b" to "y", "c" to "z")
             }
         }
 

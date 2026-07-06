@@ -67,11 +67,12 @@ data class DecodeOptions(
     val allowSparseLists: Boolean = false,
 
     /**
-     * QS will limit parsed List values to a maximum count of `20`. Any explicit index greater than
-     * or equal to the limit is converted to a Map with the index as the key. This is needed to
-     * handle cases when someone sent, for example, `a[999999999]` and it would take significant
-     * time to iterate over this huge List. This limit can be overridden by passing a listLimit
-     * option.
+     * QS limits parsed List values to a maximum count of `20`. Any explicit index greater than or
+     * equal to the limit is converted to a Map with the index as the key. The limit also applies
+     * cumulatively to duplicate keys, mixed list notation, and flat comma-separated values. Exact
+     * limit results remain Lists; larger results become numeric-keyed Maps or throw when
+     * [throwOnLimitExceeded] is true. A comma group assigned through `[]=` counts as one outer List
+     * element. This prevents inputs such as `a[999999999]` from creating huge sparse Lists.
      */
     val listLimit: Int = 20,
 
@@ -143,7 +144,7 @@ data class DecodeOptions(
     /** Set to true to decode values without `=` to `null`. */
     val strictNullHandling: Boolean = false,
 
-    /** Set to `true` to throw an error when the limit is exceeded. */
+    /** Throw instead of truncating parameter input or converting List overflow to a Map. */
     val throwOnLimitExceeded: Boolean = false,
 
     /**

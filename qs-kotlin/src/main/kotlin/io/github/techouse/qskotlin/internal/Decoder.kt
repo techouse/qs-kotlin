@@ -31,40 +31,35 @@ internal object Decoder {
     ): Any? {
         if (value is String && value.isNotEmpty() && options.comma && value.contains(',')) {
             if (options.throwOnLimitExceeded && !isBracketListValue) {
-                if (options.listLimit < 0) {
-                    throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
+                if (options.listLimit < 0 || commaCountReachesLimit(value, options.listLimit)) {
+                    Utils.throwListLimitExceeded(options.listLimit)
                 }
-                val splitVal =
-                    splitCommaValue(
-                        value,
-                        if (options.listLimit == Int.MAX_VALUE) null else options.listLimit + 1,
-                    )
-                if (splitVal.size > options.listLimit) {
-                    throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
-                }
-                return splitVal
             }
             return splitCommaValue(value)
         }
 
         if (options.throwOnLimitExceeded && currentListLength >= options.listLimit) {
-            throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
+            Utils.throwListLimitExceeded(options.listLimit)
         }
 
         return value
     }
 
-    private fun listLimitExceededMessage(limit: Int): String =
-        "List limit exceeded. Only $limit element${if (limit == 1) "" else "s"} allowed in a list."
+    private fun commaCountReachesLimit(value: String, limit: Int): Boolean {
+        var commaCount = 0
+        var commaIndex = value.indexOf(',')
+        while (commaIndex >= 0) {
+            commaCount += 1
+            if (commaCount >= limit) return true
+            commaIndex = value.indexOf(',', commaIndex + 1)
+        }
+        return false
+    }
 
-    private fun splitCommaValue(value: String, maxParts: Int? = null): List<String> {
-        if (maxParts != null && maxParts <= 0) return emptyList()
-
-        val parts = newSplitBuffer(maxParts)
+    private fun splitCommaValue(value: String): List<String> {
+        val parts = ArrayList<String>()
         var start = 0
         while (true) {
-            if (maxParts != null && parts.size >= maxParts) break
-
             val comma = value.indexOf(',', start)
             val end = if (comma == -1) value.length else comma
             parts.add(value.substring(start, end))
@@ -258,15 +253,27 @@ internal object Decoder {
 
             if (parsedCommaList && value is List<*> && value.size > options.listLimit) {
                 if (options.throwOnLimitExceeded) {
-                    throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
+                    Utils.throwListLimitExceeded(options.listLimit)
                 }
-                value = Utils.combine(emptyList<Any?>(), value, options.listLimit)
+                value =
+                    Utils.combine(
+                        emptyList<Any?>(),
+                        value,
+                        options.listLimit,
+                        options.throwOnLimitExceeded,
+                    )
             }
 
             val existing = obj.containsKey(key)
             when {
                 existing && (options.duplicates == Duplicates.COMBINE || isBracketListValue) -> {
-                    obj[key] = Utils.combine(obj[key], value, options.listLimit)
+                    obj[key] =
+                        Utils.combine(
+                            obj[key],
+                            value,
+                            options.listLimit,
+                            options.throwOnLimitExceeded,
+                        )
                 }
 
                 !existing || options.duplicates == Duplicates.LAST -> {
@@ -315,7 +322,13 @@ internal object Decoder {
                             mutableListOf<Any?>()
 
                         Utils.isOverflow(leaf) -> leaf
-                        else -> Utils.combine(emptyList<Any?>(), leaf, options.listLimit)
+                        else ->
+                            Utils.combine(
+                                emptyList<Any?>(),
+                                leaf,
+                                options.listLimit,
+                                options.throwOnLimitExceeded,
+                            )
                     }
             } else {
                 // Always build *string-keyed* maps here
@@ -353,7 +366,7 @@ internal object Decoder {
                     }
 
                     isBracketedNumeric && idx >= 0 && options.throwOnLimitExceeded -> {
-                        throw IndexOutOfBoundsException(listLimitExceededMessage(options.listLimit))
+                        Utils.throwListLimitExceeded(options.listLimit)
                     }
 
                     isBracketedNumeric && idx >= 0 -> {
