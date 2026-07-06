@@ -1,3 +1,9 @@
+## 1.6.2-dev
+
+* [FIX] match Node `qs` 6.15.3 cumulative list-limit enforcement across duplicate, comma, and mixed list merges
+* [FIX] keep list parsing independent of top-level parameter count and reject oversized flat comma values before decoding
+* [CHORE] add Node `qs` 6.15.3 regression coverage for unbalanced brackets, cyclic compaction, and chunk-boundary surrogate pairs
+
 ## 1.6.1
 
 * [FEAT] add core `java.net.URI.decodeQsQuery` extension for parsing raw URI query components without lossy pre-decoding
