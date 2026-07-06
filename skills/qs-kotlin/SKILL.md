@@ -200,9 +200,12 @@ Use these options with `decode(query, DecodeOptions(...))` in Kotlin or
 - Bracket lists: enabled by default; set `parseLists = false` to treat list
   syntax as map keys.
 - Empty list tokens such as `foo[]`: `allowEmptyLists = true`.
-- Large or sparse list indices: default `listLimit` is `20`; indices greater
-  than or equal to the limit become map keys. A negative `listLimit` forces list
-  values to map overflow, or throws when `throwOnLimitExceeded = true`.
+- List limits: default `listLimit` is `20`; indices greater than or equal to the
+  limit become map keys. Duplicate keys, mixed notation, and flat comma values
+  contribute cumulatively. Exact-limit results remain lists; soft overflow
+  preserves every value in a numeric-keyed map, while
+  `throwOnLimitExceeded = true` throws. A negative limit always overflows or
+  throws.
 - Comma-separated values such as `a=b,c`: `comma = true`.
 - Object/scalar conflicts such as `a[b]=c&a=d`: `strictMerge = true` wraps the
   conflict in a list; set `strictMerge = false` for legacy key-as-true behavior.
@@ -414,7 +417,9 @@ Warn or adjust before giving code for these cases:
   unlimited parsing.
 - `throwOnLimitExceeded = true` turns parameter and list limit violations into
   `IndexOutOfBoundsException`; without it, parameter parsing stops at the limit
-  and list overflows fall back to maps.
+  and list overflows fall back to numeric-keyed maps. Flat comma values are
+  checked before value decoding; a comma group assigned through `[]=` counts as
+  one outer list element.
 - `strictDepth = true` throws on well-formed depth overflow; with the default
   `false`, the remainder beyond `depth` is kept as a trailing key segment.
 - Built-in charset handling supports only `StandardCharsets.UTF_8` and
