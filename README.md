@@ -934,6 +934,13 @@ QS.decode("a[100]=b");
 // => {a={100=b}}
 ```
 
+The same limit is enforced cumulatively when duplicate keys, mixed list notation,
+or comma-separated values grow a list. A result exactly at the limit remains a
+list. Above the limit, decoding preserves every value in a numeric-keyed map, or
+throws `IndexOutOfBoundsException` when `throwOnLimitExceeded = true`. List parsing
+is disabled only when `parseLists = false`; the number of top-level parameters does
+not change it.
+
 Disable list parsing:
 
 Kotlin:
@@ -991,7 +998,9 @@ QS.decode(
 
 When `comma = true`, comma-split values also honor `listLimit`. If
 `throwOnLimitExceeded = true`, decode throws; otherwise over-limit comma results
-convert to a map while preserving all values.
+convert to a map while preserving all values. A comma group assigned through
+`[]=` counts as one outer list element, so the inner group may contain more values
+than `listLimit`.
 
 ### Primitive/scalar values
 
