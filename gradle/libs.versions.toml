@@ -2,7 +2,6 @@
 kotlin = "2.4.10"
 agp = "9.3.0"
 dokka = "2.2.0"
-nexusPublish = "2.0.0"
 kotest = "6.2.2"
 junit = "6.1.2"
 ktfmt = "0.26.0"
@@ -21,7 +20,6 @@ springFramework = "7.0.8"
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
-nexus-publish = { id = "io.github.gradle-nexus.publish-plugin", version.ref = "nexusPublish" }
 ktfmt = { id = "com.ncorti.ktfmt.gradle", version.ref = "ktfmt" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 

@@ -9,6 +9,7 @@ pluginManagement {
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
     id("com.gradle.develocity") version "4.5.0"
+    id("com.gradleup.nmcp.settings") version "1.6.1"
 }
 
 develocity {
@@ -31,7 +32,18 @@ develocity {
     }
 }
 
-rootProject.name = "qs-kotlin"
+nmcpSettings {
+    centralPortal {
+        username.set(providers.gradleProperty("mavenCentralUsername"))
+        password.set(providers.gradleProperty("mavenCentralPassword"))
+        publishingType.set("AUTOMATIC")
+        validationTimeout.set(java.time.Duration.ofMinutes(30))
+        publishingTimeout.set(java.time.Duration.ZERO)
+    }
+}
+
+// NMCP requires the root project name to differ from the published ":qs-kotlin" module.
+rootProject.name = "qs-kotlin-build"
 
 include(
     ":qs-kotlin",

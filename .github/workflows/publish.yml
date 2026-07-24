@@ -15,8 +15,6 @@ jobs:
   publish:
     needs: test
     name: Publish
-    permissions:
-      id-token: write
     runs-on: ubuntu-latest
     environment: maven
     env:
@@ -41,8 +39,8 @@ jobs:
         run: |
           java -version
           ./gradlew --version
-      - name: Publish to Sonatype (staging) and release
-        run: ./gradlew publishToSonatype closeAndReleaseSonatypeStagingRepository --stacktrace
+      - name: Publish to Maven Central
+        run: ./gradlew publishAggregationToCentralPortal --stacktrace
       - name: Collect built artifacts (JAR/AAR)
         run: |
           set -e
@@ -71,23 +69,23 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
-      - name: Get name, version, and group from Gradle files
+      - name: Get version and group from Gradle files
         id: get_version_and_name
         run: |
           set -e
           VERSION=$(awk -F'=' '/^[[:space:]]*version[[:space:]]*=/ { v=$2; sub(/^[[:space:]]+/, "", v); sub(/[[:space:]]+$/, "", v); gsub(/^"|"$/, "", v); print v; exit }' gradle.properties)
           GROUP=$(awk -F'=' '/^[[:space:]]*group[[:space:]]*=/ { g=$2; sub(/^[[:space:]]+/, "", g); sub(/[[:space:]]+$/, "", g); gsub(/^"|"$/, "", g); print g; exit }' gradle.properties)
-          NAME=$(awk -F'"' '/^[[:space:]]*rootProject\.name[[:space:]]*=/ { print $2; exit }' settings.gradle.kts)
+          ARTIFACT_ID=qs-kotlin
           echo "VERSION=$VERSION" >> $GITHUB_ENV
           echo "GROUP=$GROUP" >> $GITHUB_ENV
-          echo "NAME=$NAME" >> $GITHUB_ENV
+          echo "ARTIFACT_ID=$ARTIFACT_ID" >> $GITHUB_ENV
       - name: Create tag-specific CHANGELOG
         id: create_changelog
         run: |
           set -e
           CHANGELOG_PATH=$RUNNER_TEMP/CHANGELOG.md
           awk '/^##[[:space:]].*/ { if (count == 1) exit; count++; print } count == 1 && !/^##[[:space:]].*/ { print }' CHANGELOG.md | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > $CHANGELOG_PATH
-          echo -en "\n[https://central.sonatype.com/artifact/$GROUP/$NAME/$VERSION](https://central.sonatype.com/artifact/$GROUP/$NAME/$VERSION)" >> $CHANGELOG_PATH
+          echo -en "\n[https://central.sonatype.com/artifact/$GROUP/$ARTIFACT_ID/$VERSION](https://central.sonatype.com/artifact/$GROUP/$ARTIFACT_ID/$VERSION)" >> $CHANGELOG_PATH
           echo "CHANGELOG_PATH=$CHANGELOG_PATH" >> $GITHUB_ENV
       - name: Download artifacts from publish job
         uses: actions/download-artifact@v8

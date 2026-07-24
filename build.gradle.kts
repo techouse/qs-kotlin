@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.kotlin.jvm) apply false
     alias(libs.plugins.android.library) apply false
-    alias(libs.plugins.nexus.publish)
     alias(libs.plugins.dokka) apply false
 }
 
@@ -19,16 +18,3 @@ subprojects {
 }
 
 tasks.register("docs") { dependsOn("dokkaGenerate") }
-
-nexusPublishing {
-    repositories {
-        sonatype {
-            nexusUrl.set(uri("https://ossrh-staging-api.central.sonatype.com/service/local/"))
-            snapshotRepositoryUrl.set(
-                uri("https://central.sonatype.com/repository/maven-snapshots/")
-            )
-            username.set(providers.gradleProperty("mavenCentralUsername"))
-            password.set(providers.gradleProperty("mavenCentralPassword"))
-        }
-    }
-}
