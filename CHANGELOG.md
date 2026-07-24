@@ -1,3 +1,10 @@
+## 1.6.3
+
+* [CHORE] update Kotlin to 2.4.10
+* [CHORE] update Android Gradle Plugin to 9.3.0
+* [CHORE] update Kotest to 6.2.2 and JUnit to 6.1.2
+* [CHORE] update `actions/setup-node` to v7
+
 ## 1.6.2
 
 * [FIX] match Node `qs` 6.15.3 cumulative list-limit enforcement across duplicate, comma, and mixed list merges
