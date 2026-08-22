@@ -71,7 +71,8 @@ class EncodeSpec :
                         mapOf("date" to dateTime),
                         EncodeOptions(
                             encode = false,
-                            dateSerializer = null, // Force the code to use the default serialization
+                            // Force the code to use the default serialization
+                            dateSerializer = null,
                         ),
                     )
                 result shouldBe "date=2023-01-01T00:00:00.001Z"
@@ -277,14 +278,22 @@ class EncodeSpec :
             ) {
                 encode(
                     mapOf("name.obj" to mapOf("first" to "John", "last" to "Doe")),
-                    EncodeOptions(encodeDotInKeys = true, allowDots = true, encodeValuesOnly = true),
+                    EncodeOptions(
+                        encodeDotInKeys = true,
+                        allowDots = true,
+                        encodeValuesOnly = true,
+                    ),
                 ) shouldBe "name%2Eobj.first=John&name%2Eobj.last=Doe"
 
                 encode(
                     mapOf(
                         "name.obj.subobject" to mapOf("first.godly.name" to "John", "last" to "Doe")
                     ),
-                    EncodeOptions(allowDots = true, encodeDotInKeys = true, encodeValuesOnly = true),
+                    EncodeOptions(
+                        allowDots = true,
+                        encodeDotInKeys = true,
+                        encodeValuesOnly = true,
+                    ),
                 ) shouldBe
                     "name%2Eobj%2Esubobject.first%2Egodly%2Ename=John&name%2Eobj%2Esubobject.last=Doe"
             }

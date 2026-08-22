@@ -143,7 +143,10 @@ class ExampleSpec :
                 it("supports charset sentinel with latin1") {
                     decode(
                         "utf8=%E2%9C%93&a=%C3%B8",
-                        DecodeOptions(charset = StandardCharsets.ISO_8859_1, charsetSentinel = true),
+                        DecodeOptions(
+                            charset = StandardCharsets.ISO_8859_1,
+                            charsetSentinel = true,
+                        ),
                     ) shouldBe mapOf("a" to "ø")
                 }
 
