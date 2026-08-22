@@ -933,7 +933,10 @@ class DecodeSpec :
                 ) {
                     decode(
                         "utf8=$urlEncodedCheckmarkInUtf8&$urlEncodedOSlashInUtf8=$urlEncodedOSlashInUtf8",
-                        DecodeOptions(charsetSentinel = true, charset = StandardCharsets.ISO_8859_1),
+                        DecodeOptions(
+                            charsetSentinel = true,
+                            charset = StandardCharsets.ISO_8859_1,
+                        ),
                     ) shouldBe mapOf("ø" to "ø")
                 }
 
