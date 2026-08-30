@@ -1,3 +1,14 @@
+## 1.6.4
+
+* [CHORE] migrate Maven Central publishing from Sonatype staging to automatic Central Portal publishing
+* [CHORE] update Android Gradle Plugin to 9.3.2
+* [CHORE] update Kotest to 6.2.4 and JUnit to 6.1.3
+* [CHORE] update Gradle to 9.7.1
+* [CHORE] update Ktor to 3.5.2, OkHttp to 5.5.0, and Spring Web to 7.0.9
+* [CHORE] update ktfmt to 0.27.0 and Spotless to 8.10.0, and format Kotlin test sources
+* [CHORE] update `actions/setup-java` to v6
+* [CHORE] align the IntelliJ Kotlin plugin setting to 2.4.10 and add Markdown preview settings
+
 ## 1.6.3
 
 * [CHORE] update Kotlin to 2.4.10
