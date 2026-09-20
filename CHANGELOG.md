@@ -1,3 +1,14 @@
+## 1.6.5
+
+* [CHORE] update Kotlin version reference
+* [CHORE] update Android Gradle Plugin to 9.4.1
+* [CHORE] update Spotless to 8.10.2
+* [CHORE] update NMCP Settings to 1.6.2
+* [CHORE] update Kotlin to 2.4.20
+* [CHORE] update Kotest
+* [CHORE] update Develocity to 4.5.1
+* [CHORE] update Ktor to 3.6.0
+
 ## 1.6.4
 
 * [CHORE] migrate Maven Central publishing from Sonatype staging to automatic Central Portal publishing
