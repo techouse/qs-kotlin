@@ -13,7 +13,7 @@ androidCompileSdk = "36"
 androidMinSdk = "25"
 kotlinxSerializationJson = "1.11.0"
 okhttp = "5.5.0"
-ktor = "3.5.2"
+ktor = "3.6.0"
 springFramework = "7.0.9"
 
 [plugins]
