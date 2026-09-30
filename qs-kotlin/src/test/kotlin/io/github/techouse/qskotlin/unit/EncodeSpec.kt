@@ -216,6 +216,154 @@ class EncodeSpec :
                 ) shouldBe "a[]=3n"
             }
 
+            it("round-trips dotted primitive keys independently of dot notation") {
+                val input = mapOf("a.b" to "c")
+                for (allowDots in listOf(null, true, false)) {
+                    val output =
+                        encode(input, EncodeOptions(encodeDotInKeys = true, allowDots = allowDots))
+                    output shouldBe "a%252Eb=c"
+                    io.github.techouse.qskotlin.decode(
+                        output,
+                        DecodeOptions(decodeDotInKeys = true),
+                    ) shouldBe input
+                }
+                encode(
+                    mapOf("a.b" to "c d"),
+                    EncodeOptions(encodeDotInKeys = true, encodeValuesOnly = true),
+                ) shouldBe "a%2Eb=c%20d"
+                encode(
+                    mapOf("a.b" to "c d"),
+                    EncodeOptions(encodeDotInKeys = true, encode = false),
+                ) shouldBe "a%2Eb=c d"
+            }
+
+            it("encodes every literal dot in primitive and strict-null top-level keys") {
+                val options = EncodeOptions(encodeDotInKeys = true, strictNullHandling = true)
+                encode(mapOf("a.b" to null), options) shouldBe "a%252Eb"
+                encode(mapOf("a.b.c" to "x"), options) shouldBe "a%252Eb%252Ec=x"
+                encode(linkedMapOf("a.b" to "1", "c.d" to "2"), options) shouldBe
+                    "a%252Eb=1&c%252Ed=2"
+            }
+
+            it("exposes preprocessed dotted prefixes to function filters") {
+                val prefixes = mutableListOf<String>()
+                val options =
+                    EncodeOptions(
+                        encodeDotInKeys = true,
+                        filter =
+                            FunctionFilter { prefix, value ->
+                                prefixes.add(prefix)
+                                value
+                            },
+                    )
+                encode(mapOf("a.b" to mapOf("x" to "c")), options) shouldBe "a%252Eb.x=c"
+                prefixes shouldBe listOf("", "a%2Eb", "a%2Eb.x")
+            }
+
+            describe("depth") {
+                it("bounds linear and filtered traversal at the same leaf depth") {
+                    val input = mapOf("a" to mapOf("b" to mapOf("c" to "d")))
+                    for (filter in listOf(null, FunctionFilter { _, value -> value })) {
+                        encode(input, EncodeOptions(depth = 2, filter = filter)) shouldBe
+                            "a%5Bb%5D%5Bc%5D=d"
+                        shouldThrow<IndexOutOfBoundsException> {
+                                encode(input, EncodeOptions(depth = 1, filter = filter))
+                            }
+                            .message shouldBe "Input depth exceeded depth option of 1"
+                        encode(
+                            mapOf("a" to "b"),
+                            EncodeOptions(depth = 0, filter = filter),
+                        ) shouldBe "a=b"
+                        shouldThrow<IndexOutOfBoundsException> {
+                            encode(
+                                mapOf("a" to mapOf("b" to "c")),
+                                EncodeOptions(depth = 0, filter = filter),
+                            )
+                        }
+                    }
+                    val branching = mapOf("a" to linkedMapOf("b" to mapOf("c" to "d"), "x" to "y"))
+                    encode(branching, EncodeOptions(depth = 2)) shouldBe
+                        "a%5Bb%5D%5Bc%5D=d&a%5Bx%5D=y"
+                    shouldThrow<IndexOutOfBoundsException> {
+                        encode(branching, EncodeOptions(depth = 1))
+                    }
+                }
+
+                it("counts list visits rather than visible key segments") {
+                    val expected =
+                        mapOf(
+                            ListFormat.INDICES to "a%5B0%5D=x&a%5B1%5D=y",
+                            ListFormat.BRACKETS to "a%5B%5D=x&a%5B%5D=y",
+                            ListFormat.REPEAT to "a=x&a=y",
+                            ListFormat.COMMA to "a=x%2Cy",
+                        )
+                    for ((format, output) in expected) {
+                        val input = mapOf("a" to listOf("x", "y"))
+                        encode(input, EncodeOptions(depth = 1, listFormat = format)) shouldBe output
+                        shouldThrow<IndexOutOfBoundsException> {
+                                encode(input, EncodeOptions(depth = 0, listFormat = format))
+                            }
+                            .message shouldBe "Input depth exceeded depth option of 0"
+                    }
+                }
+
+                it("checks visited null and Undefined leaves but does not enter skipped nulls") {
+                    for (filter in listOf(null, FunctionFilter { _, value -> value })) {
+                        val options = EncodeOptions(depth = 0, filter = filter)
+                        encode(mapOf("a" to emptyMap<String, Any?>()), options) shouldBe ""
+                        encode(
+                            mapOf("a" to mapOf("b" to null)),
+                            options.copy(skipNulls = true),
+                        ) shouldBe ""
+                        for (leaf in listOf(null, Undefined())) {
+                            shouldThrow<IndexOutOfBoundsException> {
+                                    encode(mapOf("a" to mapOf("b" to leaf)), options)
+                                }
+                                .message shouldBe "Input depth exceeded depth option of 0"
+                        }
+                    }
+                }
+
+                it(
+                    "rejects over-depth values before their filter and bounds filter-produced objects"
+                ) {
+                    val prefixes = mutableListOf<String>()
+                    val filter = FunctionFilter { prefix, value ->
+                        prefixes.add(prefix)
+                        if (prefix == "a") mapOf("b" to "c") else value
+                    }
+                    shouldThrow<IndexOutOfBoundsException> {
+                        encode(mapOf("a" to "x"), EncodeOptions(depth = 0, filter = filter))
+                    }
+                    prefixes shouldBe listOf("", "a")
+                    prefixes.clear()
+                    encode(mapOf("a" to "x"), EncodeOptions(depth = 1, filter = filter)) shouldBe
+                        "a%5Bb%5D=c"
+                    prefixes shouldBe listOf("", "a", "a[b]")
+                }
+
+                it("prioritizes depth over cycles and leaves empty roots unvisited") {
+                    val cyclic = mutableMapOf<String, Any?>()
+                    cyclic["b"] = cyclic
+                    for (filter in listOf(null, FunctionFilter { _, value -> value })) {
+                        val options = EncodeOptions(filter = filter)
+                        shouldThrow<IndexOutOfBoundsException> {
+                                encode(mapOf("a" to cyclic), options.copy(depth = 0))
+                            }
+                            .message shouldBe "Input depth exceeded depth option of 0"
+                        shouldThrow<IndexOutOfBoundsException> {
+                                encode(mapOf("a" to cyclic), options)
+                            }
+                            .message shouldBe "Cyclic object value"
+                    }
+                    shouldThrow<IndexOutOfBoundsException> {
+                            encode(mapOf("a" to "b"), EncodeOptions(depth = -1))
+                        }
+                        .message shouldBe "Input depth exceeded depth option of -1"
+                    encode(emptyMap<String, Any?>(), EncodeOptions(depth = -1)) shouldBe ""
+                }
+            }
+
             it("encodes dot in key of map when encodeDotInKeys and allowDots is provided") {
                 encode(
                     mapOf("name.obj" to mapOf("first" to "John", "last" to "Doe")),
@@ -2287,11 +2435,6 @@ class EncodeSpec :
                 )
 
             out shouldBe "tags%5B%5D=x" // tags[]=x
-        }
-
-        it("does not encode dot in top-level keys when encodeDotInKeys is true") {
-            val out = encode(mapOf("a.b" to "v"), EncodeOptions(encodeDotInKeys = true))
-            out shouldBe "a.b=v" // replicates qs.js behavior
         }
     })
 

@@ -50,6 +50,7 @@ internal object Encoder {
         val formatter: Formatter,
         val encodeValuesOnly: Boolean,
         val charset: Charset,
+        val depth: Int,
     ) {
         val isCommaGenerator: Boolean = generateArrayPrefix === commaGenerator
 
@@ -63,6 +64,7 @@ internal object Encoder {
         val undefined: Boolean,
         val path: KeyPathNode,
         val context: TraversalContext,
+        val currentDepth: Int = 0,
         var phase: Phase = Phase.START,
         var values: MutableList<Any?>? = null,
         var objKeys: List<Any?> = emptyList(),
@@ -97,6 +99,7 @@ internal object Encoder {
      * @param encodeValuesOnly If true, only encodes values without keys.
      * @param charset The character set to use (default is UTF-8).
      * @param addQueryPrefix If true, adds a '?' prefix to the output.
+     * @param depth Maximum traversal depth per top-level value, starting at zero.
      */
     fun encode(
         data: Any?,
@@ -119,6 +122,7 @@ internal object Encoder {
         encodeValuesOnly: Boolean = false,
         charset: Charset = StandardCharsets.UTF_8,
         addQueryPrefix: Boolean = false,
+        depth: Int = Int.MAX_VALUE,
     ): Any {
         val prefixValue: String = prefix ?: if (addQueryPrefix) "?" else ""
         val generator: ListFormatGenerator = generateArrayPrefix ?: indicesGenerator
@@ -141,6 +145,7 @@ internal object Encoder {
                 formatter = formatter,
                 encodeValuesOnly = encodeValuesOnly,
                 charset = charset,
+                depth = depth,
             )
 
         tryEncodeLinearChain(data, undefined, prefixValue, rootContext)?.let {
@@ -191,6 +196,7 @@ internal object Encoder {
 
             when (frame.phase) {
                 Phase.START -> {
+                    checkDepth(frame.currentDepth, frame.context.depth)
                     var obj: Any? = frame.obj
                     val context = frame.context
                     var pathText: String? = null
@@ -487,6 +493,7 @@ internal object Encoder {
                             undefined = valueUndefined,
                             path = keyPath,
                             context = childContext,
+                            currentDepth = frame.currentDepth + 1,
                         )
                     )
                     continue
@@ -501,6 +508,12 @@ internal object Encoder {
         }
 
         return lastResult ?: emptyList<Any?>()
+    }
+
+    private fun checkDepth(currentDepth: Int, depth: Int) {
+        if (currentDepth > depth) {
+            throw IndexOutOfBoundsException("Input depth exceeded depth option of $depth")
+        }
     }
 
     private fun buildSequenceChildPath(
@@ -536,8 +549,10 @@ internal object Encoder {
         val seen = Collections.newSetFromMap(IdentityHashMap<Any?, Boolean>())
         var current: Any? = data
         var path = KeyPathNode.fromMaterialized(prefix)
+        var currentDepth = 0
 
         while (current is Map<*, *>) {
+            checkDepth(currentDepth, context.depth)
             if (!seen.add(current)) {
                 throw IndexOutOfBoundsException("Cyclic object value")
             }
@@ -546,6 +561,7 @@ internal object Encoder {
             }
 
             val entry = current.entries.first()
+            if (entry.value == null && context.skipNulls) return emptyList<Any?>()
             val key = entry.key.toString()
             val encodedKey =
                 if (context.allowDots && context.encodeDotInKeys) key.replace(".", "%2E") else key
@@ -559,8 +575,10 @@ internal object Encoder {
                 }
 
             current = entry.value
+            currentDepth += 1
         }
 
+        checkDepth(currentDepth, context.depth)
         var leaf = current
         if (leaf is LocalDateTime) {
             leaf = context.serializeDate?.invoke(leaf) ?: leaf.toString()

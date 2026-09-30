@@ -19,6 +19,18 @@ import org.junit.jupiter.api.Test;
 public class EncodeOptionsInteropTest {
 
   @Test
+  @DisplayName("depth builder enforces the boundary during encoding")
+  void depthBoundsTraversal() {
+    EncodeOptions options = EncodeOptions.builder().depth(0).build();
+    assertEquals("a=b", QS.encode(Map.of("a", "b"), options));
+    IndexOutOfBoundsException error =
+        assertThrows(
+            IndexOutOfBoundsException.class,
+            () -> QS.encode(Map.of("a", Map.of("b", "c")), options));
+    assertEquals("Input depth exceeded depth option of 0", error.getMessage());
+  }
+
+  @Test
   @DisplayName("listFormat fallback via indices and default")
   void listFormatFallback() {
     EncodeOptions idxTrue = EncodeOptions.builder().indices(true).build();
@@ -75,8 +87,7 @@ public class EncodeOptionsInteropTest {
     Map<String, Object> m = Map.of("a.b", "c d");
     String out =
         QS.encode(m, EncodeOptions.builder().encodeDotInKeys(true).encodeValuesOnly(true).build());
-    // Key left as a.b (early primitive path), value encoded
-    assertEquals("a.b=c%20d", out);
+    assertEquals("a%2Eb=c%20d", out);
   }
 
   @Test
