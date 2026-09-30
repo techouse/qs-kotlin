@@ -140,6 +140,14 @@ data class EncodeOptions(
 
     /** Set a Sorter to affect the order of parameter keys. */
     val sort: Sorter? = null,
+
+    /**
+     * Maximum traversal depth per top-level value; that value starts at depth zero. Each visited
+     * child adds one, including list elements and the synthetic joined value for COMMA lists.
+     * Throws [IndexOutOfBoundsException] before filtering an over-depth value. Null children
+     * omitted by [skipNulls] are not visited. [Int.MAX_VALUE] is effectively unlimited.
+     */
+    val depth: Int = Int.MAX_VALUE,
 ) {
     /** Convenience getter: effective allowDots (fallbacks to encodeDotInKeys when null). */
     val getAllowDots: Boolean
@@ -228,6 +236,7 @@ data class EncodeOptions(
         private var commaRoundTrip: Boolean? = null
         private var commaCompactNulls: Boolean = false
         private var sort: Sorter? = null
+        private var depth: Int = Int.MAX_VALUE
 
         /** Provide a Kotlin [ValueEncoder]. Ignored when [encode] is `false`. */
         fun encoder(encoder: ValueEncoder) = apply { this.encoder = encoder }
@@ -315,6 +324,9 @@ data class EncodeOptions(
             this.sort = { a, b -> comparator.compare(a, b) }
         }
 
+        /** Limit traversal depth per top-level value (zero allows only flat values). */
+        fun depth(value: Int) = apply { this.depth = value }
+
         /** Build an immutable [EncodeOptions] with the configured values. */
         @Suppress("DEPRECATION")
         fun build(): EncodeOptions =
@@ -339,6 +351,7 @@ data class EncodeOptions(
                 commaRoundTrip = commaRoundTrip,
                 commaCompactNulls = commaCompactNulls,
                 sort = sort,
+                depth = depth,
             )
     }
 

@@ -257,6 +257,9 @@ Use these options with `encode(data, EncodeOptions(...))` in Kotlin or
 - Dot notation for nested maps: `allowDots = true`.
 - Literal dots in keys: `encodeDotInKeys = true`; set `allowDots = true` when
   nested paths should use dot notation.
+  This includes primitive top-level values; filters see the preprocessed `%2E`
+  prefix rather than the original dotted key.
+  With `encode = false`, literal dots are still replaced when this flag is set.
 - Add a leading `?`: `addQueryPrefix = true`.
 - Custom pair delimiter: `delimiter = Delimiter.SEMICOLON` or
   `delimiter = StringDelimiter(";")`.
@@ -267,6 +270,11 @@ Use these options with `encode(data, EncodeOptions(...))` in Kotlin or
 - Emit `null` without `=`: `strictNullHandling = true`.
 - Omit `null` keys: `skipNulls = true`.
 - Emit empty lists as `foo[]`: `allowEmptyLists = true`.
+- Bound encoding traversal: `EncodeOptions(depth = n)` in Kotlin or
+  `EncodeOptions.builder().depth(n)` in Java. The default is `Int.MAX_VALUE`.
+  Each top-level value starts at zero; each child visit adds one, including
+  REPEAT and COMMA list traversal. Over-depth values throw before their filter
+  runs; null children omitted by `skipNulls` are not visited.
 - Omit selected values: use `skipNulls = true` for `null` values, return `null`
   from a `FunctionFilter`, or remove those entries before calling `encode`.
 - Legacy form spaces as `+`: `format = Format.RFC1738`; the default is
@@ -417,17 +425,20 @@ Warn or adjust before giving code for these cases:
   unlimited parsing.
 - `throwOnLimitExceeded = true` turns parameter and list limit violations into
   `IndexOutOfBoundsException`; without it, parameter parsing stops at the limit
-  and list overflows fall back to numeric-keyed maps. Flat comma values are
-  checked before value decoding; a comma group assigned through `[]=` counts as
-  one outer list element.
+  and list overflows fall back to numeric-keyed maps. All comma groups, including
+  bracketed groups, are checked before value decoding under strict limits.
+  A group assigned through `[]=` still counts as one outer list element; in
+  non-throwing mode, an oversized inner group remains a nested list. Collections
+  appended to an existing overflow map spread one level, preserving bracketed
+  inner groups rather than adding another nesting layer.
 - `strictDepth = true` throws on well-formed depth overflow; with the default
   `false`, the remainder beyond `depth` is kept as a trailing key segment.
 - Built-in charset handling supports only `StandardCharsets.UTF_8` and
   `StandardCharsets.ISO_8859_1`; other encodings require a custom `encoder` or
   `decoder`.
 - `EncodeOptions.encoder` is ignored when `encode = false`.
-- Combining `encodeValuesOnly = true` and `encodeDotInKeys = true` encodes only
-  dots in keys; values remain otherwise unchanged.
+- Combining `encodeValuesOnly = true` and `encodeDotInKeys = true` leaves the
+  preprocessed `%2E` literal in keys while values still use the configured encoder.
 - `DecodeOptions.comma` parses simple comma-separated values, but does not
   decode nested map syntax such as `a={b:1},{c:d}`.
 - `encode(null)`, scalar roots, empty maps, and empty containers generally

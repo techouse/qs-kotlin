@@ -226,11 +226,12 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
             continue
         }
 
+        val encodedKey = if (options.encodeDotInKeys) key?.replace(".", "%2E") else key
         val encoded: Any =
             Encoder.encode(
                 data = obj[key],
                 undefined = !obj.containsKey(key),
-                prefix = key,
+                prefix = encodedKey,
                 generateArrayPrefix = options.getListFormat.generator,
                 commaRoundTrip =
                     options.getListFormat.generator == ListFormat.COMMA.generator &&
@@ -255,6 +256,7 @@ fun encode(data: Any?, options: EncodeOptions? = null): String {
                 encodeValuesOnly = options.encodeValuesOnly,
                 charset = options.charset,
                 addQueryPrefix = options.addQueryPrefix,
+                depth = options.depth,
             )
 
         when (encoded) {

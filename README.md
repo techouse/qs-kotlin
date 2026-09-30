@@ -996,11 +996,13 @@ QS.decode(
 // => {a=[b, c]}
 ```
 
-When `comma = true`, comma-split values also honor `listLimit`. If
-`throwOnLimitExceeded = true`, decode throws; otherwise over-limit comma results
-convert to a map while preserving all values. A comma group assigned through
-`[]=` counts as one outer list element, so the inner group may contain more values
-than `listLimit`.
+When `comma = true`, `listLimit` controls the list-versus-map representation,
+not the total number of values retained. Flat comma results over the limit become
+numeric-keyed maps without dropping values; later comma groups append one level
+into those maps. A group assigned through `[]=` remains a nested list and counts
+as one outer element. With `throwOnLimitExceeded = true`, both the inner comma
+group and the outer list must fit the limit; oversized groups throw before value
+decoding. Without throwing, inner groups may exceed `listLimit`.
 
 ### Primitive/scalar values
 
@@ -1228,6 +1230,30 @@ QS.encode(
 // => "a[b][c]=d&a[b][e]=f"
 ```
 
+Limit encoding depth with `EncodeOptions.depth` (default: `Int.MAX_VALUE`,
+effectively unlimited). Each top-level value starts at depth zero; each visited
+child adds one. This counts list visits for every list format, including REPEAT
+and the joined COMMA value, even when no additional key segment is visible.
+Exceeding the bound throws `IndexOutOfBoundsException` before filtering that
+value. Null children omitted by `skipNulls` are not visited.
+
+Kotlin:
+```kotlin
+QS.encode(
+  mapOf("a" to mapOf("b" to "c")),
+  EncodeOptions(depth = 1)
+)
+// => "a%5Bb%5D=c"; depth = 0 throws "Input depth exceeded depth option of 0"
+```
+Java:
+```java
+QS.encode(
+  Map.of("a", Map.of("b", "c")),
+  EncodeOptions.builder().depth(1).build()
+);
+// => "a%5Bb%5D=c"
+```
+
 Dot notation:
 
 Kotlin:
@@ -1277,6 +1303,11 @@ QS.encode(
 );
 // => "name%252Eobj.first=John&name%252Eobj.last=Doe"
 ```
+
+This also applies to primitive top-level values: `{"a.b": "c"}` encodes as
+`a%252Eb=c`. With `encodeValuesOnly = true`, the preprocessed key is left as
+`a%2Eb`; with `encode = false`, it is also left as `a%2Eb`. Function filters see
+the preprocessed top-level prefix (`a%2Eb`) rather than the original key.
 
 Allow empty lists:
 

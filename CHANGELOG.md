@@ -1,5 +1,10 @@
 ## 1.6.5
 
+* [FEAT] add `EncodeOptions.depth` and Java builder support with effectively unlimited default, matching Node `qs` 6.16.0 traversal bounds in both iterative and linear-chain encoding
+* [FIX] enforce strict list limits on bracketed comma groups before value decoding, matching Node `qs` 6.16.0
+* [FIX] spread appended comma collections one level into existing overflow maps while preserving bracketed group nesting
+* [FIX] encode dots in primitive top-level keys and expose preprocessed prefixes to filters when `encodeDotInKeys` is enabled
+* [CHORE] document strict comma limits and encode depth; adding `depth` changes generated `EncodeOptions` full constructor/copy JVM signatures, so consumers using those signatures must be recompiled
 * [CHORE] update Kotlin version reference
 * [CHORE] update Android Gradle Plugin to 9.4.1
 * [CHORE] update Spotless to 8.10.2

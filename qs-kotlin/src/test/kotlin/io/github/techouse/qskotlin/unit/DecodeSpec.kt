@@ -169,11 +169,6 @@ class DecodeSpec :
             it("comma: true applies list limit after bracket list wrapping") {
                 decode(
                     "a[]=b,c,d",
-                    DecodeOptions(comma = true, throwOnLimitExceeded = true, listLimit = 1),
-                ) shouldBe mapOf("a" to listOf(listOf("b", "c", "d")))
-
-                decode(
-                    "a[]=b,c,d",
                     DecodeOptions(comma = true, throwOnLimitExceeded = false, listLimit = 0),
                 ) shouldBe mapOf("a" to mapOf("0" to listOf("b", "c", "d")))
             }
@@ -1342,6 +1337,23 @@ class DecodeSpec :
                     )
 
                 decode("a=1,2,3&a=4,5", DecodeOptions(comma = true, listLimit = 2)) shouldBe
+                    mapOf("a" to mapOf("0" to "1", "1" to "2", "2" to "3", "3" to "4", "4" to "5"))
+            }
+
+            it("spreads successive comma groups into an already-overflowed map") {
+                val options = DecodeOptions(comma = true, listLimit = 5)
+                val query = "a=1,2,3,4,5,6&a=7,8"
+                decode(query, options) shouldBe
+                    mapOf("a" to (0..7).associate { it.toString() to (it + 1).toString() })
+                decode("$query&a=9,10", options) shouldBe
+                    mapOf("a" to (0..9).associate { it.toString() to (it + 1).toString() })
+            }
+
+            it("preserves one nesting level for bracket comma groups appended after overflow") {
+                decode(
+                    "a[]=1&a[]=2&a[]=3&a[]=4,5",
+                    DecodeOptions(comma = true, listLimit = 2),
+                ) shouldBe
                     mapOf("a" to mapOf("0" to "1", "1" to "2", "2" to "3", "3" to listOf("4", "5")))
             }
 
@@ -1371,8 +1383,47 @@ class DecodeSpec :
 
                 decode(
                     "a[]=1,2,3&a[]=4,5,6",
-                    DecodeOptions(comma = true, listLimit = 2, throwOnLimitExceeded = true),
+                    DecodeOptions(comma = true, listLimit = 3, throwOnLimitExceeded = true),
                 ) shouldBe mapOf("a" to listOf(listOf("1", "2", "3"), listOf("4", "5", "6")))
+            }
+
+            it("rejects oversized bracket comma groups before value decoding") {
+                var decodedValues = 0
+                val decoder = Decoder { value, charset, kind ->
+                    if (kind == DecodeKind.VALUE) decodedValues += 1
+                    Utils.decode(value, charset)
+                }
+                val options =
+                    DecodeOptions(
+                        comma = true,
+                        listLimit = 3,
+                        throwOnLimitExceeded = true,
+                        decoder = decoder,
+                    )
+
+                for (query in listOf("a[]=1,2,3,4", "a[b][]=1,2,3,4", "a[][]=1,2,3,4")) {
+                    shouldThrow<IndexOutOfBoundsException> { decode(query, options) }
+                        .message shouldBe "List limit exceeded. Only 3 elements allowed in a list."
+                }
+                decodedValues shouldBe 0
+
+                for (duplicates in listOf(Duplicates.FIRST, Duplicates.LAST)) {
+                    shouldThrow<IndexOutOfBoundsException> {
+                        decode("a[]=5&a[]=1,2,3,4", options.copy(duplicates = duplicates))
+                    }
+                }
+                // The preceding scalar is decoded, but the oversized groups are not.
+                decodedValues shouldBe 2
+            }
+
+            it("checks inner comma groups independently from the outer bracket list") {
+                val strict = DecodeOptions(comma = true, listLimit = 3, throwOnLimitExceeded = true)
+                decode("a[]=1,2,3&a[]=4,5,6&a[]=7", strict) shouldBe
+                    mapOf("a" to listOf(listOf("1", "2", "3"), listOf("4", "5", "6"), "7"))
+                shouldThrow<IndexOutOfBoundsException> { decode(mapOf("a" to "1,2,3,4"), strict) }
+                decode(mapOf("a" to "1,2,3"), strict) shouldBe mapOf("a" to listOf("1", "2", "3"))
+                decode("a[]=1,2,3,4", strict.copy(throwOnLimitExceeded = false)) shouldBe
+                    mapOf("a" to listOf(listOf("1", "2", "3", "4")))
             }
 
             it("throws before decoding an oversized flat comma value") {
