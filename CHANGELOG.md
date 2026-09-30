@@ -1,3 +1,10 @@
+## 1.7.0
+
+* [FEAT] add `EncodeOptions.depth` with Java builder support and an effectively unlimited default; previously compiled constructor/copy callers must recompile
+* [FIX] match Node `qs` 6.16.0 strict comma-group limits and one-level overflow appends
+* [FIX] encode dots in primitive top-level keys and expose preprocessed prefixes to filters when `encodeDotInKeys` is enabled
+* [CHORE] update the comparison baseline to Node `qs` 6.16.0 and add parity coverage and documentation
+
 ## 1.6.5
 
 * [FEAT] add `EncodeOptions.depth` and Java builder support with effectively unlimited default, matching Node `qs` 6.16.0 traversal bounds in both iterative and linear-chain encoding
