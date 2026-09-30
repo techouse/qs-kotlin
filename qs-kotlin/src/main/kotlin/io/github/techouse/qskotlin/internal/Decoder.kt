@@ -27,10 +27,9 @@ internal object Decoder {
         value: Any?,
         options: DecodeOptions,
         currentListLength: Int,
-        isBracketListValue: Boolean = false,
     ): Any? {
         if (value is String && value.isNotEmpty() && options.comma && value.contains(',')) {
-            if (options.throwOnLimitExceeded && !isBracketListValue) {
+            if (options.throwOnLimitExceeded) {
                 if (options.listLimit < 0 || commaCountReachesLimit(value, options.listLimit)) {
                     Utils.throwListLimitExceeded(options.listLimit)
                 }
@@ -224,7 +223,6 @@ internal object Decoder {
                         if (obj.containsKey(key) && obj[key] is List<*>) {
                             (obj[key] as List<*>).size
                         } else 0,
-                        isBracketListValue,
                     )
                 parsedCommaList = rawValue.isNotEmpty() && options.comma && rawValue.contains(',')
                 value =

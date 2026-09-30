@@ -1057,9 +1057,15 @@ class UtilsSpec :
                 overflow.shouldBeInstanceOf<Utils.OverflowMap>()
 
                 shouldThrow<IndexOutOfBoundsException> {
-                    Utils.combine(overflow, "c", limit = 1, throwOnLimitExceeded = true)
+                    Utils.combine(
+                        overflow,
+                        listOf("c", "d"),
+                        limit = 1,
+                        throwOnLimitExceeded = true,
+                    )
                 }
                 overflow shouldBe mapOf("0" to "a", "1" to "b")
+                overflow.maxIndex shouldBe 1
             }
 
             test("keeps concatenation within the limit") {
@@ -1067,24 +1073,28 @@ class UtilsSpec :
                     listOf("a", "b")
             }
 
-            test("combine appends iterable as one value into overflow map") {
-                val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
-                overflow.shouldBeInstanceOf<Utils.OverflowMap>()
+            test("overflow appends preserve positions across empty and Undefined collections") {
+                val overflow =
+                    Utils.combine(listOf("a", "b"), "c", limit = 2)
+                        .shouldBeInstanceOf<Utils.OverflowMap>()
+                Utils.combine(overflow, emptyList<Any?>(), limit = 2)
+                overflow shouldBe mapOf("0" to "a", "1" to "b", "2" to "c")
+                overflow.maxIndex shouldBe 2
 
-                val result = Utils.combine(overflow, listOf("d", "e"), limit = 2)
-                val map = result.shouldBeInstanceOf<Utils.OverflowMap>()
-                map["3"] shouldBe listOf("d", "e")
-                map.maxIndex shouldBe 3
-            }
-
-            test("combine preserves Undefined inside iterable appended to overflow map") {
-                val overflow = Utils.combine(listOf("a", "b"), "c", limit = 2)
-                overflow.shouldBeInstanceOf<Utils.OverflowMap>()
-
-                val result = Utils.combine(overflow, listOf("d", Undefined(), "e"), limit = 2)
-                val map = result.shouldBeInstanceOf<Utils.OverflowMap>()
-                map["3"] shouldBe listOf("d", Undefined(), "e")
-                map.maxIndex shouldBe 3
+                val undefined = Undefined()
+                Utils.combine(overflow, listOf("d", undefined, "e"), limit = 2)
+                Utils.combine(overflow, "f", limit = 2)
+                overflow shouldBe
+                    mapOf(
+                        "0" to "a",
+                        "1" to "b",
+                        "2" to "c",
+                        "3" to "d",
+                        "4" to undefined,
+                        "5" to "e",
+                        "6" to "f",
+                    )
+                overflow.maxIndex shouldBe 6
             }
 
             test("combine overflows when listLimit is negative") {

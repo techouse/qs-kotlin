@@ -72,7 +72,9 @@ data class DecodeOptions(
      * cumulatively to duplicate keys, mixed list notation, and flat comma-separated values. Exact
      * limit results remain Lists; larger results become numeric-keyed Maps or throw when
      * [throwOnLimitExceeded] is true. A comma group assigned through `[]=` counts as one outer List
-     * element. This prevents inputs such as `a[999999999]` from creating huge sparse Lists.
+     * element, but strict limits also check the inner group before value decoding. Without
+     * throwing, oversized inner groups remain nested Lists. This prevents inputs such as
+     * `a[999999999]` from creating huge sparse Lists.
      */
     val listLimit: Int = 20,
 

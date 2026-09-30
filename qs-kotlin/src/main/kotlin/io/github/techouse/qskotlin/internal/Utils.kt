@@ -921,8 +921,14 @@ internal object Utils {
         if (a is OverflowMap) {
             if (throwOnLimitExceeded) throwListLimitExceeded(limit)
 
-            val newIndex = a.maxIndex + 1
-            a[newIndex.toString()] = b
+            var newIndex = a.maxIndex
+            if (b is Iterable<*>) {
+                for (value in b) {
+                    a[(++newIndex).toString()] = value
+                }
+            } else {
+                a[(++newIndex).toString()] = b
+            }
             a.maxIndex = newIndex
             return a
         }

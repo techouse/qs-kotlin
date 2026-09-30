@@ -21,7 +21,6 @@ private val parseListValueMethod by lazy {
             Any::class.java,
             DecodeOptions::class.java,
             Int::class.javaPrimitiveType,
-            Boolean::class.javaPrimitiveType,
         )
         .apply { isAccessible = true }
 }
@@ -30,9 +29,7 @@ private fun invokeParseListValue(
     input: String,
     options: DecodeOptions,
     currentListLength: Int,
-    isBracketListValue: Boolean = false,
-): Any? =
-    parseListValueMethod.invoke(Decoder, input, options, currentListLength, isBracketListValue)
+): Any? = parseListValueMethod.invoke(Decoder, input, options, currentListLength)
 
 class DecoderInternalSpec :
     DescribeSpec({
