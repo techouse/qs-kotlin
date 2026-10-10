@@ -56,12 +56,7 @@ private constructor(private val parent: KeyPathNode?, private val segment: Strin
                 depth == 2 -> parent.segment + segment
                 else -> {
                     val parts = arrayOfNulls<String>(depth)
-                    var index = depth - 1
-                    var node: KeyPathNode? = this
-                    while (node != null) {
-                        parts[index--] = node.segment
-                        node = node.parent
-                    }
+                    fillSegments(this, parts, depth - 1)
 
                     buildString(totalLength) {
                         for (part in parts) {
@@ -77,6 +72,12 @@ private constructor(private val parent: KeyPathNode?, private val segment: Strin
 
     companion object {
         fun fromMaterialized(value: String): KeyPathNode = KeyPathNode(null, value)
+
+        private tailrec fun fillSegments(node: KeyPathNode?, parts: Array<String?>, index: Int) {
+            if (node == null) return
+            parts[index] = node.segment
+            fillSegments(node.parent, parts, index - 1)
+        }
 
         private fun replaceDots(value: String): String =
             if (value.indexOf('.') >= 0) value.replace(".", "%2E") else value
