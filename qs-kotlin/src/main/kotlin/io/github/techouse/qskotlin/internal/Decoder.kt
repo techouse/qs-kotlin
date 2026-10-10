@@ -44,15 +44,16 @@ internal object Decoder {
         return value
     }
 
-    private fun commaCountReachesLimit(value: String, limit: Int): Boolean {
-        var commaCount = 0
-        var commaIndex = value.indexOf(',')
-        while (commaIndex >= 0) {
-            commaCount += 1
-            if (commaCount >= limit) return true
-            commaIndex = value.indexOf(',', commaIndex + 1)
-        }
-        return false
+    private tailrec fun commaCountReachesLimit(
+        value: String,
+        limit: Int,
+        from: Int = 0,
+        count: Int = 0,
+    ): Boolean {
+        val commaIndex = value.indexOf(',', from)
+        if (commaIndex < 0) return false
+        if (count + 1 >= limit) return true
+        return commaCountReachesLimit(value, limit, commaIndex + 1, count + 1)
     }
 
     private fun splitCommaValue(value: String): List<String> {
@@ -540,25 +541,9 @@ internal object Decoder {
         var unterminated = false
         var depth = 0
         while (open >= 0 && depth < maxDepth) {
-            var i2 = open + 1
-            var level = 1
-            var close = -1
-
             // Balance nested '[' and ']' within the same group,
             // so "[with[inner]]" is treated as one segment.
-            while (i2 < key.length) {
-                val ch2 = key[i2]
-                if (ch2 == '[') {
-                    level++
-                } else if (ch2 == ']') {
-                    level--
-                    if (level == 0) {
-                        close = i2
-                        break
-                    }
-                }
-                i2++
-            }
+            val close = closingBracket(key, open + 1)
 
             if (close < 0) {
                 unterminated = true
@@ -584,4 +569,14 @@ internal object Decoder {
 
         return segments
     }
+
+    /** Index of the `]` closing a group already opened at [level] 1, or -1 if unterminated. */
+    private tailrec fun closingBracket(key: String, from: Int, level: Int = 1): Int =
+        when {
+            from >= key.length -> -1
+            key[from] == '[' -> closingBracket(key, from + 1, level + 1)
+            key[from] != ']' -> closingBracket(key, from + 1, level)
+            level == 1 -> from
+            else -> closingBracket(key, from + 1, level - 1)
+        }
 }
