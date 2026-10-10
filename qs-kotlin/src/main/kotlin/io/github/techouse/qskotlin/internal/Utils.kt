@@ -545,70 +545,27 @@ internal object Utils {
      * https://developer.mozilla.org/en-US/docs/web/javascript/reference/global_objects/unescape
      */
     @Deprecated("Use URLDecoder.decode instead")
-    fun unescape(str: String): String {
-        val buffer = StringBuilder()
-        var i = 0
+    fun unescape(str: String): String = unescapeFrom(str, 0, StringBuilder(str.length))
 
-        while (i < str.length) {
-            val c = str[i]
+    private tailrec fun unescapeFrom(str: String, i: Int, buffer: StringBuilder): String {
+        if (i >= str.length) return buffer.toString()
 
-            if (c == '%') {
-                // Ensure there's at least one character after '%'
-                if (i + 1 < str.length) {
-                    if (str[i + 1] == 'u') {
-                        // Check that there are at least 6 characters for "%uXXXX"
-                        if (i + 6 <= str.length) {
-                            try {
-                                val charCode = str.substring(i + 2, i + 6).toInt(16)
-                                buffer.append(charCode.toChar())
-                                i += 6
-                                continue
-                            } catch (_: NumberFormatException) {
-                                // Not a valid %u escape: treat '%' as literal
-                                buffer.append(str[i])
-                                i++
-                                continue
-                            }
-                        } else {
-                            // Not enough characters for a valid %u escape: treat '%' as literal
-                            buffer.append(str[i])
-                            i++
-                            continue
-                        }
-                    } else {
-                        // For %XX escape: check that there are at least 3 characters
-                        if (i + 3 <= str.length) {
-                            try {
-                                val charCode = str.substring(i + 1, i + 3).toInt(16)
-                                buffer.append(charCode.toChar())
-                                i += 3
-                                continue
-                            } catch (_: NumberFormatException) {
-                                // Parsing failed: treat '%' as literal
-                                buffer.append(str[i])
-                                i++
-                                continue
-                            }
-                        } else {
-                            // Not enough characters for a valid %XX escape: treat '%' as literal
-                            buffer.append(str[i])
-                            i++
-                            continue
-                        }
-                    }
-                } else {
-                    // '%' is the last character; treat it as literal
-                    buffer.append(str[i])
-                    i++
-                    continue
-                }
+        if (str[i] == '%') {
+            val unicode = str.getOrNull(i + 1) == 'u'
+            val end = i + if (unicode) 6 else 3 // "%uXXXX" or "%XX"
+            // Truncated or non-hex escapes leave '%' as a literal.
+            val code =
+                if (end <= str.length) {
+                    str.substring(if (unicode) i + 2 else i + 1, end).toIntOrNull(16)
+                } else null
+            if (code != null) {
+                buffer.append(code.toChar())
+                return unescapeFrom(str, end, buffer)
             }
-
-            buffer.append(str[i])
-            i++
         }
 
-        return buffer.toString()
+        buffer.append(str[i])
+        return unescapeFrom(str, i + 1, buffer)
     }
 
     /** The maximum length of a segment to encode in a single pass. */
@@ -1059,50 +1016,40 @@ internal object Utils {
         val first = str.indexOf("&#")
         if (first == -1) return str
 
-        val sb = StringBuilder(str.length)
-        var i = 0
-        val n = str.length
-
-        while (i < n) {
-            val ch = str[i]
-            if (ch == '&' && i + 2 < n && str[i + 1] == '#') {
-                var j = i + 2
-                // must have at least one digit
-                if (j < n && str[j].isDigit()) {
-                    var code = 0
-                    val startDigits = j
-                    while (j < n && str[j].isDigit()) {
-                        code = code * 10 + (str[j] - '0')
-                        j++
-                    }
-                    // must end with ';' and have at least one digit
-                    if (j < n && str[j] == ';' && j > startDigits) {
-                        // Keep behavior compatible with your current code:
-                        // - For BMP values (<= 0xFFFF), append a single UTF-16 unit.
-                        //   This includes surrogate halves like 55357/56489.
-                        // - For > 0xFFFF, emit the surrogate pair.
-                        if (code <= 0xFFFF) {
-                            sb.append(code.toChar())
-                        } else if (code <= 0x10FFFF) {
-                            sb.append(String(Character.toChars(code)))
-                        } else {
-                            // Out-of-range: leave literal
-                            sb.append('&')
-                            i++
-                            continue
-                        }
-                        i = j + 1
-                        continue
-                    }
-                }
-                // Not a valid numeric entity: emit literal '&' and continue
-                sb.append('&')
-                i++
-            } else {
-                sb.append(ch)
-                i++
-            }
-        }
-        return sb.toString()
+        return interpretEntitiesFrom(str, 0, StringBuilder(str.length))
     }
+
+    private tailrec fun interpretEntitiesFrom(str: String, i: Int, sb: StringBuilder): String {
+        val n = str.length
+        if (i >= n) return sb.toString()
+
+        if (str[i] == '&' && i + 2 < n && str[i + 1] == '#') {
+            val start = i + 2
+            val end = digitsEnd(str, start)
+            // Needs at least one digit and a terminating ';'.
+            if (end > start && end < n && str[end] == ';') {
+                val code = digitsValue(str, start, end)
+                if (code <= 0x10FFFF) {
+                    // BMP values (incl. lone surrogate halves) are one UTF-16 unit; larger ones a
+                    // pair.
+                    if (code <= 0xFFFF) sb.append(code.toChar())
+                    else sb.append(String(Character.toChars(code)))
+                    return interpretEntitiesFrom(str, end + 1, sb)
+                }
+            }
+            // Invalid or out-of-range entity: leave '&' literal.
+            sb.append('&')
+            return interpretEntitiesFrom(str, i + 1, sb)
+        }
+
+        sb.append(str[i])
+        return interpretEntitiesFrom(str, i + 1, sb)
+    }
+
+    private tailrec fun digitsEnd(str: String, j: Int): Int =
+        if (j < str.length && str[j].isDigit()) digitsEnd(str, j + 1) else j
+
+    // Int arithmetic intentionally wraps on overflow, matching the previous loop.
+    private tailrec fun digitsValue(str: String, from: Int, end: Int, acc: Int = 0): Int =
+        if (from >= end) acc else digitsValue(str, from + 1, end, acc * 10 + (str[from] - '0'))
 }
