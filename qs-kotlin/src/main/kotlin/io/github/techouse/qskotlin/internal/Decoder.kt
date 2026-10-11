@@ -424,8 +424,8 @@ internal object Decoder {
      * Rules:
      * - Only dots at depth == 0 split. Dots inside `\[\]` are preserved.
      * - Percent-encoded dots (`%2E`/`%2e`) never split here (they may map to '.' later).
-     * - Degenerates:
-     *     * leading '.' → preserved (e.g., `".a"` stays `".a"`),
+     * - Dot edge cases:
+     *     * leading `.` before a regular segment → bracket notation (e.g., `".a"` becomes `"[a]"`),
      *     * double dots `"a..b"` → the first dot is preserved (`"a.\[b]"`),
      *     * trailing dot `"a."` → trailing '.' is preserved and ignored by the splitter.
      *
