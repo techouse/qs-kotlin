@@ -435,72 +435,65 @@ internal object Decoder {
      * - `a\[.].c` → `a\[.]\[c]`
      * - `a%2E\[b]` → remains `a%2E\[b]` (no split here)
      */
-    private fun dotToBracketTopLevel(s: String): String {
-        val sb = StringBuilder(s.length)
-        var depth = 0
-        var i = 0
-        while (i < s.length) {
-            when (val ch = s[i]) {
-                '[' -> {
-                    depth++
-                    sb.append(ch)
-                    i++
-                }
+    private fun dotToBracketTopLevel(s: String): String =
+        rewriteTopLevelDots(s, 0, 0, StringBuilder(s.length))
 
-                ']' -> {
-                    if (depth > 0) depth--
-                    sb.append(ch)
-                    i++
-                }
+    private tailrec fun rewriteTopLevelDots(
+        s: String,
+        i: Int,
+        depth: Int,
+        sb: StringBuilder,
+    ): String {
+        if (i >= s.length) return sb.toString()
 
-                '.' -> {
-                    if (depth == 0) {
-                        // Look ahead to decide what to do with a top‑level dot
-                        val hasNext = i + 1 < s.length
-                        val next = if (hasNext) s[i + 1] else '\u0000'
-                        when {
-                            // Degenerate ".[" → skip the dot so "a.[b]" behaves like "a[b]"
-                            next == '[' -> {
-                                i++ // consume the '.'
-                            }
-                            // Preserve literal dot for "a." (trailing) and for "a..b" (the first
-                            // dot)
-                            !hasNext || next == '.' -> {
-                                sb.append('.')
-                                i++
-                            }
+        val ch = s[i]
+        return when {
+            ch == '[' -> {
+                sb.append(ch)
+                rewriteTopLevelDots(s, i + 1, depth + 1, sb)
+            }
 
-                            else -> {
-                                // Normal split: convert a.b → a[b] at top level
-                                val start = ++i
-                                var j = start
-                                while (j < s.length && s[j] != '.' && s[j] != '[') j++
-                                sb.append('[').append(s, start, j).append(']')
-                                i = j
-                            }
-                        }
-                    } else {
-                        sb.append('.')
-                        i++
-                    }
-                }
+            ch == ']' -> {
+                sb.append(ch)
+                rewriteTopLevelDots(s, i + 1, if (depth > 0) depth - 1 else 0, sb)
+            }
 
-                '%' -> {
-                    // Preserve percent sequences verbatim at top level. Encoded dots (%2E/%2e)
-                    // are *not* used as separators here; they may be mapped to '.' later
-                    // when parsing segments (see DecodeOptions.defaultDecode/parseObject).
-                    sb.append('%')
-                    i++
-                }
+            ch != '.' -> {
+                // Includes '%': percent sequences are preserved verbatim at top level. Encoded dots
+                // (%2E/%2e) are *not* used as separators here; they may be mapped to '.' later
+                // when parsing segments (see DecodeOptions.defaultDecode/parseObject).
+                sb.append(ch)
+                rewriteTopLevelDots(s, i + 1, depth, sb)
+            }
 
-                else -> {
-                    sb.append(ch)
-                    i++
-                }
+            depth > 0 -> {
+                sb.append('.')
+                rewriteTopLevelDots(s, i + 1, depth, sb)
+            }
+
+            // Top-level dot: look ahead to decide what to do with it.
+            // Degenerate ".[" → skip the dot so "a.[b]" behaves like "a[b]"
+            i + 1 < s.length && s[i + 1] == '[' -> rewriteTopLevelDots(s, i + 1, depth, sb)
+
+            // Preserve literal dot for "a." (trailing) and for "a..b" (the first dot)
+            i + 1 >= s.length || s[i + 1] == '.' -> {
+                sb.append('.')
+                rewriteTopLevelDots(s, i + 1, depth, sb)
+            }
+
+            else -> {
+                // Normal split: convert a.b → a[b] at top level
+                val end = dotSegmentEnd(s, i + 1)
+                sb.append('[').append(s, i + 1, end).append(']')
+                rewriteTopLevelDots(s, end, depth, sb)
             }
         }
-        return sb.toString()
     }
+
+    /** Index of the first `.` or `[` at or after [from], or the end of [s] if there is none. */
+    private tailrec fun dotSegmentEnd(s: String, from: Int): Int =
+        if (from < s.length && s[from] != '.' && s[from] != '[') dotSegmentEnd(s, from + 1)
+        else from
 
     /**
      * Split a key into segments based on balanced brackets.
