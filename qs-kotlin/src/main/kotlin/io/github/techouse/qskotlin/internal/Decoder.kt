@@ -44,15 +44,16 @@ internal object Decoder {
         return value
     }
 
-    private fun commaCountReachesLimit(value: String, limit: Int): Boolean {
-        var commaCount = 0
-        var commaIndex = value.indexOf(',')
-        while (commaIndex >= 0) {
-            commaCount += 1
-            if (commaCount >= limit) return true
-            commaIndex = value.indexOf(',', commaIndex + 1)
-        }
-        return false
+    private tailrec fun commaCountReachesLimit(
+        value: String,
+        limit: Int,
+        from: Int = 0,
+        count: Int = 0,
+    ): Boolean {
+        val commaIndex = value.indexOf(',', from)
+        if (commaIndex < 0) return false
+        if (count + 1 >= limit) return true
+        return commaCountReachesLimit(value, limit, commaIndex + 1, count + 1)
     }
 
     private fun splitCommaValue(value: String): List<String> {
@@ -434,72 +435,65 @@ internal object Decoder {
      * - `a\[.].c` → `a\[.]\[c]`
      * - `a%2E\[b]` → remains `a%2E\[b]` (no split here)
      */
-    private fun dotToBracketTopLevel(s: String): String {
-        val sb = StringBuilder(s.length)
-        var depth = 0
-        var i = 0
-        while (i < s.length) {
-            when (val ch = s[i]) {
-                '[' -> {
-                    depth++
-                    sb.append(ch)
-                    i++
-                }
+    private fun dotToBracketTopLevel(s: String): String =
+        rewriteTopLevelDots(s, 0, 0, StringBuilder(s.length))
 
-                ']' -> {
-                    if (depth > 0) depth--
-                    sb.append(ch)
-                    i++
-                }
+    private tailrec fun rewriteTopLevelDots(
+        s: String,
+        i: Int,
+        depth: Int,
+        sb: StringBuilder,
+    ): String {
+        if (i >= s.length) return sb.toString()
 
-                '.' -> {
-                    if (depth == 0) {
-                        // Look ahead to decide what to do with a top‑level dot
-                        val hasNext = i + 1 < s.length
-                        val next = if (hasNext) s[i + 1] else '\u0000'
-                        when {
-                            // Degenerate ".[" → skip the dot so "a.[b]" behaves like "a[b]"
-                            next == '[' -> {
-                                i++ // consume the '.'
-                            }
-                            // Preserve literal dot for "a." (trailing) and for "a..b" (the first
-                            // dot)
-                            !hasNext || next == '.' -> {
-                                sb.append('.')
-                                i++
-                            }
+        val ch = s[i]
+        return when {
+            ch == '[' -> {
+                sb.append(ch)
+                rewriteTopLevelDots(s, i + 1, depth + 1, sb)
+            }
 
-                            else -> {
-                                // Normal split: convert a.b → a[b] at top level
-                                val start = ++i
-                                var j = start
-                                while (j < s.length && s[j] != '.' && s[j] != '[') j++
-                                sb.append('[').append(s, start, j).append(']')
-                                i = j
-                            }
-                        }
-                    } else {
-                        sb.append('.')
-                        i++
-                    }
-                }
+            ch == ']' -> {
+                sb.append(ch)
+                rewriteTopLevelDots(s, i + 1, if (depth > 0) depth - 1 else 0, sb)
+            }
 
-                '%' -> {
-                    // Preserve percent sequences verbatim at top level. Encoded dots (%2E/%2e)
-                    // are *not* used as separators here; they may be mapped to '.' later
-                    // when parsing segments (see DecodeOptions.defaultDecode/parseObject).
-                    sb.append('%')
-                    i++
-                }
+            ch != '.' -> {
+                // Includes '%': percent sequences are preserved verbatim at top level. Encoded dots
+                // (%2E/%2e) are *not* used as separators here; they may be mapped to '.' later
+                // when parsing segments (see DecodeOptions.defaultDecode/parseObject).
+                sb.append(ch)
+                rewriteTopLevelDots(s, i + 1, depth, sb)
+            }
 
-                else -> {
-                    sb.append(ch)
-                    i++
-                }
+            depth > 0 -> {
+                sb.append('.')
+                rewriteTopLevelDots(s, i + 1, depth, sb)
+            }
+
+            // Top-level dot: look ahead to decide what to do with it.
+            // Degenerate ".[" → skip the dot so "a.[b]" behaves like "a[b]"
+            i + 1 < s.length && s[i + 1] == '[' -> rewriteTopLevelDots(s, i + 1, depth, sb)
+
+            // Preserve literal dot for "a." (trailing) and for "a..b" (the first dot)
+            i + 1 >= s.length || s[i + 1] == '.' -> {
+                sb.append('.')
+                rewriteTopLevelDots(s, i + 1, depth, sb)
+            }
+
+            else -> {
+                // Normal split: convert a.b → a[b] at top level
+                val end = dotSegmentEnd(s, i + 1)
+                sb.append('[').append(s, i + 1, end).append(']')
+                rewriteTopLevelDots(s, end, depth, sb)
             }
         }
-        return sb.toString()
     }
+
+    /** Index of the first `.` or `[` at or after [from], or the end of [s] if there is none. */
+    private tailrec fun dotSegmentEnd(s: String, from: Int): Int =
+        if (from < s.length && s[from] != '.' && s[from] != '[') dotSegmentEnd(s, from + 1)
+        else from
 
     /**
      * Split a key into segments based on balanced brackets.
@@ -540,25 +534,9 @@ internal object Decoder {
         var unterminated = false
         var depth = 0
         while (open >= 0 && depth < maxDepth) {
-            var i2 = open + 1
-            var level = 1
-            var close = -1
-
             // Balance nested '[' and ']' within the same group,
             // so "[with[inner]]" is treated as one segment.
-            while (i2 < key.length) {
-                val ch2 = key[i2]
-                if (ch2 == '[') {
-                    level++
-                } else if (ch2 == ']') {
-                    level--
-                    if (level == 0) {
-                        close = i2
-                        break
-                    }
-                }
-                i2++
-            }
+            val close = closingBracket(key, open + 1)
 
             if (close < 0) {
                 unterminated = true
@@ -584,4 +562,14 @@ internal object Decoder {
 
         return segments
     }
+
+    /** Index of the `]` closing a group already opened at [level] 1, or -1 if unterminated. */
+    private tailrec fun closingBracket(key: String, from: Int, level: Int = 1): Int =
+        when {
+            from >= key.length -> -1
+            key[from] == '[' -> closingBracket(key, from + 1, level + 1)
+            key[from] != ']' -> closingBracket(key, from + 1, level)
+            level == 1 -> from
+            else -> closingBracket(key, from + 1, level - 1)
+        }
 }
