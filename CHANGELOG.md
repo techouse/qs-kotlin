@@ -1,3 +1,9 @@
+## 1.7.1
+
+* [CHORE] refactor decoder scans, key-path materialization, and utility percent-unescape/numeric-entity parsing to use Kotlin tail-recursive helpers
+* [CHORE] clarify top-level dot normalization documentation: a leading dot before a regular segment becomes bracket notation (for example, `.a` becomes `[a]`)
+* [CHORE] update the Gradle wrapper to 9.8.1, Develocity to 4.6.0, and Spotless to 8.10.3
+
 ## 1.7.0
 
 * [FEAT] add `EncodeOptions.depth` with Java builder support and an effectively unlimited default; previously compiled constructor/copy callers must recompile
